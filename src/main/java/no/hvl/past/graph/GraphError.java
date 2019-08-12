@@ -1,6 +1,5 @@
 package no.hvl.past.graph;
 
-import graphql.ErrorType;
 
 import java.util.Objects;
 import java.util.Set;
