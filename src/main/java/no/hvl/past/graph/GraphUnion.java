@@ -1,16 +1,22 @@
 package no.hvl.past.graph;
 
-import no.hvl.past.graph.names.Name;
+import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.names.Name;
 
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Represents a composite graph that is yielded by taking
  * the union of a set of graphs.
  */
-public class GraphUnion implements AbstractGraph {
+public class GraphUnion implements Graph {
+
+    @Override
+    public boolean isInfinite() {
+        return members.stream().anyMatch(Graph::isInfinite);
+    }
 
     private static class UnionSpliterator implements Spliterator<Triple> {
 
@@ -71,14 +77,25 @@ public class GraphUnion implements AbstractGraph {
         }
     }
 
-
-    private final List<AbstractGraph> members;
-
+    private final List<Graph> members;
     private final Name name;
 
-    public GraphUnion(List<AbstractGraph> members, Name name) {
+    public GraphUnion(List<Graph> members, Name name) {
         this.members = members;
         this.name = name;
+    }
+
+    @Override
+    public Stream<Triple> elements() {
+        if (members.isEmpty()) {
+            return Stream.empty();
+        }
+        Iterator<Graph> i = this.members.iterator();
+        Stream<Triple> result = i.next().elements();
+        while (i.hasNext()) {
+            result = Stream.concat(result, i.next().elements());
+        }
+        return result;
     }
 
     @Override
@@ -87,60 +104,75 @@ public class GraphUnion implements AbstractGraph {
     }
 
     @Override
-    public boolean contains(Name name) {
-        return this.members.stream().anyMatch(m -> m.contains(name));
+    public boolean mentions(Name name) {
+        return this.members.stream().anyMatch(m -> m.mentions(name));
     }
 
     @Override
-    public Set<Triple> outgoing(Name from) {
-        return this.members.stream().flatMap(m -> m.outgoing(from).stream()).collect(Collectors.toSet());
+    public Stream<Triple> outgoing(Name from) {
+        return this.members.stream().flatMap(m -> m.outgoing(from));
     }
 
     @Override
-    public Set<Triple> incoming(Name to) {
-        return this.members.stream().flatMap(m -> m.incoming(to).stream()).collect(Collectors.toSet());
+    public Stream<Triple> incoming(Name to) {
+        return this.members.stream().flatMap(m -> m.incoming(to));
     }
 
     @Override
-    public Iterator<Triple> iterator() {
-        List<Iterator<Triple>> iterators = this.members.stream().map(AbstractGraph::iterator).collect(Collectors.toList());
-        return new Iterator<Triple>() {
-
-            private Iterator<Iterator<Triple>> i = iterators.iterator();
-            private Iterator<Triple> current;
-
-            @Override
-            public boolean hasNext() {
-                if (current == null) {
-                    if (!i.hasNext()) {
-                        return false;
-                    }
-                    current = i.next();
-                }
-                if (current.hasNext()) {
-                    return true;
-                }
-                if (i.hasNext()) {
-                    current = i.next();
-                    return this.hasNext();
-                }
-                return false;
+    public Optional<Triple> get(Name label) {
+        for (Graph g : members) {
+            Optional<Triple> triple = g.get(label);
+            if (triple.isPresent()) {
+                return triple;
             }
-
-            @Override
-            public Triple next() {
-                return current.next();
-            }
-        };
+        }
+        return Optional.empty();
     }
 
-    @Override
-    public Spliterator<Triple> spliterator() {
-        return new UnionSpliterator(this.members.stream().map(AbstractGraph::spliterator).collect(Collectors.toList()));
-    }
+
+//    @Override
+//    public Iterator<Triple> iterator() {
+//        List<Iterator<Triple>> iterators = this.members.stream().map(Graph::iterator).collect(Collectors.toList());
+//        return new Iterator<Triple>() {
+//
+//            private Iterator<Iterator<Triple>> i = iterators.iterator();
+//            private Iterator<Triple> current;
+//
+//            @Override
+//            public boolean hasNext() {
+//                if (current == null) {
+//                    if (!i.hasNext()) {
+//                        return false;
+//                    }
+//                    current = i.next();
+//                }
+//                if (current.hasNext()) {
+//                    return true;
+//                }
+//                if (i.hasNext()) {
+//                    current = i.next();
+//                    return this.hasNext();
+//                }
+//                return false;
+//            }
+//
+//            @Override
+//            public Triple next() {
+//                return current.next();
+//            }
+//        };
+//    }
+//
+//    @Override
+//    public Spliterator<Triple> spliterator() {
+//        return new UnionSpliterator(this.members.stream().map(Graph::spliterator).collect(Collectors.toList()));
+//    }
 
     @Override
     public Name getName() {
         return name;
     }
+
+
+
 }

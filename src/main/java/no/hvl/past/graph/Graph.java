@@ -1,215 +1,303 @@
 package no.hvl.past.graph;
 
-import no.hvl.past.graph.names.Name;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Multisets;
+import com.google.common.collect.Streams;
+import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.names.Name;
 import no.hvl.past.util.SearchEngine;
-import no.hvl.past.util.SearchStrategy;
 import no.hvl.past.util.StateSpace;
+import no.hvl.past.util.StreamExtensions;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
-public class Graph implements StateSpace<Name>, AbstractGraph {
+/**
+ * A directed multigraph consisting of nodes and edges.
+ * Nodes and Edges have an identity (Edges have a label).
+ * Graphs are the lingua franca in Computer Science and Software Engineering,
+ * they can represent all relevant artifacts, i.e.
+ * Software (Meta-)models, source code (via the AST), XML documents, Database Schema etc.
+ */
+public interface Graph extends Element, StateSpace<Name, Triple> {
 
-    private final Name name;
+    /**
+     * Provides a stream with all graph elements (triples).
+     * If this is a big graph, this operation could be rather expensive.
+     */
+    Stream<Triple> elements();
 
-    private final Set<Triple> elements;
-
-
-    public static class Builder {
-        private Name name;
-        private ArrayList<Triple> aggregator;
-
-        public Builder(Name name) {
-            this.name = name;
-            this.aggregator = new ArrayList<>();
-        }
-
-        public Builder(String name) {
-            this(Name.identifier(name));
-        }
-
-        /**
-         * Constructs a node.
-         */
-        public Builder node(String name) {
-            Name nodeName = Name.identifier(name);
-            Triple toAdd = Triple.fromNode(nodeName);
-            if (aggregator.contains(toAdd)) {
-                return this;
-            }
-            aggregator.add(toAdd);
-            return this;
-        }
-
-        /**
-         * Constructs an edge (and its content if necessary).
-         */
-        public Builder edge(String from, String label, String to) {
-            Name fromName = Name.identifier(from);
-            Name labelName = Name.identifier(label);
-            Name toName = Name.identifier(to);
-            return edge(fromName, labelName, toName);
-        }
-
-        public Builder edge(Name from, Name label, Name to) {
-            if (aggregator.contains(new Triple(from, label, to))) {
-                return this;
-            }
-            if (!aggregator.contains(Triple.fromNode(from))) {
-                aggregator.add(Triple.fromNode(from));
-            }
-            if (!aggregator.contains(Triple.fromNode(to))) {
-                aggregator.add(Triple.fromNode(to));
-            }
-            aggregator.add(new Triple(from, label, to));
-            return this;
-        }
-
-
-        public Graph build() {
-            return new Graph(name, new HashSet<>(aggregator));
-        }
-
-
-    }
-
-    public Set<Triple> getElements() {
-        return elements;
-    }
-
-    Graph(Name name, Set<Triple> elements) {
-        this.name = name;
-        this.elements = elements;
-    }
-
-    public Name getName() {
-        return name;
-    }
-
-
-    public Set<Tuple> getIdentityMapping() {
-        return this.elements.stream().map(t -> new Tuple(t.getLabel(), t.getLabel())).collect(Collectors.toSet());
-    }
-
-    @Override
-    public Morphism identity() {
-        return new Morphism(this.name, this, this, getIdentityMapping());
-    }
-
-    Graph prefix() {
-        return new Graph(name, elements.stream().map(t -> t.prefix(getName())).collect(Collectors.toSet()));
-    }
-
-    private Graph unprefix() {
-        return new Graph(name, elements.stream().map(t -> t.unprefix(getName())).collect(Collectors.toSet()));
-    }
-
-    public Set<Triple> getEdges() {
-        return elements.stream().filter(Triple::isEddge).collect(Collectors.toSet());
-    }
-
-    public Set<Name> getNodes() {
-        return elements.stream().filter(Triple::isNode).map(Triple::getLabel).collect(Collectors.toSet());
-    }
-
-    @Override
-    public boolean contains(Triple triple) {
-        return this.elements.contains(triple);
-    }
-
-    @Override
-    public boolean contains(Name name) {
-        return this.elements.stream().map(Triple::getLabel).anyMatch(l -> l.equals(name));
-    }
-
-    @Override
-    public Set<Triple> outgoing(Name from) {
-        return this.elements.stream().filter(e -> e.getSource().equals(from)).collect(Collectors.toSet());
-    }
-
-    @Override
-    public Set<Triple> incoming(Name to) {
-        return this.elements.stream().filter(e -> e.getTarget().equals(to)).collect(Collectors.toSet());
-    }
-
-    @Override
-    public Iterator<Triple> iterator() {
-        return elements.iterator();
-    }
-
-    public boolean existsPath(Name fromNode, Name toNode) {
-        return new SearchEngine<Name>(this, SearchStrategy.EXPLORATION)
-                .search(fromNode, n -> n.equals(toNode)).isPresent();
+    /**
+     * Returns true if this graph contains this edge.
+     */
+    default boolean contains(Triple edge) {
+        return elements().anyMatch(edge::equals);
     }
 
     /**
-     * Searches for all possible matches of the other graphs in this graph.
+     * Returns true if this graph contains the given node.
      */
-    public Set<Morphism> findMatches(Graph other) {
-        return Collections.emptySet(); // TODO
+    default boolean containsNode(Name node) {
+        return elements().filter(Triple::isNode).anyMatch(t -> t.getLabel().equals(node));
     }
 
+    /**
+     * Returns true if the given name *appears* somewhere in this graph.
+     */
+    default boolean mentions(Name name) {
+        return elements().flatMap(Triple::parts).anyMatch(name::equals);
+    }
+
+    /**
+     * Returns all nodes in this graph.
+     */
+    default Stream<Name> nodes() {
+        return elements().filter(Triple::isNode).map(Triple::getLabel);
+    }
+
+    /**
+     * Returns all (propert) edges in this graph.
+     */
+    default Stream<Triple> edges() {
+        return elements().filter(Triple::isEddge);
+    }
+
+
+    /**
+     * Returns true if this graph is empty.
+     */
+    default boolean isEmpty() {
+        return this.elements().count() == 0;
+    }
+
+    /**
+     * Retrieves all edges that have the given node as source.
+     * The node is given by its name.
+     */
+    default Stream<Triple> outgoing(Name fromNode) {
+        return elements().filter(t -> t.getSource().equals(fromNode));
+    }
+
+    /**
+     * Retrieves all edges that have the given node as target.
+     * The node is given by its name.
+     */
+    default Stream<Triple> incoming(Name toNode) {
+        return elements().filter(t -> t.getTarget().equals(toNode));
+    }
+
+    /**
+     * Returns (if existent) the triple where the name of the label is equal
+     * to the given name.
+     * This is a convenient methods as is is often necessary to access
+     * an edge without explicitly knowing its source or target.
+     */
+    default Optional<Triple> get(Name label) {
+        return elements().filter(t -> t.getLabel().equals(label)).findFirst();
+    }
+
+    /**
+     * Checks if the given name is the name of a node present in this graph.
+     */
+    default boolean isNode(Name name) {
+        return get(name).map(Triple::isNode).orElse(false);
+    }
+
+    /**
+     * Checks if the given name is the name of an edge present in this graph.
+     */
+    default boolean isEdge(Name name) {
+        return get(name).map(Triple::isEddge).orElse(false);
+    }
+
+    /**
+     * A stream of all edges in this graph, which are dangling, i.e.
+     * that have a unknown source or target.
+     * In a well-formed graph this stream should be empty.
+     */
+    default Stream<Triple> danglingEdges() {
+        return this.edges()
+                .filter(e -> !this.contains(Triple.node(e.getSource())) ||
+                        !this.contains(Triple.node(e.getTarget())));
+    }
+
+    /**
+     * A stream of all names that are ambiguous in this graph.
+     * In a well-formed graph, this stream should be empty.
+     */
+    default Stream<Name> duplicateNames() {
+        Multiset<Name> m = HashMultiset.create();
+        elements().map(Triple::getLabel).forEach(m::add);
+        return m.elementSet().stream().filter(n -> m.count(n) > 1);
+    }
+
+    /**
+     * Checks if there exists a connection between the two given nodes
+     * via searching.
+     */
+    default boolean existsPath(Name fromNode, Name toNode) {
+        if (fromNode.equals(toNode)) {
+            return true;
+        }
+        return new SearchEngine<>(this)
+                .simpleSearch(fromNode, node -> node.equals(toNode))
+                .isPresent();
+    }
+
+    // inherited methods to implement
+
+    // From element
 
     @Override
-    public Spliterator<Triple> spliterator() {
-        return this.elements.spliterator();
+    default void accept(Visitor visitor) {
+        visitor.beginGraph();
+        visitor.handleName(getName());
+        elements().forEach(visitor::handleTriple);
+        visitor.endGraph();
     }
 
-    public Graph sum(Graph other) {
+    default boolean verify() {
+        return this.danglingEdges().count() == 0 && this.duplicateNames().count() == 0;
+    }
+
+
+    default FrameworkElement elementType() {
+        return FrameworkElement.GRAPH;
+    }
+
+    // from state space
+
+    @Override
+    default List<Triple> availableActions(Name current) {
+        return this.outgoing(current).collect(Collectors.toList());
+    }
+
+    @Override
+    default Optional<Name> applyAction(Name current, Triple action) {
+        if (action.getSource().equals(current)) {
+            return Optional.of(action.getTarget());
+        }
+        return Optional.empty();
+    }
+
+
+    // Constructions
+
+    /**
+     * Constructs a morphism that represents the identity on this graph (idle).
+     */
+    default GraphMorphism identity() {
+        return new Isomorphism(this.getName(), this, getName()) {
+            @Override
+            public Name doRename(Name base) {
+                return base;
+            }
+
+            @Override
+            public boolean hasBeenRenamed(Name name) {
+                return true;
+            }
+
+            @Override
+            public Name undoRename(Name renamed) {
+                return renamed;
+            }
+        };
+    }
+
+
+    /**
+     * Returns a graph that is basically identitcal to this one but every
+     * node and edge name has been prefixed with the name of this graph.
+     * It can be used to assure that the set of names in this graph is
+     * disjoint with another graph.
+     *
+     */
+    default Graph prefix() {
+        return new Isomorphism(Name.identifier("addPrefix").appliedTo(getName()), this, getName()) {
+            @Override
+            public Name doRename(Name base) {
+                return base.prefixWith(getName());
+            }
+
+            @Override
+            public boolean hasBeenRenamed(Name name) {
+                return name.hasPrefix(getName());
+            }
+
+            @Override
+            public Name undoRename(Name renamed) {
+                return renamed.unprefix(getName());
+            }
+        }.getResult();
+    }
+
+    /**
+     * Removes the prefix of elements prefixed with the name of this graph, if any.
+     */
+    default Graph unprefix() {
+        return new Isomorphism(
+                Name.identifier("stripPrefix").appliedTo(getName()),
+                this,
+                getName()) {
+            @Override
+            public Name doRename(Name base) {
+                if (hasBeenRenamed(base)) {
+                    return base.unprefix(Graph.this.getName());
+                }
+                return base;
+            }
+
+            @Override
+            public boolean hasBeenRenamed(Name name) {
+                return name.hasPrefix(Graph.this.getName());
+            }
+
+            @Override
+            public Name undoRename(Name renamed) {
+                if (hasBeenRenamed(renamed)) {
+                    return renamed;
+                }
+                return renamed.prefixWith(Graph.this.getName());
+            }
+        }.getResult();
+    }
+
+    /**
+     * Computes the sum (dsjoint union) of this graph with another graph.
+     */
+    default Graph sum(Graph other) {
+        return new GraphUnion(Arrays.asList(this, other), this.getName().sum(other.getName()));
+    }
+
+    default Graph multiSum(Graph... others) {
+        return multiSum(Arrays.asList(others));
+    }
+
+    default Graph multiSum(List<Graph> others) {
+        List<Graph> all = new ArrayList<>();
+        all.add(this);
+        all.addAll(others);
+        return new GraphUnion(all, Name.merge(all.stream().map(Element::getName).collect(Collectors.toList())));
+    }
+
+    /**
+     * Computes the cartesian product of the two graphs.
+     */
+    default Graph cartesianProduct(Graph other) {
+        Set<Name> nodes = StreamExtensions.cartesianProduct(this::nodes, other::nodes, Name::pair).collect(Collectors.toSet());
+        Set<Triple> edges = StreamExtensions.cartesianProduct(this::edges, other::edges, (a, b) -> a.combineMap(b, Name::pair))
+                .filter(t -> nodes.contains(t.getSource()) && nodes.contains(t.getTarget()))
+                .collect(Collectors.toSet());
+
         Set<Triple> elements = new HashSet<>();
-        elements.addAll(this.prefix().elements);
-        elements.addAll(other.prefix().elements);
-        return new Graph(this.name.sum(other.name), elements);
-    }
-
-    public Graph sum(List<Graph> diagramNodes) {
-        Set<Triple> elements = new HashSet<>();
-        elements.addAll(this.prefix().elements);
-        for (Graph g : diagramNodes) {
-            elements.addAll(g.prefix().elements);
-        }
-        List<Name> collect = diagramNodes.stream().map(Graph::getName).collect(Collectors.toList());
-        Name[] names = new Name[collect.size()];
-        names = collect.toArray(names);
-        return new Graph(this.name.merge(names), elements);
-    }
-
-    @Override
-    public List<Name> step(Name current) {
-        return this.elements.stream().filter(t -> t.getSource().equals(current)).map(Triple::getTarget).collect(Collectors.toList());
-    }
-
-    @Override
-    public boolean isInfinite() {
-        return false;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof Graph) { // Equality of graphs is based on their name, therefore it is important to make sure that they have unique names
-            Graph other = (Graph) obj;
-            return this.name.equals(other.name);
-        }
-        return false;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(this.name);
+        nodes.forEach(n -> elements.add(Triple.node(n)));
+        elements.addAll(edges);
+        return new GraphImpl(this.getName().times(other.getName()), elements);
     }
 
 
-    private static Set<Triple> getDanglingEdges(Graph g) {
-        return g.elements.stream().filter(e -> !g.getNodes().contains(e.getSource()) || !g.getNodes().contains(e.getTarget())).collect(Collectors.toSet());
-    }
-
-    public static Graph create(Name name, Set<Triple> elements) throws GraphError {
-        Graph result = new Graph(name, elements);
-        Set<Triple> danglingEdges = getDanglingEdges(result);
-        if (!danglingEdges.isEmpty()) {
-            throw new GraphError(GraphError.ERROR_TYPE.DANGLING_EDGE, danglingEdges);
-        }
-        return result;
-    }
 }

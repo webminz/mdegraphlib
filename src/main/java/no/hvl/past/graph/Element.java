@@ -1,12 +1,33 @@
 package no.hvl.past.graph;
 
-import no.hvl.past.graph.names.Name;
+import no.hvl.past.names.Name;
 
+/**
+ * The abstract supertype of every element in the mdegraphlib framework.
+ */
 public interface Element {
 
+    /**
+     * Every element is uniquely identified by its name.
+     * Uniquely means up to certain boundaries, via prefixing
+     * it with names of the associated boundaries it can be
+     * made globally unique.
+     */
     Name getName();
 
-    Graph toGraph(Name containerName);
+    /**
+     * Every element can be traversed by a visitor.
+     */
+    void accept(Visitor visitor);
 
-    void sendTo(OutputPort<?> port);
+
+    /**
+     * Checks the internal structural validity of this element.
+     */
+    boolean verify();
+
+    /**
+     * Returns the type of this framework element, e.g. graph, morphism, diagram etc.
+     */
+    FrameworkElement elementType();
 }
