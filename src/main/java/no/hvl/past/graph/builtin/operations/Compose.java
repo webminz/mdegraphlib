@@ -37,7 +37,7 @@ public class Compose implements GraphOperation {
                     .node(Universe.CHAIN_FST.getSource())
                     .node(Universe.CHAIN_SND.getTarget())
                     .graph(Name.identifier("CHAIN_OUTLINE"))
-                    .fetchResultGraph();
+                    .getResult(Graph.class);
         } catch (GraphError graphError) {
             throw new ShouldNotHappenException(getClass(), "overlapArity", graphError);
         }
@@ -49,7 +49,7 @@ public class Compose implements GraphOperation {
     }
 
     @Override
-    public TypedGraph execute(TypedGraph instance, ExecutionContext context) {
+    public GraphMorphism execute(GraphMorphism instance, ExecutionContext context) {
         GraphBuilders builders = new GraphBuilders().importGraph(instance.domain());
 
         instance.allInstances(Universe.CHAIN_FST)
@@ -66,26 +66,23 @@ public class Compose implements GraphOperation {
         builders.codomain(arity());
         builders.morphism(getName().appliedTo(instance.getName()));
         try {
-            return TypedGraph.interpret(builders.fetchResultMorphism());
+            return builders.getResult(GraphMorphism.class);
         } catch (GraphError graphError) {
             throw new ShouldNotHappenException(getClass(), "execute", graphError);
         }
     }
 
+
     @Override
-    public boolean isExecuted(TypedGraph instance) {
+    public boolean isExecutedCorrectly(GraphMorphism instance) {
         return false;
     } // TODO implement
 
     @Override
-    public boolean isExecutedCorrectly(TypedGraph instance) {
-        return false;
-    } // TODO implement
+    public GraphMorphism undo(GraphMorphism instance, ExecutionContext context) {
+        return instance;
+    }
 
-    @Override
-    public boolean undo(TypedGraph instance) {
-        return false;
-    } // TODO implement
 
     public static Compose getInstance() {
         if (instance == null) {

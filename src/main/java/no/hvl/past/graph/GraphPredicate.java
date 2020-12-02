@@ -9,12 +9,16 @@ public interface GraphPredicate extends GraphLabelTheory, ExtensionPoint {
     /**
      * Verifies whether an instance typed over the inputArity graph fulfills this predicate.
      */
-    boolean check(TypedGraph instance);
+    boolean check(GraphMorphism instance);
+
 
     @Override
-    default boolean isInstance(Model<GraphLabelTheory> model) {
-        if (model instanceof TypedGraph) {
-            return check((TypedGraph) model);
+    default boolean isSatisfied(Model<Graph> model) {
+        if (model instanceof GraphMorphism) {
+            GraphMorphism instance = (GraphMorphism) model;
+            if (instance.codomain().equals(arity())) {
+                check(instance);
+            }
         }
         return false;
     }

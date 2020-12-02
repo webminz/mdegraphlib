@@ -17,7 +17,7 @@ public class InverseProxy implements GraphOperation {
             this.arity = new GraphBuilders()
                     .edge("1", "10", "0")
                     .graph("ARROW_INV")
-                    .fetchResultGraph();
+                    .getResult(Graph.class);
         } catch (GraphError graphError) {
             throw new ShouldNotHappenException(getClass(), "constructor", graphError);
         }
@@ -30,7 +30,7 @@ public class InverseProxy implements GraphOperation {
     }
 
     @Override
-    public TypedGraph execute(TypedGraph instance, ExecutionContext context) {
+    public GraphMorphism execute(GraphMorphism instance, ExecutionContext context) {
         GraphBuilders b = new GraphBuilders().importGraph(instance.domain());
         instance.allInstances(Universe.ONE_NODE_THE_NODE)
                 .map(Triple::getLabel)
@@ -47,25 +47,20 @@ public class InverseProxy implements GraphOperation {
                 .codomain(arity)
                 .morphism(getName().appliedTo(instance.getName()));
         try {
-            return TypedGraph.interpret(b.fetchResultMorphism());
+            return b.getResult(GraphMorphism.class);
         } catch (GraphError graphError) {
             throw new ShouldNotHappenException(getClass(), "execute", graphError);
         }
     }
 
     @Override
-    public boolean isExecuted(TypedGraph instance) {
+    public boolean isExecutedCorrectly(GraphMorphism instance) {
         return false;
     }
 
     @Override
-    public boolean isExecutedCorrectly(TypedGraph instance) {
-        return false;
-    }
-
-    @Override
-    public boolean undo(TypedGraph instance) {
-        return false;
+    public GraphMorphism undo(GraphMorphism instance, ExecutionContext context) {
+        return instance;
     }
 
     @Override

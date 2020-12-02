@@ -2,7 +2,7 @@ package no.hvl.past.graph.elements;
 
 import no.hvl.past.names.Name;
 
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Constituents of a mapping, e.g. a graph homorphism.
@@ -26,7 +26,6 @@ public class Tuple {
         return codomain;
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -44,5 +43,26 @@ public class Tuple {
     @Override
     public String toString() {
         return domain.toString() + "=>" + codomain.toString();
+    }
+
+
+    public static Map<Name, Name> toMap(Set<Tuple> tuples) {
+        Map<Name, Name> result = new HashMap<>();
+        tuples.forEach(t -> result.put(t.domain, t.getCodomain()));
+        return result;
+    }
+
+
+    public static Set<Tuple> fromMap(Map<Name, Name> map) {
+        Set<Tuple> result = new HashSet<>();
+        for (Map.Entry<Name, Name> entry : map.entrySet()) {
+            result.add(new Tuple(entry.getKey(), entry.getValue()));
+        }
+        return result;
+    }
+
+
+    public static Set<Tuple> transitiveClosure(Set<Tuple> inheritanceEdges) {
+        return inheritanceEdges; // TODO
     }
 }

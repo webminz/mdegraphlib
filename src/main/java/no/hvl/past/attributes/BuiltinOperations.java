@@ -595,6 +595,8 @@ public class BuiltinOperations {
 
     public static class Concatenation implements DataOperation {
 
+        private static Concatenation instance;
+
         @Override
         public String name() {
             return "concat";
@@ -616,9 +618,21 @@ public class BuiltinOperations {
             }
             return ErrorValue.INSTANCE;
         }
+
+        private Concatenation() {
+        }
+
+        public static Concatenation getInstance() {
+            if (instance == null) {
+                instance = new Concatenation();
+            }
+            return instance;
+        }
     }
 
     public static class Length implements DataOperation {
+
+        private static Length instance;
 
         @Override
         public String name() {
@@ -638,9 +652,22 @@ public class BuiltinOperations {
             }
             return null;
         }
+
+        private Length() {
+        }
+
+        public static Length getInstance() {
+            if (instance == null) {
+                instance = new Length();
+            }
+            return instance;
+        }
     }
 
     public static class Substring implements DataOperation {
+
+        private static Substring instance;
+
 
         @Override
         public String name() {
@@ -656,19 +683,34 @@ public class BuiltinOperations {
         public Value applyImplementation(Value[] arguments) {
             if (arguments[0] instanceof StringValue) {
                 if (arguments[1] instanceof IntegerValue) {
-                    if (arguments[2] instanceof IntegerValue) {
-                        StringValue string = (StringValue) arguments[0];
-                        IntegerValue from = (IntegerValue) arguments[1];
+                    StringValue string = (StringValue) arguments[0];
+                    IntegerValue from = (IntegerValue) arguments[1];
+                    if (arguments[2] != null && arguments[2] instanceof IntegerValue) {
                         IntegerValue to = (IntegerValue) arguments[2];
                         return string.substring(from, to);
+                    } else {
+                        return string.substring(from);
                     }
                 }
             }
             return ErrorValue.INSTANCE;
         }
+
+
+        private Substring() {
+        }
+
+        public static Substring getInstance() {
+            if (instance == null) {
+                instance = new Substring();
+            }
+            return instance;
+        }
     }
 
     public static class FirstIndexOf implements DataOperation {
+
+        private static FirstIndexOf instance;
 
         @Override
         public String name() {
@@ -691,9 +733,21 @@ public class BuiltinOperations {
             }
             return null;
         }
+
+        private FirstIndexOf() {
+        }
+
+        public static FirstIndexOf getInstance() {
+            if (instance == null) {
+                instance = new FirstIndexOf();
+            }
+            return instance;
+        }
     }
 
     public static class Reverse implements DataOperation {
+
+        private static Reverse instance;
 
         @Override
         public String name() {
@@ -713,11 +767,23 @@ public class BuiltinOperations {
             }
             return null;
         }
+
+        private Reverse() {
+        }
+
+        public static Reverse getInstance() {
+            if (instance == null) {
+                instance = new Reverse();
+            }
+            return instance;
+        }
     }
 
 
 
     public static class ToString implements DataOperation {
+
+        private static ToString instance;
 
         @Override
         public String name() {
@@ -749,9 +815,20 @@ public class BuiltinOperations {
             return ErrorValue.INSTANCE;
         }
 
+        private ToString() {
+        }
+
+        public static ToString getInstance() {
+            if (instance == null) {
+                instance = new ToString();
+            }
+            return instance;
+        }
     }
 
     public static class ParseInt implements DataOperation {
+
+        private static ParseInt instance;
 
         @Override
         public String name() {
@@ -770,9 +847,21 @@ public class BuiltinOperations {
             }
             return ErrorValue.INSTANCE;
         }
+
+        private ParseInt() {
+        }
+
+        public static ParseInt getInstance() {
+            if (instance == null) {
+                instance = new ParseInt();
+            }
+            return instance;
+        }
     }
 
     public static class ParseFloat implements DataOperation {
+
+        private static ParseFloat instance;
 
         @Override
         public String name() {
@@ -791,9 +880,21 @@ public class BuiltinOperations {
             }
             return ErrorValue.INSTANCE;
         }
+
+        private ParseFloat() {
+        }
+
+        public static ParseFloat getInstance() {
+            if (instance == null) {
+                instance = new ParseFloat();
+            }
+            return instance;
+        }
     }
 
     public static class ParseBool implements DataOperation {
+
+        private static ParseBool instance;
 
         @Override
         public String name() {
@@ -807,10 +908,30 @@ public class BuiltinOperations {
 
         @Override
         public Value applyImplementation(Value[] arguments) {
+            if (arguments[0] instanceof IntegerValue) {
+                IntegerValue ival = (IntegerValue) arguments[0];
+                if (ival.equals(Name.value(0))) {
+                    return Name.falseValue();
+                } else if (ival.equals(Name.value(1))) {
+                    return Name.trueValue();
+                } else {
+                    return ErrorValue.INSTANCE;
+                }
+            }
             if (arguments[0] instanceof StringValue) {
                 return BoolValue.tryParse((StringValue) arguments[0]);
             }
             return ErrorValue.INSTANCE;
+        }
+
+        private ParseBool() {
+        }
+
+        public static ParseBool getInstance() {
+            if (instance == null) {
+                instance = new ParseBool();
+            }
+            return instance;
         }
     }
 

@@ -27,7 +27,7 @@ public class Total implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.ARROW_SRC_NAME)
                 .map(Triple::getLabel)
                 .allMatch(n -> instance.allInstances(Universe.ARROW_THE_ARROW)

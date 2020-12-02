@@ -45,7 +45,7 @@ public class ComposeIncident implements GraphOperation {
                     .node(Universe.COSPAN_LEFT_LEG.getSource())
                     .node(Universe.COSPAN_RIGHT_LEG.getSource())
                     .graph(Name.identifier("COSPAN_OUTLINE"))
-                    .fetchResultGraph();
+                    .getResult(Graph.class);
         } catch (GraphError graphError) {
             throw new ShouldNotHappenException(getClass(), "overlapArity", graphError);
         }
@@ -57,7 +57,7 @@ public class ComposeIncident implements GraphOperation {
     }
 
     @Override
-    public TypedGraph execute(TypedGraph instance, ExecutionContext context) {
+    public GraphMorphism execute(GraphMorphism instance, ExecutionContext context) {
         GraphBuilders builders = new GraphBuilders().importGraph(instance.domain());
         instance.allInstances(Universe.COSPAN_LEFT_LEG).flatMap(f ->
                 instance.allInstances(Universe.COSPAN_RIGHT_LEG)
@@ -74,26 +74,23 @@ public class ComposeIncident implements GraphOperation {
         builders.codomain(Universe.INCIDENCE_TRIANGLE);
         builders.morphism(getName().appliedTo(instance.getName()));
         try {
-            return TypedGraph.interpret(builders.fetchResultMorphism());
+            return builders.getResult(GraphMorphism.class);
         } catch (GraphError graphError) {
             throw new ShouldNotHappenException(getClass(), "execute", graphError);
         }
     }
 
+
     @Override
-    public boolean isExecuted(TypedGraph instance) {
+    public boolean isExecutedCorrectly(GraphMorphism instance) {
         return false; // TODO implement
     }
 
     @Override
-    public boolean isExecutedCorrectly(TypedGraph instance) {
-        return false; // TODO implement
+    public GraphMorphism undo(GraphMorphism instance, ExecutionContext context) {
+        return instance;
     }
 
-    @Override
-    public boolean undo(TypedGraph instance) {
-        return false; // TODO implement
-    }
 
     @Override
     public String nameAsString() {

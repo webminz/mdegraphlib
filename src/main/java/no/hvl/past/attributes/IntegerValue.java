@@ -88,7 +88,11 @@ public final class IntegerValue extends Value {
 
     public static Value tryParse(StringValue value) {
         try {
-            BigInteger result = new BigInteger(value.getStringValue());
+            String toParse = value.getStringValue();
+            if (toParse.contains(".")) {
+                toParse = toParse.substring(0, toParse.indexOf('.'));
+            }
+            BigInteger result = new BigInteger(toParse);
             return new IntegerValue(result);
         } catch (NumberFormatException ex) {
             return ErrorValue.INSTANCE;

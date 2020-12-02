@@ -28,7 +28,7 @@ public abstract class EpicMorphism extends AbstractModification {
     }
 
     @Override
-    public Stream<Triple> select(Triple to) {
+    public Stream<Triple> preimage(Triple to) {
         return clazz(to);
     }
 

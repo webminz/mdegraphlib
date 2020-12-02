@@ -5,6 +5,7 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Multisets;
 import com.google.common.collect.Streams;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.logic.Signature;
 import no.hvl.past.names.Name;
 import no.hvl.past.util.SearchEngine;
 import no.hvl.past.util.StateSpace;
@@ -22,7 +23,7 @@ import java.util.stream.Stream;
  * they can represent all relevant artifacts, i.e.
  * Software (Meta-)models, source code (via the AST), XML documents, Database Schema etc.
  */
-public interface Graph extends Element, StateSpace<Name, Triple> {
+public interface Graph extends Element, StateSpace<Name, Triple>, Signature {
 
     /**
      * Provides a stream with all graph elements (triples).
@@ -71,6 +72,14 @@ public interface Graph extends Element, StateSpace<Name, Triple> {
      */
     default boolean isEmpty() {
         return this.elements().count() == 0;
+    }
+
+
+    /**
+     * Returns true if this graph is discrete, i.e. actually a set.
+     */
+    default boolean isDiscrete() {
+        return this.edges().count() == 0;
     }
 
     /**

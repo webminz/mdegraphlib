@@ -1,6 +1,7 @@
 package no.hvl.past.graph;
 
 import no.hvl.past.names.Name;
+import no.hvl.past.util.ShouldNotHappenException;
 
 /**
  * Contains some more or less real example graphs and type graphs.
@@ -67,144 +68,216 @@ public class ExampleGraphs extends AbstractTest {
     static final String ACCOUNTING_INSTANCE = "instance";
 
 
-    static final Graph ACCOUNTING_GRAPH = new GraphBuilders()
-            .edge(TRANSACTION, AMOUNT, MONEY)
-            .edge(TRANSACTION, VALID, TIMESTAMP)
-            .edge(TRANSACTION, CREDIT, ACCOUNT)
-            .edge(TRANSACTION, DEBIT, ACCOUNT)
-            .edge(TRANSACTION, PARENT, TRANSACTION)
-            .edge(TRANSACTION, DESCRIPTION, STRING)
-            .edge(ACCOUNT, NAME, STRING)
-            .edge(ACCOUNT, TYPE, ACCOUNT_TYPE)
-            .graph("ACCOUNTING")
-            .getGraphResult();
+    static final Graph ACCOUNTING_GRAPH = buildAccountingGraph();
 
-    static final GraphMorphism ACCOUNTING_INSTANCE_GRAPH = new GraphBuilders()
-            .codomain(ACCOUNTING_GRAPH)
-            .typedEdge(t("Depreciation", "Depreciation.type", "Expenses"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
-            .typedEdge(t("Food", "Food.type", "Expenses"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
-            .typedEdge(t("Payroll", "Payroll.type", "Expenses"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
-            .typedEdge(t("Sales", "Sales.type", "Revenues"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
-            .typedEdge(t("Capital", "Capital.type", "CapitalT"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
-            .typedEdge(t("Customer 1", "Customer1.type", "Debtors"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
-            .typedEdge(t("Customer 2", "Customer2.type", "Debtors"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
-            .typedEdge(t("Bank", "Bank.type", "Assets"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
-            .typedEdge(t("Furniture", "Furniture.type", "Assets"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
-            .typedEdge(t("CreditCard", "CreditCard.type", "Liabilities"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
-            .typedEdge(t("T1", "T1.amount", "$5,000"), t(TRANSACTION, AMOUNT, MONEY))
-            .typedEdge(t("T1", "T1.credit", "Customer 1"), t(TRANSACTION, CREDIT, ACCOUNT))
-            .typedEdge(t("T1", "T1.debit", "Sales"), t(TRANSACTION, DEBIT, ACCOUNT))
-            .typedEdge(t("T2", "T2.amount", "$5,000"), t(TRANSACTION, AMOUNT, MONEY))
-            .typedEdge(t("T2", "T2.credit", "Customer 2"), t(TRANSACTION, CREDIT, ACCOUNT))
-            .typedEdge(t("T2", "T2.debit", "Sales"), t(TRANSACTION, DEBIT, ACCOUNT))
-            .typedEdge(t("T3", "T3.amount", "$5,000"), t(TRANSACTION, AMOUNT, MONEY))
-            .typedEdge(t("T3", "T3.credit", "Bank"), t(TRANSACTION, CREDIT, ACCOUNT))
-            .typedEdge(t("T3", "T3.debit", "Customer 1"), t(TRANSACTION, DEBIT, ACCOUNT))
-            .typedEdge(t("T4", "T4.amount", "$2,500"), t(TRANSACTION, AMOUNT, MONEY))
-            .typedEdge(t("T4", "T4.credit", "Bank"), t(TRANSACTION, CREDIT, ACCOUNT))
-            .typedEdge(t("T4", "T4.debit", "Customer 2"), t(TRANSACTION, DEBIT, ACCOUNT))
-            .typedEdge(t("T5", "T5.amount", "$25,000"), t(TRANSACTION, AMOUNT, MONEY))
-            .typedEdge(t("T5", "T5.credit", "Bank"), t(TRANSACTION, CREDIT, ACCOUNT))
-            .typedEdge(t("T5", "T5.debit", "Capital"), t(TRANSACTION, DEBIT, ACCOUNT))
-            .typedEdge(t("T6", "T6.amount", "$500"), t(TRANSACTION, AMOUNT, MONEY))
-            .typedEdge(t("T6", "T6.credit", "Furniture"), t(TRANSACTION, CREDIT, ACCOUNT))
-            .typedEdge(t("T6", "T6.debit", "Bank"), t(TRANSACTION, DEBIT, ACCOUNT))
-            .typedEdge(t("T7", "T7.amount", "$8,000"), t(TRANSACTION, AMOUNT, MONEY))
-            .typedEdge(t("T7", "T7.credit", "Payroll"), t(TRANSACTION, CREDIT, ACCOUNT))
-            .typedEdge(t("T7", "T7.debit", "Bank"), t(TRANSACTION, DEBIT, ACCOUNT))
-            .typedEdge(t("T8", "T8.amount", "$8,000"), t(TRANSACTION, AMOUNT, MONEY))
-            .typedEdge(t("T8", "T8.credit", "CreditCard"), t(TRANSACTION, CREDIT, ACCOUNT))
-            .typedEdge(t("T8", "T8.debit", "Bank"), t(TRANSACTION, DEBIT, ACCOUNT))
-            .typedEdge(t("T9", "T9.amount", "$125"), t(TRANSACTION, AMOUNT, MONEY))
-            .typedEdge(t("T9", "T9.credit", "Depreciation"), t(TRANSACTION, CREDIT, ACCOUNT))
-            .typedEdge(t("T9", "T9.debit", "Furniture"), t(TRANSACTION, DEBIT, ACCOUNT))
-            .typedEdge(t("T10", "T10.amount", "13"), t(TRANSACTION, AMOUNT, MONEY))
-            .typedEdge(t("T10", "T10.credit", "Food"), t(TRANSACTION, CREDIT, ACCOUNT))
-            .typedEdge(t("T10", "T10.debit", "CreditCard"), t(TRANSACTION, DEBIT, ACCOUNT))
-            .graph(ACCOUNTING_INSTANCE)
-            .morphism(Name.identifier(ACCOUNTING_INSTANCE).typeBy(ACCOUNTING_GRAPH.getName()))
-            .getMorphismResult();
+    private static Graph buildAccountingGraph() {
+        try {
+            return new GraphBuilders(universe, true, true)
+                    .edge(TRANSACTION, AMOUNT, MONEY)
+                    .edge(TRANSACTION, VALID, TIMESTAMP)
+                    .edge(TRANSACTION, CREDIT, ACCOUNT)
+                    .edge(TRANSACTION, DEBIT, ACCOUNT)
+                    .edge(TRANSACTION, PARENT, TRANSACTION)
+                    .edge(TRANSACTION, DESCRIPTION, STRING)
+                    .edge(ACCOUNT, NAME, STRING)
+                    .edge(ACCOUNT, TYPE, ACCOUNT_TYPE)
+                    .graph("ACCOUNTING")
+                    .getResult(Graph.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(ExampleGraphs.class, "buildAccountingGraph", error);
+        }
+    }
 
+    static final GraphMorphism ACCOUNTING_INSTANCE_GRAPH = buildAccountingGraphInstance();
 
-    static final Graph PATIENTS_GRAPH = new GraphBuilders()
-            .edge(PATIENT, PATIENT_NO, NUMBER)
-            .edge(PATIENT, ASSIGNED, BED)
-            .edge(BED, STATION_NO, NUMBER)
-            .edge(OBSERVATION, OF, PATIENT)
-            .edge(OBSERVATION, RECORDED_AT, TIMESTAMP)
-            .edge(OBSERVATION, DETAILS, STRING)
-            .graph("patients")
-            .getGraphResult();
-
-
-    static final Graph APPOINTMENTS_GRAPH = new GraphBuilders()
-            .edge(PATIENT, ID, NUMBER)
-            .edge(APPOINTMENT, PATIENT_ATT, PATIENT)
-            .edge(APPOINTMENT, BEGIN, TIMESTAMP)
-            .edge(APPOINTMENT, END, TIMESTAMP)
-            .edge(APPOINTMENT, DOCTOR_ATT, DOCTOR)
-            .edge(DOCTOR, WORKS_AT_STATION_NO, NUMBER)
-            .edge(DOCTOR, SHIFT_STARTS, TIME)
-            .edge(DOCTOR, SHIFT_ENDS, TIME)
-            .graph("appointments")
-            .getGraphResult();
+    private static GraphMorphism buildAccountingGraphInstance()  {
+        try {
+            return new GraphBuilders(universe, true, true)
+                    .codomain(ACCOUNTING_GRAPH)
+                    .typedEdge(t("Depreciation", "Depreciation.type", "Expenses"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
+                    .typedEdge(t("Food", "Food.type", "Expenses"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
+                    .typedEdge(t("Payroll", "Payroll.type", "Expenses"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
+                    .typedEdge(t("Sales", "Sales.type", "Revenues"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
+                    .typedEdge(t("Capital", "Capital.type", "CapitalT"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
+                    .typedEdge(t("Customer 1", "Customer1.type", "Debtors"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
+                    .typedEdge(t("Customer 2", "Customer2.type", "Debtors"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
+                    .typedEdge(t("Bank", "Bank.type", "Assets"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
+                    .typedEdge(t("Furniture", "Furniture.type", "Assets"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
+                    .typedEdge(t("CreditCard", "CreditCard.type", "Liabilities"), t(ACCOUNT, TYPE, ACCOUNT_TYPE))
+                    .typedEdge(t("T1", "T1.amount", "$5,000"), t(TRANSACTION, AMOUNT, MONEY))
+                    .typedEdge(t("T1", "T1.credit", "Customer 1"), t(TRANSACTION, CREDIT, ACCOUNT))
+                    .typedEdge(t("T1", "T1.debit", "Sales"), t(TRANSACTION, DEBIT, ACCOUNT))
+                    .typedEdge(t("T2", "T2.amount", "$5,000"), t(TRANSACTION, AMOUNT, MONEY))
+                    .typedEdge(t("T2", "T2.credit", "Customer 2"), t(TRANSACTION, CREDIT, ACCOUNT))
+                    .typedEdge(t("T2", "T2.debit", "Sales"), t(TRANSACTION, DEBIT, ACCOUNT))
+                    .typedEdge(t("T3", "T3.amount", "$5,000"), t(TRANSACTION, AMOUNT, MONEY))
+                    .typedEdge(t("T3", "T3.credit", "Bank"), t(TRANSACTION, CREDIT, ACCOUNT))
+                    .typedEdge(t("T3", "T3.debit", "Customer 1"), t(TRANSACTION, DEBIT, ACCOUNT))
+                    .typedEdge(t("T4", "T4.amount", "$2,500"), t(TRANSACTION, AMOUNT, MONEY))
+                    .typedEdge(t("T4", "T4.credit", "Bank"), t(TRANSACTION, CREDIT, ACCOUNT))
+                    .typedEdge(t("T4", "T4.debit", "Customer 2"), t(TRANSACTION, DEBIT, ACCOUNT))
+                    .typedEdge(t("T5", "T5.amount", "$25,000"), t(TRANSACTION, AMOUNT, MONEY))
+                    .typedEdge(t("T5", "T5.credit", "Bank"), t(TRANSACTION, CREDIT, ACCOUNT))
+                    .typedEdge(t("T5", "T5.debit", "Capital"), t(TRANSACTION, DEBIT, ACCOUNT))
+                    .typedEdge(t("T6", "T6.amount", "$500"), t(TRANSACTION, AMOUNT, MONEY))
+                    .typedEdge(t("T6", "T6.credit", "Furniture"), t(TRANSACTION, CREDIT, ACCOUNT))
+                    .typedEdge(t("T6", "T6.debit", "Bank"), t(TRANSACTION, DEBIT, ACCOUNT))
+                    .typedEdge(t("T7", "T7.amount", "$8,000"), t(TRANSACTION, AMOUNT, MONEY))
+                    .typedEdge(t("T7", "T7.credit", "Payroll"), t(TRANSACTION, CREDIT, ACCOUNT))
+                    .typedEdge(t("T7", "T7.debit", "Bank"), t(TRANSACTION, DEBIT, ACCOUNT))
+                    .typedEdge(t("T8", "T8.amount", "$8,000"), t(TRANSACTION, AMOUNT, MONEY))
+                    .typedEdge(t("T8", "T8.credit", "CreditCard"), t(TRANSACTION, CREDIT, ACCOUNT))
+                    .typedEdge(t("T8", "T8.debit", "Bank"), t(TRANSACTION, DEBIT, ACCOUNT))
+                    .typedEdge(t("T9", "T9.amount", "$125"), t(TRANSACTION, AMOUNT, MONEY))
+                    .typedEdge(t("T9", "T9.credit", "Depreciation"), t(TRANSACTION, CREDIT, ACCOUNT))
+                    .typedEdge(t("T9", "T9.debit", "Furniture"), t(TRANSACTION, DEBIT, ACCOUNT))
+                    .typedEdge(t("T10", "T10.amount", "13"), t(TRANSACTION, AMOUNT, MONEY))
+                    .typedEdge(t("T10", "T10.credit", "Food"), t(TRANSACTION, CREDIT, ACCOUNT))
+                    .typedEdge(t("T10", "T10.debit", "CreditCard"), t(TRANSACTION, DEBIT, ACCOUNT))
+                    .graph(ACCOUNTING_INSTANCE)
+                    .morphism(Name.identifier(ACCOUNTING_INSTANCE).typeBy(ACCOUNTING_GRAPH.getName()))
+                    .getResult(GraphMorphism.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(ExampleGraphs.class, "buildAccountingGraphInstance", error);
+        }
+    }
 
 
-    static final Graph BLOODTESTS_GRAPH = new GraphBuilders()
-            .edge(SUBJECT, PATIENT_ID, NUMBER)
-            .edge(BLOOD_SAMPLE, TAKEN_FROM, SUBJECT)
-            .edge(BLOOD_SAMPLE, TAKEN_AT, TIMESTAMP)
-            .edge(BLOOD_SAMPLE, IS_CRITICAL, BOOL)
-            .edge(CHOLESTEROL_TEST, CHOLESTEROL_TEST_BASED_ON, BLOOD_SAMPLE)
-            .edge(CHOLESTEROL_TEST, TOTAL_CHOLESTEROL, NUMBER)
-            .edge(CHOLESTEROL_TEST, HDL_CHOLESTEROL, NUMBER)
-            .edge(GLUCOSE_TEST, GLUCOSE_TEST_BASED_ON, BLOOD_SAMPLE)
-            .edge(GLUCOSE_TEST, GLUCOSE_LEVEL, NUMBER)
-            .graph("bloodtests")
-            .getGraphResult();
+    static final Graph PATIENTS_GRAPH = buildPatientsModelGraph();
+
+    private static Graph buildPatientsModelGraph()  {
+        try {
+            return new GraphBuilders(universe, true, true)
+                    .edge(PATIENT, PATIENT_NO, NUMBER)
+                    .edge(PATIENT, ASSIGNED, BED)
+                    .edge(BED, STATION_NO, NUMBER)
+                    .edge(OBSERVATION, OF, PATIENT)
+                    .edge(OBSERVATION, RECORDED_AT, TIMESTAMP)
+                    .edge(OBSERVATION, DETAILS, STRING)
+                    .graph("patients")
+                    .getResult(Graph.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(ExampleGraphs.class, "buildPatientsModelGraph", error);
+        }
+    }
 
 
-    static final Graph PATIENTS_APPOINTMENTS_BLOODTEST_COMMONALITY_GRAPH = new GraphBuilders()
-            .edge(PAT, ID, NUMBER)
-            .edge(OBS, OF, PAT)
-            .edge(OBS, RECORDED, TIMESTAMP)
-            .graph("commonalities")
-            .getGraphResult();
+    static final Graph APPOINTMENTS_GRAPH = buildAppointmentsModelGraph();
 
-    static final GraphMorphism PATIENTS_PROJECTION = new GraphBuilders()
-            .domain(PATIENTS_APPOINTMENTS_BLOODTEST_COMMONALITY_GRAPH)
-            .codomain(PATIENTS_GRAPH)
-            .map(PAT, PATIENT)
-            .map(ID, PATIENT_NO)
-            .map(OBS, OBSERVATION)
-            .map(OF, OF)
-            .map(RECORDED, RECORDED_AT)
-            .map(NUMBER, NUMBER)
-            .map(TIMESTAMP, TIMESTAMP)
-            .morphism("m1")
-            .getMorphismResult();
+    private static Graph buildAppointmentsModelGraph() {
+        try {
+            return new GraphBuilders(universe, true, true)
+                    .edge(PATIENT, ID, NUMBER)
+                    .edge(APPOINTMENT, PATIENT_ATT, PATIENT)
+                    .edge(APPOINTMENT, BEGIN, TIMESTAMP)
+                    .edge(APPOINTMENT, END, TIMESTAMP)
+                    .edge(APPOINTMENT, DOCTOR_ATT, DOCTOR)
+                    .edge(DOCTOR, WORKS_AT_STATION_NO, NUMBER)
+                    .edge(DOCTOR, SHIFT_STARTS, TIME)
+                    .edge(DOCTOR, SHIFT_ENDS, TIME)
+                    .graph("appointments")
+                    .getResult(Graph.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(ExampleGraphs.class, "buildAppointmentsModelGraph", error);
+        }
+    }
 
 
-    static final GraphMorphism APPOINTMENTS_PROJECTION = new GraphBuilders()
-            .domain(PATIENTS_APPOINTMENTS_BLOODTEST_COMMONALITY_GRAPH)
-            .codomain(APPOINTMENTS_GRAPH)
-            .map(PAT, PATIENT)
-            .map(ID, ID)
-            .map(NUMBER, NUMBER)
-            .map(TIMESTAMP, TIMESTAMP)
-            .morphism("m2")
-            .getMorphismResult();
+    static final Graph BLOODTESTS_GRAPH = buildBloodTestModelGraph();
 
-    static final GraphMorphism BLOODTEST_PROJECTION = new GraphBuilders()
-            .domain(PATIENTS_APPOINTMENTS_BLOODTEST_COMMONALITY_GRAPH)
-            .codomain(BLOODTESTS_GRAPH)
-            .map(PAT, SUBJECT)
-            .map(ID, PATIENT_ID)
-            .map(OBS, BLOOD_SAMPLE)
-            .map(OF, TAKEN_FROM)
-            .map(RECORDED, TAKEN_AT)
-            .map(NUMBER, NUMBER)
-            .map(TIMESTAMP, TIMESTAMP)
-            .morphism("m3")
-            .getMorphismResult();
+    private static Graph buildBloodTestModelGraph() {
+        try {
+            return new GraphBuilders(universe, true, true)
+                    .edge(SUBJECT, PATIENT_ID, NUMBER)
+                    .edge(BLOOD_SAMPLE, TAKEN_FROM, SUBJECT)
+                    .edge(BLOOD_SAMPLE, TAKEN_AT, TIMESTAMP)
+                    .edge(BLOOD_SAMPLE, IS_CRITICAL, BOOL)
+                    .edge(CHOLESTEROL_TEST, CHOLESTEROL_TEST_BASED_ON, BLOOD_SAMPLE)
+                    .edge(CHOLESTEROL_TEST, TOTAL_CHOLESTEROL, NUMBER)
+                    .edge(CHOLESTEROL_TEST, HDL_CHOLESTEROL, NUMBER)
+                    .edge(GLUCOSE_TEST, GLUCOSE_TEST_BASED_ON, BLOOD_SAMPLE)
+                    .edge(GLUCOSE_TEST, GLUCOSE_LEVEL, NUMBER)
+                    .graph("bloodtests")
+                    .getResult(Graph.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(ExampleGraphs.class, "buildBloodTestModelGraph", error);
+        }
+    }
+
+
+    private static Graph buildCommonalitiesGraph() {
+        try {
+            return new GraphBuilders(universe, true, true)
+                    .edge(PAT, ID, NUMBER)
+                    .edge(OBS, OF, PAT)
+                    .edge(OBS, RECORDED, TIMESTAMP)
+                    .graph("commonalities")
+                    .getResult(Graph.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(ExampleGraphs.class, "buildCommonalitiesGraph", error);
+        }
+    }
+
+    static final Graph PATIENTS_APPOINTMENTS_BLOODTEST_COMMONALITY_GRAPH = buildCommonalitiesGraph();
+
+    static final GraphMorphism PATIENTS_PROJECTION = buildPatientProjectionMorphism();
+
+    private static GraphMorphism buildPatientProjectionMorphism() {
+        try {
+            return new GraphBuilders(universe, true, true)
+                    .domain(PATIENTS_APPOINTMENTS_BLOODTEST_COMMONALITY_GRAPH)
+                    .codomain(PATIENTS_GRAPH)
+                    .map(PAT, PATIENT)
+                    .map(ID, PATIENT_NO)
+                    .map(OBS, OBSERVATION)
+                    .map(OF, OF)
+                    .map(RECORDED, RECORDED_AT)
+                    .map(NUMBER, NUMBER)
+                    .map(TIMESTAMP, TIMESTAMP)
+                    .morphism("m1")
+                    .getResult(GraphMorphism.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(ExampleGraphs.class, "buildPatientProjectionMorphism", error);
+        }
+    }
+
+
+    static final GraphMorphism APPOINTMENTS_PROJECTION = buildAppointmentsProjectionMorphism();
+
+    private static GraphMorphism buildAppointmentsProjectionMorphism() {
+        try {
+            return new GraphBuilders(universe, true, true)
+                    .domain(PATIENTS_APPOINTMENTS_BLOODTEST_COMMONALITY_GRAPH)
+                    .codomain(APPOINTMENTS_GRAPH)
+                    .map(PAT, PATIENT)
+                    .map(ID, ID)
+                    .map(NUMBER, NUMBER)
+                    .map(TIMESTAMP, TIMESTAMP)
+                    .morphism("m2")
+                    .getResult(GraphMorphism.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(ExampleGraphs.class, "buildAppointmentsProjectionMorphism", error);
+        }
+    }
+
+    static final GraphMorphism BLOODTEST_PROJECTION = buildBloodtestProjectionMorphism();
+
+    private static GraphMorphism buildBloodtestProjectionMorphism() {
+        try {
+            return new GraphBuilders(universe, true, true)
+                    .domain(PATIENTS_APPOINTMENTS_BLOODTEST_COMMONALITY_GRAPH)
+                    .codomain(BLOODTESTS_GRAPH)
+                    .map(PAT, SUBJECT)
+                    .map(ID, PATIENT_ID)
+                    .map(OBS, BLOOD_SAMPLE)
+                    .map(OF, TAKEN_FROM)
+                    .map(RECORDED, TAKEN_AT)
+                    .map(NUMBER, NUMBER)
+                    .map(TIMESTAMP, TIMESTAMP)
+                    .morphism("m3")
+                    .getResult(GraphMorphism.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(ExampleGraphs.class, "buildBloodtestProjectionMorphism", error);
+        }
+    }
 }

@@ -1,8 +1,7 @@
 package no.hvl.past.graph;
 
-import no.hvl.past.logic.Theory;
+import no.hvl.past.logic.Formula;
 
-import java.util.Optional;
 
 /**
  * A Label for a diagram, which can be used to express some underlying semantic interpretation
@@ -16,11 +15,11 @@ public interface Label extends Element {
     Graph arity();
 
     /**
-     * May return a theory (syntactic representation)
+     * Returns a theory (syntactic representation)
      * of the collection of models that provides
      * semantics for this label.
      */
-    Optional<Theory<?>> semantics();
+    Formula<Graph> semantics();
 
     @Override
     default FrameworkElement elementType() {

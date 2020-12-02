@@ -38,12 +38,7 @@ public interface Diagram extends Element {
         return binding().domain();
     }
 
-    /**
-     * Given the name of an element in the arity, it provides the element it is bound to.
-     */
-    default Optional<Triple> image(Name of) {
-        return binding().applyOnNode(of);
-    }
+
 
     /**
      * Given an element in the arity, it provides the element it is bound to.

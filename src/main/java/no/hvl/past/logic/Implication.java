@@ -1,35 +1,22 @@
 package no.hvl.past.logic;
 
-import no.hvl.past.graph.GraphMorphism;
-import no.hvl.past.names.Variable;
 
-import java.util.HashSet;
-import java.util.Set;
+public class Implication<Sig extends Signature> extends FormulaCombinator<Sig> {
 
-public class Implication extends Formula {
 
-    private final Formula guard;
+    public static <Sig extends Signature> Formula<Sig> negation(Formula<Sig> formula) {
+        return new Implication<>(formula, FormulaLiteral.bot());
+    }
 
-    private final Formula conclusion;
 
-    public Implication(Formula guard, Formula conclusion) {
-        this.guard = guard;
-        this.conclusion = conclusion;
+    public Implication(Formula<Sig> lhs, Formula<Sig> rhs) {
+        super(lhs, rhs);
     }
 
     @Override
-    public Set<Variable> getVariables() {
-        Set<Variable> result = new HashSet<>();
-        result.addAll(guard.getVariables());
-        result.addAll(conclusion.getVariables());
-        return null;
+    public boolean isSatisfied(Model<Sig> model) {
+        return !getLhs().isSatisfied(model) || getRhs().isSatisfied(model);
     }
 
-    @Override
-    public boolean verify(Context context, GraphMorphism instance) {
-        if (guard.verify(context, instance)) {
-            return conclusion.verify(context, instance);
-        }
-        return true;
-    }
+
 }

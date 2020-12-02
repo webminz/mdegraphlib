@@ -1,17 +1,15 @@
 package no.hvl.past.graph;
 
-import com.google.common.collect.Streams;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
+import no.hvl.past.logic.Model;
 import no.hvl.past.names.Name;
 import no.hvl.past.util.Pair;
+import no.hvl.past.util.StreamExtensions;
 
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * A mapping between two graphs.
@@ -22,7 +20,7 @@ import java.util.stream.StreamSupport;
  * - Modifications
  * etc.
  */
-public interface GraphMorphism extends Element {
+public interface GraphMorphism extends Element, Model<Graph> {
 
 
     /**
@@ -40,9 +38,26 @@ public interface GraphMorphism extends Element {
      */
     Optional<Name> map(Name name);
 
+
+    /**
+     * The type of this element (=Graph Morphism)
+     */
     default FrameworkElement elementType() {
         return FrameworkElement.GRAPH_MORPHISM;
     }
+
+
+    @Override
+    default void accept(Visitor visitor) {
+        visitor.beginMorphism();
+        visitor.handleName(this.getName());
+        this.mappings().forEach(visitor::handleTuple);
+        domain().accept(visitor);
+        codomain().accept(visitor);
+        visitor.endMorphism();
+    }
+
+    // ACCESSORS
 
 
     /**
@@ -51,11 +66,14 @@ public interface GraphMorphism extends Element {
      * to names in the codomain.
      */
     default Stream<Tuple> mappings() {
-        return domain().elements()
-                .flatMap(Triple::parts)
-                .map(n -> new Pair<>(n, map(n)))
-                .filter(p -> p.getSecond().isPresent())
-                .map(p -> new Tuple(p.getFirst(), p.getSecond().get()));
+        return Stream.concat(
+                domain().nodes()
+                        .filter(this::definedAt)
+                        .map(n -> new Tuple(n, map(n).get())),
+                domain().edges()
+                        .map(Triple::getLabel)
+                        .filter(this::definedAt)
+                        .map(n -> new Tuple(n, map(n).get())));
     }
 
     /**
@@ -69,23 +87,16 @@ public interface GraphMorphism extends Element {
      * Returns true if this morphism is defined at the given triple.
      */
     default boolean definedAt(Triple t) {
-        return t.map(this::map).isPresent();
+        return definedAt(t.getLabel());
     }
 
-    /**
-     * Applies the morphism to the given node.
-     * If this morphism is not defined at the given element Optional.empty is returned.
-     */
-    default Optional<Triple> applyOnNode(Name node) {
-        return Triple.node(node).map(this::map);
-    }
 
     /**
      * Applies the morphism to the given edge. If this morphism is not defined at the given element,
      * Optional.empty is returned.
      */
     default Optional<Triple> apply(Triple from) {
-        return from.map(this::map);
+        return this.map(from.getLabel()).flatMap(codomain()::get);
     }
 
     /**
@@ -93,7 +104,7 @@ public interface GraphMorphism extends Element {
      * all elements (fibre) in the domain that are mapped to this particular element.
      *
      */
-    default Stream<Triple> select(Triple to) {
+    default Stream<Triple> preimage(Triple to) {
         return domain().elements().filter(t -> this.apply(t).map(to::equals).orElse(false));
     }
 
@@ -110,8 +121,8 @@ public interface GraphMorphism extends Element {
      * It is the set-valued variant of the lookup function above.
      *
      */
-    default Stream<Triple> select(Set<Triple> subgraph) {
-        return subgraph.stream().flatMap(this::select);
+    default Stream<Triple> preimage(Set<Triple> subgraph) {
+        return subgraph.stream().flatMap(this::preimage);
     }
 
     /**
@@ -121,21 +132,78 @@ public interface GraphMorphism extends Element {
         return domain().elements().map(this::apply).filter(Optional::isPresent).map(Optional::get);
     }
 
+
+    /**
+     * Interprets this morphism as a typing such that one can perform
+     * a type based traversal outgoing at a selected node in the domain.
+     * Given the name of the start node, all (possible composed) edges
+     * are retrieved that admit to typing over the given path.
+     * This can be compared to common feature in object oriented programming
+     * where properties of an object are traversed, e.g.
+     * "Person p1 = new Person(...); p1.address.city.name = ...".
+     *
+     */
+    default Stream<Triple> selectViaTypePath(Name startNode, Name... typePath) {
+        Set<Triple> result = new HashSet<>();
+        List<Name> parameter = new ArrayList<>(Arrays.asList(typePath));
+        return StreamExtensions.variablePipleline(
+                parameter,
+                Stream.of(Triple.node(startNode)),
+                (triple, typeName) -> selectByLabel(typeName).map(triple::compose).filter(Optional::isPresent).map(Optional::get));
+    }
+
+    default Stream<Triple> allInstances(Triple type) {
+        return this.preimage(type).map(t -> t.mapName(Name::firstPart));
+    }
+
+    default Stream<Triple> queryEdge(Name src, Name label, Name trg) {
+        return this.allInstances(Triple.edge(src, label, trg));
+    }
+
+    default Stream<Triple> allInstances(Name type) {
+        return this.preimage(Triple.node(type)).map(t -> t.mapName(Name::firstPart));
+    }
+
+
+    // PROPERTIES
+
+
     /**
      * Checks whether this morphism is well defined, i.e. the homomorphism property is fulfilled.
      */
     default boolean verify() {
+        return  // check whether everything is mapped to an element that actually exists in the codomain
+                    mappedToUndefined().count() == 0
+                &&  // and no homomorphism property violations
+                    homPropViolations().count() == 0;
+    }
+
+
+    /**
+     * Returns all elements of the domain graph that are mapped to an element that actually does not exist
+     * in the codomain.
+     */
+    default Stream<Triple> mappedToUndefined() {
         return domain().elements()
-                .map(this::apply)
-                .filter(Optional::isPresent)
-                .allMatch(m -> codomain().contains(m.get()))
-                &&
-                domain().elements()
-                        .map(Triple::getLabel)
-                        .filter(this::definedAt)
-                        .allMatch(n ->
-                                domain().isNode(n) && codomain().isNode(this.map(n).get()) ||
-                                        domain().isEdge(n) && codomain().isEdge(this.map(n).get()));
+                .filter(this::definedAt)
+                .filter(triple -> !codomain().get(this.map(triple.getLabel()).get()).isPresent());
+    }
+
+    /**
+     * Returns all the elements of the domain graph that violate the homomorphism-property (edge-node incidence)
+     * under this morphism.
+     */
+    default Stream<Triple> homPropViolations() {
+        return this.domain()
+                .edges()
+                .filter(this::definedAt)
+                .filter(edge -> {
+                    Triple mappedEdge = codomain().get(this.map(edge.getLabel()).get()).get();
+                    return !this.map(edge.getSource()).get().equals(mappedEdge.getSource()) || // incidence source
+                            !this.map(edge.getTarget()).get().equals(mappedEdge.getTarget()) || // incidence target
+                            domain().isNode(edge.getLabel()) && codomain().isEdge(mappedEdge.getLabel()) || // no nodes to edges
+                            domain().isEdge(edge.getLabel()) && codomain().isNode(mappedEdge.getLabel()); // no edges to nodes
+                });
     }
 
     /**
@@ -149,19 +217,22 @@ public interface GraphMorphism extends Element {
      * Checks whether this morphism is injective, i.e. basically an embedding modulo renaming.
      */
     default boolean isInjective() {
-        return codomain().elements().map(this::select).allMatch(set -> set.count() <= 1);
+        return codomain().elements().map(this::preimage).allMatch(set -> set.count() <= 1);
     }
 
     /**
      * Checks whether this morphis is surjective, i.e. every element in the codomain has a preimage.
      */
     default boolean isSurjective() {
-        return codomain().elements().map(this::select).allMatch(set -> set.count() >= 1);
+        return codomain().elements().map(this::preimage).allMatch(set -> set.count() >= 1);
     }
 
     default boolean isExtremalMonic() {
         return isInjective();
     }
+
+
+    // CONSTRUCTIONS
 
 
     /**
@@ -187,8 +258,8 @@ public interface GraphMorphism extends Element {
         }
 
         Set<Triple> elements = codomain().elements()
-                .flatMap(target -> this.select(target)
-                        .flatMap(pre1 -> right.select(target).map(pre2 ->
+                .flatMap(target -> this.preimage(target)
+                        .flatMap(pre1 -> right.preimage(target).map(pre2 ->
                              pre1.combineMap(pre2, Name::pair)
                         )))
                 .collect(Collectors.toSet());
@@ -213,8 +284,6 @@ public interface GraphMorphism extends Element {
     // TODO pushout
 
     // TODO final pullback complement
-
-    // Diagram operations
 
 
     /**
@@ -252,20 +321,6 @@ public interface GraphMorphism extends Element {
         };
         return addTyping.codomain();
     }
-
-
-    @Override
-    default void accept(Visitor visitor) {
-        visitor.beginMorphism();
-        visitor.handleName(this.getName());
-        domain().accept(visitor);
-        codomain().accept(visitor);
-        this.mappings().forEach(visitor::handleTuple);
-        visitor.endMorphism();
-    }
-
-
-
 
     /**
      * Interprets a given graph as a graph morphism, where the elements
@@ -318,7 +373,5 @@ public interface GraphMorphism extends Element {
     }
 
 
-    default Stream<Triple> homPropViolations() {
-        return Stream.empty(); // TODO
-    }
+
 }

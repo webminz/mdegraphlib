@@ -23,7 +23,7 @@ public class ConstantValue implements GraphOperation {
     }
 
     @Override
-    public TypedGraph execute(TypedGraph instance, ExecutionContext context) {
+    public GraphMorphism execute(GraphMorphism instance, ExecutionContext context) {
         GraphBuilders builders = new GraphBuilders().importGraph(instance.domain());
         instance.allInstances(Universe.ONE_NODE_THE_NODE)
                 .map(s -> new Triple(
@@ -39,26 +39,23 @@ public class ConstantValue implements GraphOperation {
         builders.codomain(Universe.ARROW);
         builders.morphism(getName().appliedTo(instance.getName()));
         try {
-            return TypedGraph.interpret(builders.fetchResultMorphism());
+            return builders.getResult(GraphMorphism.class);
         } catch (GraphError graphError) {
             throw new ShouldNotHappenException(getClass(), "execute", graphError);
         }
     }
 
+
     @Override
-    public boolean isExecuted(TypedGraph instance) {
+    public boolean isExecutedCorrectly(GraphMorphism instance) {
         return false;
     }
 
     @Override
-    public boolean isExecutedCorrectly(TypedGraph instance) {
-        return false;
+    public GraphMorphism undo(GraphMorphism instance, ExecutionContext context) {
+        return instance;
     }
 
-    @Override
-    public boolean undo(TypedGraph instance) {
-        return false;
-    }
 
     @Override
     public String nameAsString() {

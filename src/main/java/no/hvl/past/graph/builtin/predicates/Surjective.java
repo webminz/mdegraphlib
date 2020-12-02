@@ -27,7 +27,7 @@ public class Surjective implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.ARROW_TRG_NAME)
                 .map(Triple::getLabel)
                 .allMatch(n -> instance.allInstances(Universe.ARROW_THE_ARROW)

@@ -7,13 +7,14 @@ import no.hvl.past.util.Pair;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.*;
 
 public class MorphismTest extends AbstractTest {
 
     @Test
-    public void testSetTheoreticPullback() {
+    public void testSetTheoreticPullback() throws GraphError {
 
         Graph B = getContextCreatingBuilder()
                 .node("1")
@@ -21,14 +22,14 @@ public class MorphismTest extends AbstractTest {
                 .node("3")
                 .node("4")
                 .graph("B")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph C = getContextCreatingBuilder()
                 .node("5")
                 .node("6")
                 .node("7")
                 .graph("C")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph D = getContextCreatingBuilder()
                 .node("a")
@@ -36,7 +37,7 @@ public class MorphismTest extends AbstractTest {
                 .node("c")
                 .node("d")
                 .graph("D")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         GraphMorphism bd = getContextCreatingBuilder()
                 .domain(B)
@@ -46,7 +47,7 @@ public class MorphismTest extends AbstractTest {
                 .map("3", "b")
                 .map("4", "c")
                 .morphism("bc")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         GraphMorphism cd = getContextCreatingBuilder()
                 .domain(C)
@@ -55,7 +56,7 @@ public class MorphismTest extends AbstractTest {
                 .map("6", "b")
                 .map("7", "d")
                 .morphism("cd")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
 
         Pair<GraphMorphism, GraphMorphism> result = bd.pullback(cd, Name.identifier("A"));
@@ -64,26 +65,26 @@ public class MorphismTest extends AbstractTest {
     }
 
     @Test
-    public void testPullbackOfRealGraph() {
+    public void testPullbackOfRealGraph() throws GraphError {
 
         Graph G_B = getContextCreatingBuilder()
                 .edge("1", "i", "2")
                 .edge("1", "ii", "3")
                 .graph("G_B")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph G_c = getContextCreatingBuilder()
                 .edge("5", "v", "6")
                 .edge("6", "vi", "7")
                 .graph("G_C")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph G_D = getContextCreatingBuilder()
                 .edge("A", "a", "B")
                 .edge("A", "b", "C")
                 .edge("B", "c", "C")
                 .graph("G_D")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         GraphMorphism bd = getContextCreatingBuilder()
                 .domain(G_B)
@@ -93,7 +94,7 @@ public class MorphismTest extends AbstractTest {
                 .typedEdge(new Triple(Name.identifier("1"), Name.identifier("ii"), Name.identifier("3")),
                         new Triple(Name.identifier("A"), Name.identifier("b"), Name.identifier("C")))
                 .morphism("bd")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         GraphMorphism cd = getContextCreatingBuilder()
                 .domain(G_c)
@@ -103,7 +104,7 @@ public class MorphismTest extends AbstractTest {
                 .typedEdge(new Triple(Name.identifier("6"), Name.identifier("vi"), Name.identifier("7")),
                         new Triple(Name.identifier("B"), Name.identifier("c"), Name.identifier("C")))
                 .morphism("cd")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         Pair<GraphMorphism, GraphMorphism> result = bd.pullback(cd, Name.identifier("A"));
 
@@ -116,12 +117,12 @@ public class MorphismTest extends AbstractTest {
 
 
     @Test
-    public void testPullbackWithCopying() {
+    public void testPullbackWithCopying() throws GraphError {
         Graph typeGraph = getContextCreatingBuilder()
                 .edge("C", "r", "C")
                 .edge("C", "e", "C")
                 .graph("TG")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph testGraph = getContextCreatingBuilder()
                 .edge(Name.identifier("B"), Name.identifier("B").subTypeOf(Name.identifier("A")), Name.identifier("A"))
@@ -131,9 +132,9 @@ public class MorphismTest extends AbstractTest {
                 .edge("A", "r1", "D")
                 .edge("E", "r2", "A")
                 .graph("G")
-                .getGraphResult();
+                .getResult(Graph.class);
 
-        GraphMorphism typing = new GraphBuilders()
+        GraphMorphism typing = getContextCreatingBuilder()
                 .domain(testGraph)
                 .codomain(typeGraph)
                 .map("A", "C")
@@ -150,22 +151,22 @@ public class MorphismTest extends AbstractTest {
                 .map(Name.identifier("B").subTypeOf(Name.identifier("A")), Name.identifier("e"))
                 .map(Name.identifier("C").subTypeOf(Name.identifier("A")), Name.identifier("e"))
                 .morphism("t_G")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         Graph selectGraph = getContextCreatingBuilder()
                 .edge(Name.identifier("1"), Name.identifier("2"), Name.identifier("3"))
                 .graph("G")
-                .getGraphResult();
+                .getResult(Graph.class);
 
 
-        GraphMorphism selection = new GraphBuilders()
+        GraphMorphism selection = getContextCreatingBuilder()
                 .domain(selectGraph)
                 .codomain(typeGraph)
                 .map("1", "C")
                 .map("2", "r")
                 .map("3", "C")
                 .morphism("s")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         Set<Triple> expected = new HashSet<>();
         expected.add(new Triple(
@@ -201,7 +202,7 @@ public class MorphismTest extends AbstractTest {
 
         Pair<GraphMorphism,GraphMorphism> pullback = selection.pullback(typing, Name.identifier("APEX"));
         GraphMorphism typingAlongSelection = pullback.getFirst();
-        assertStreamEquals(typingAlongSelection.select(new Triple(id("1"), id("2"), id("3"))),
+        assertStreamEquals(typingAlongSelection.preimage(new Triple(id("1"), id("2"), id("3"))),
                 new Triple(
                 id("1").pair(id("A")),
                 id("2").pair(id("r1")),
@@ -228,52 +229,52 @@ public class MorphismTest extends AbstractTest {
 
 
     @Test
-    public void testIsTotal() {
+    public void testIsTotal() throws GraphError {
         Graph A = getContextCreatingBuilder()
                 .edge("1", "a", "2")
                 .edge("1", "b", "2")
                 .graph("A")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph B = getContextCreatingBuilder()
                 .edge("1", "c", "2")
                 .graph("B")
-                .getGraphResult();
+                .getResult(Graph.class);
 
-        GraphMorphism m1 = new GraphBuilders()
+        GraphMorphism m1 = getContextCreatingBuilder()
                 .domain(A)
                 .codomain(B)
                 .map("1", "1")
                 .map("2", "2")
                 .map("a", "c")
                 .morphism("m1")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
-        GraphMorphism m2 = new GraphBuilders()
+        GraphMorphism m2 = getContextCreatingBuilder()
                 .domain(B)
                 .codomain(A)
                 .map("1", "1")
                 .map("2", "2")
                 .map("c", "a")
                 .morphism("m2")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         assertFalse(m1.isTotal());
         assertTrue(m2.isTotal());
     }
 
     @Test
-    public void testIsInjective() {
+    public void testIsInjective() throws GraphError {
         Graph A = getContextCreatingBuilder()
                 .edge("1", "a", "2")
                 .edge("1", "b", "2")
                 .graph("A")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph B = getContextCreatingBuilder()
                 .edge("1", "c", "2")
                 .graph("B")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         GraphMorphism m1 = getContextCreatingBuilder()
                 .domain(A)
@@ -283,7 +284,7 @@ public class MorphismTest extends AbstractTest {
                 .map("a", "c")
                 .map("b", "c")
                 .morphism("m1")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         GraphMorphism m2 = getContextCreatingBuilder()
                 .domain(B)
@@ -292,7 +293,7 @@ public class MorphismTest extends AbstractTest {
                 .map("2", "2")
                 .map("c", "a")
                 .morphism("m2")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         assertTrue(m1.isTotal());
         assertFalse(m1.isInjective());
@@ -301,18 +302,18 @@ public class MorphismTest extends AbstractTest {
     }
 
     @Test
-    public void testIsSurjective() {
+    public void testIsSurjective() throws GraphError {
 
         Graph A = getContextCreatingBuilder()
                 .edge("1", "a", "2")
                 .edge("1", "b", "2")
                 .graph("A")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph B = getContextCreatingBuilder()
                 .edge("1", "c", "2")
                 .graph("B")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         GraphMorphism m1 = getContextCreatingBuilder()
                 .domain(A)
@@ -322,7 +323,7 @@ public class MorphismTest extends AbstractTest {
                 .map("a", "c")
                 .map("b", "c")
                 .morphism("m1")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         GraphMorphism m2 = getContextCreatingBuilder()
                 .domain(B)
@@ -331,7 +332,7 @@ public class MorphismTest extends AbstractTest {
                 .map("2", "2")
                 .map("c", "a")
                 .morphism("m2")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         assertTrue(m2.isTotal());
         assertTrue(m2.isInjective());
@@ -341,24 +342,24 @@ public class MorphismTest extends AbstractTest {
     }
 
     @Test
-    public void testToTypedGraph() {
+    public void testFlatten() throws GraphError {
 
         Graph typ = getContextCreatingBuilder()
                 .edge("Class", "reference", "Class")
                 .edge("Class", "attribute", "Type")
                 .edge("Class", "extends", "Class")
                 .graph("TYP")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph instance = getContextCreatingBuilder()
-                .graph("INSTANCE")
                 .edge("B", "B.super", "A")
                 .edge("C", "C.super", "A")
                 .edge("A", "i", "int")
                 .edge("B", "s", "String")
                 .edge("A", "r", "D")
                 .node("untyped")
-                .getGraphResult();
+                .graph("INSTANCE")
+                .getResult(Graph.class);
 
         GraphMorphism typing = getContextCreatingBuilder()
                 .domain(instance)
@@ -375,7 +376,7 @@ public class MorphismTest extends AbstractTest {
                 .map("s", "attribute")
                 .map("i", "attribute")
                 .morphism("t")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         Graph expected = getContextCreatingBuilder()
                 .edge(
@@ -399,7 +400,7 @@ public class MorphismTest extends AbstractTest {
                         Name.identifier("r").typeBy(Name.identifier("reference")),
                         Name.identifier("D").typeBy(Name.identifier("Class")))
                 .graph(Name.identifier("INSTANCE").typeBy(Name.identifier("TYP")))
-                .getGraphResult();
+                .getResult(Graph.class);
 
 
             Graph actual = typing.flatten();
@@ -413,7 +414,7 @@ public class MorphismTest extends AbstractTest {
 
 
     @Test
-    public void testFromTypedGraph() {
+    public void testUnflatten() throws GraphError {
         Graph source = getContextCreatingBuilder()
                 .edge(
                         Name.identifier("B").typeBy(Name.identifier("Class")),
@@ -436,7 +437,7 @@ public class MorphismTest extends AbstractTest {
                         Name.identifier("r").typeBy(Name.identifier("reference")),
                         Name.identifier("D").typeBy(Name.identifier("Class")))
                 .graph(Name.identifier("INSTANCE").typeBy(Name.identifier("TYP")))
-                .getGraphResult();
+                .getResult(Graph.class);
 
 
         Graph typ = getContextCreatingBuilder()
@@ -444,7 +445,7 @@ public class MorphismTest extends AbstractTest {
                 .edge("Class", "attribute", "Type")
                 .edge("Class", "extends", "Class")
                 .graph("TYP")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph instance = getContextCreatingBuilder()
                 .edge("B", "B.super", "A")
@@ -453,10 +454,10 @@ public class MorphismTest extends AbstractTest {
                 .edge("B", "s", "String")
                 .edge("A", "r", "D")
                 .graph("INSTANCE")
-                .getGraphResult();
+                .getResult(Graph.class);
 
 
-        GraphMorphism expected = new GraphBuilders()
+        GraphMorphism expected = getContextCreatingBuilder()
                 .domain(instance)
                 .codomain(typ)
                 .map("A", "Class")
@@ -471,7 +472,7 @@ public class MorphismTest extends AbstractTest {
                 .map("s", "attribute")
                 .map("i", "attribute")
                 .morphism("t")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         assertMorphismsEqual(expected, GraphMorphism.unflatten(source, typ, id("id")));
     }
@@ -479,17 +480,19 @@ public class MorphismTest extends AbstractTest {
 
 
     @Test
-    public void testViolationHomProp() {
+    public void testWellFormedness() throws GraphError {
         Graph g1 = getContextCreatingBuilder()
                 .edge("A", "a", "B")
                 .graph("G1")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph g2 = getContextCreatingBuilder()
                 .edge("B", "a", "A")
+                .edge("B", "b", "C")
                 .graph("G2")
-                .getGraphResult();
+                .getResult(Graph.class);
 
+        // Violates hom-property
         GraphMorphism invalid1 = getErrorIgnoringBuilder()
                 .domain(g1)
                 .codomain(g2)
@@ -497,20 +500,206 @@ public class MorphismTest extends AbstractTest {
                 .map("a", "a")
                 .map("B", "B")
                 .morphism("m")
-                .getMorphismResult();
+                .getResult(GraphMorphism.class);
 
         assertFalse(invalid1.verify());
         addExpectedTriple(Triple.edge(Name.identifier("A"),Name.identifier("a"), Name.identifier("B")));
         assertStreamEquals(expected(), invalid1.homPropViolations());
 
+        // maps to a non existing element
+        GraphMorphism invalid2 = getErrorIgnoringBuilder()
+                .domain(g1)
+                .codomain(g2)
+                .map("A", "B")
+                .map("B", "A")
+                .map("a", "f")
+                .morphism("m")
+                .getResult(GraphMorphism.class);
 
-        // TODO extend
+        assertFalse(invalid2.verify());
+        addExpectedTriple(t("A","a","B"));
+        assertStreamEquals(expected(), invalid2.mappedToUndefined());
+
+        // Turns everything into a node
+        GraphMorphism invalid3 = getErrorIgnoringBuilder()
+                .domain(g1)
+                .codomain(g2)
+                .map("A", "A")
+                .map("a", "A")
+                .map("B", "A")
+                .morphism("m")
+                .getResult(GraphMorphism.class);
+
+        assertFalse(invalid3.verify());
+        addExpectedTriple(t("A","a","B"));
+        assertStreamEquals(expected(), invalid3.homPropViolations());
+
+        // Violates hom-property again
+        GraphMorphism invalid4 = getErrorIgnoringBuilder()
+                .domain(g1)
+                .codomain(g2)
+                .map("A", "A")
+                .map("a", "b")
+                .map("B", "C")
+                .morphism("m")
+                .getResult(GraphMorphism.class);
+
+        assertFalse(invalid4.verify());
+        addExpectedTriple(t("A","a","B"));
+        assertStreamEquals(expected(), invalid4.homPropViolations());
+
+        // And finally a valid one
+        GraphMorphism valid = getErrorIgnoringBuilder()
+                .domain(g1)
+                .codomain(g2)
+                .map("A", "B")
+                .map("a", "a")
+                .map("B", "A")
+                .morphism("m")
+                .getResult(GraphMorphism.class);
+        assertTrue(valid.verify());
     }
 
+    @Test
+    public void testPartiality() throws GraphError {
+        Graph g1 = getContextCreatingBuilder()
+                .edge("A", "f", "B")
+                .edge("B", "g", "C")
+                .graph("G1")
+                .getResult(Graph.class);
 
-    // TODO test composition
+        GraphMorphism partial = getErrorIgnoringBuilder()
+                .domain(g1)
+                .codomain(g1)
+                .map("A", "A")
+                .map("f", "f")
+                .map("B", "B")
+                .morphism("m")
+                .getResult(GraphMorphism.class);
+
+        assertFalse(partial.isTotal());
+        assertTrue(partial.isInjective());
+        assertFalse(partial.isSurjective());
+
+        assertTrue(partial.definedAt(id("B")));
+        assertFalse(partial.definedAt(id("C")));
+
+        assertTrue(partial.definedAt(t("A", "f", "B")));
+        assertFalse(partial.definedAt(t("B", "g", "C")));
+        assertEquals(Optional.of(t("A","f","B")), partial.apply(t("A","f","B")));
+        assertEquals(Optional.empty(), partial.apply(t("B", "g", "C")));
+
+        addExpectedTriple(t("A","f","B"));
+        assertStreamEquals(expected(), partial.preimage(t("A","f","B")));
+        assertStreamEquals(Stream.empty(), partial.preimage(t("B","g","C")));
+    }
+
+    @Test
+    public void testCompose() throws GraphError {
+        Graph g1 = getContextCreatingBuilder()
+                .node("A")
+                .node("B")
+                .node("C")
+                .graph("G1")
+                .getResult(Graph.class);
+
+        Graph g2 = getContextCreatingBuilder()
+                .node("1")
+                .node("2")
+                .node("3")
+                .node("4")
+                .graph("G2")
+                .getResult(Graph.class);
 
 
+        Graph g3 = getContextCreatingBuilder()
+                .node("f")
+                .node("g")
+                .node("h")
+                .graph("G2")
+                .getResult(Graph.class);
 
+        GraphMorphism m1 = getContextCreatingBuilder()
+                .domain(g1)
+                .codomain(g2)
+                .map("A", "1")
+                .map("B", "2")
+                .map("C", "3")
+                .morphism("m1")
+                .getResult(GraphMorphism.class);
+
+        GraphMorphism m2 = getContextCreatingBuilder()
+                .domain(g2)
+                .codomain(g3)
+                .map("1", "f")
+                .map("2", "g")
+                .map("3", "h")
+                .map("4", "h")
+                .morphism("m2")
+                .getResult(GraphMorphism.class);
+
+        assertTrue(m1.isTotal());
+        assertTrue(m2.isTotal());
+
+        assertFalse(m1.isSurjective());
+        assertTrue(m1.isInjective());
+
+        assertTrue(m2.isSurjective());
+        assertFalse(m2.isInjective());
+
+        GraphMorphism m1Thenm2 = m1.compose(m2);
+
+        assertTrue(m1Thenm2.isTotal());
+        assertTrue(m1Thenm2.isInjective());
+        assertTrue(m1Thenm2.isSurjective());
+
+        assertEquals(Optional.of(Triple.node(id("f"))), m1Thenm2.apply(Triple.node(id("A"))));
+
+        addExpectedTriple(Triple.node(id("C")));
+        assertStreamEquals(expected(), m1Thenm2.preimage(Triple.node(id("h"))));
+
+        addExpectedTriple(Triple.node(id("3")));
+        addExpectedTriple(Triple.node(id("4")));
+        assertStreamEquals(expected(), m2.preimage(Triple.node(id("h"))));
+    }
+
+    @Test
+    public void testPreImages() throws GraphError {
+
+        Graph aLoop = getContextCreatingBuilder()
+                .edge("A", "a", "A")
+                .graph("ALoop")
+                .getResult(Graph.class);
+
+        Graph g = getContextCreatingBuilder()
+                .edge("A", "f", "B")
+                .edge("B", "g", "C")
+                .edge("C", "h", "D")
+                .graph("G")
+                .getResult(Graph.class);
+
+        GraphMorphism morphism = getContextCreatingBuilder()
+                .domain(g)
+                .codomain(aLoop)
+                .map("A", "A")
+                .map("B", "A")
+                .map("C", "A")
+                .map("D", "A")
+                .map("f", "a")
+                .map("g", "a")
+                .morphism("m")
+                .getResult(GraphMorphism.class);
+
+        addExpectedTriple(Triple.node(id("A")));
+        addExpectedTriple(Triple.node(id("B")));
+        addExpectedTriple(Triple.node(id("C")));
+        addExpectedTriple(Triple.node(id("D")));
+        assertStreamEquals(expected(), morphism.preimage(Triple.node(id("A"))));
+
+        addExpectedTriple(t("A", "f", "B"));
+        addExpectedTriple(t("B", "g", "C"));
+        assertStreamEquals(expected(), morphism.preimage(t("A", "a", "A")));
+
+    }
 
 }

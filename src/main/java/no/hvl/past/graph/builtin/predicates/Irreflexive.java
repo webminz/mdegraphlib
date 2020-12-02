@@ -10,7 +10,7 @@ public class Irreflexive implements GraphPredicate {
 
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances( Universe.LOOP_THE_LOOP).noneMatch(
                 triple -> triple.getSource().equals(triple.getTarget())
         );

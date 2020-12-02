@@ -33,7 +33,7 @@ public class Function implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         List<Name> sources = instance.allInstances(Universe.ARROW_THE_ARROW).map(Triple::getSource).collect(Collectors.toList());
         Set<Name> sourcesset = new HashSet<>(sources);
         return sources.size() == sourcesset.size();

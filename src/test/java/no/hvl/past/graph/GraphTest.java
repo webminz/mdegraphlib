@@ -1,40 +1,58 @@
 package no.hvl.past.graph;
 
-import com.google.common.graph.GraphBuilder;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
 import no.hvl.past.util.ProperComparator;
+import no.hvl.past.util.ShouldNotHappenException;
 import org.junit.Test;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 
 public class GraphTest extends AbstractTest {
 
 
-    Graph GRAPH_BASE = new GraphBuilders()
-            .edge("E", "src", "V")
-            .edge("E", "tgt", "V")
-            .graph("G")
-            .getGraphResult();
-    Graph BIGGER = new GraphBuilders()
-            .edge("1", "11", "2")
-            .edge("1", "12", "4")
-            .edge("1", "13", "5")
-            .edge("2", "21", "1")
-            .edge("3", "31", "1")
-            .edge("3", "32", "1")
-            .edge("4", "41", "6")
-            .edge("4", "42", "5")
-            .edge("5", "51", "6")
-            .edge("6", "61", "7")
-            .edge("7", "71", "7")
-            .edge("8", "81", "6")
-            .graph("Example")
-            .getGraphResult();
+    Graph GRAPH_BASE = buildGraphBase();
+
+    private Graph buildGraphBase()  {
+        try {
+            return getContextCreatingBuilder()
+                    .edge("E", "src", "V")
+                    .edge("E", "tgt", "V")
+                    .graph("G")
+                    .getResult(Graph.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(GraphTest.class, "buildGraphBase", error);
+        }
+
+    }
+
+    Graph BIGGER = buildBiggerExample();
+
+    private Graph buildBiggerExample()  {
+        try {
+            return getContextCreatingBuilder()
+                    .edge("1", "11", "2")
+                    .edge("1", "12", "4")
+                    .edge("1", "13", "5")
+                    .edge("2", "21", "1")
+                    .edge("3", "31", "1")
+                    .edge("3", "32", "1")
+                    .edge("4", "41", "6")
+                    .edge("4", "42", "5")
+                    .edge("5", "51", "6")
+                    .edge("6", "61", "7")
+                    .edge("7", "71", "7")
+                    .edge("8", "81", "6")
+                    .graph("Example")
+                    .getResult(Graph.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(GraphTest.class, "buildBiggerExample", error);
+        }
+
+    }
 
 
     @Test
@@ -56,7 +74,7 @@ public class GraphTest extends AbstractTest {
         assertEquals(Optional.of(new Triple(Name.identifier("E"), Name.identifier("src"), Name.identifier("V"))), identity.apply(new Triple(Name.identifier("E"), Name.identifier("src"), Name.identifier("V"))));
         assertEquals(Optional.empty(), identity.apply(new Triple(Name.identifier("V"), Name.identifier("src"), Name.identifier("E"))));
         addExpectedTriple(new Triple(Name.identifier("E"), Name.identifier("src"), Name.identifier("V")));
-        assertStreamEquals(expected(), identity.select(new Triple(Name.identifier("E"), Name.identifier("src"), Name.identifier("V"))));
+        assertStreamEquals(expected(), identity.preimage(new Triple(Name.identifier("E"), Name.identifier("src"), Name.identifier("V"))));
     }
 
 
@@ -141,14 +159,15 @@ public class GraphTest extends AbstractTest {
 
 
     @Test
-    public void testCartesianProduct() {
+    public void testCartesianProduct() throws GraphError {
         Graph B = getContextCreatingBuilder()
                 .edge("N", "id_N", "N")
                 .edge("E", "id_E", "E")
                 .edge("E", "src", "N")
                 .edge("E", "trg", "N")
                 .graph("B")
-                .getGraphResult();
+                .getResult(Graph.class);
+
         Graph I = getContextCreatingBuilder()
                 .edge("0", "id_0", "0")
                 .edge("1", "id_1", "1")
@@ -158,7 +177,7 @@ public class GraphTest extends AbstractTest {
                 .edge("0", "pi_2", "2")
                 .edge("0", "pi_3", "3")
                 .graph("I")
-                .getGraphResult();
+                .getResult(Graph.class);
 
         Graph result = B.cartesianProduct(I);
 
@@ -193,7 +212,7 @@ public class GraphTest extends AbstractTest {
                 .edge(id("E").pair(id("0")), id("src").pair(id("pi_3")), id("N").pair(id("3")))
                 .edge(id("E").pair(id("0")), id("trg").pair(id("pi_3")), id("N").pair(id("3")))
                 .graph(B.getName().times(I.getName()))
-                .getGraphResult();
+                .getResult(Graph.class);
 
        // FIXME compare streams
        // assertEquals(expected.getElements(),result.elements().collect(Collectors.toSet()));
@@ -201,12 +220,13 @@ public class GraphTest extends AbstractTest {
 
 
     @Test
-    public void testViolationDanglingEdges() {
+    public void testViolationDanglingEdges() throws GraphError {
         GraphBuilders builder = getErrorIgnoringBuilder();
         builder.node("A");
         builder.edge("A", "a", "B");
         builder.graph("Dangling");
-        Graph invalid1 = builder.getGraphResult();
+        Graph invalid1 = builder.getResult(Graph.class);
+
         assertFalse(invalid1.verify());
         addExpectedTriple(Triple.edge(Name.identifier("A"), Name.identifier("a"), Name.identifier("B")));
         assertStreamEquals(expected(), invalid1.danglingEdges());
@@ -214,14 +234,15 @@ public class GraphTest extends AbstractTest {
     }
 
     @Test
-    public void testDuplicateNames() {
+    public void testDuplicateNames() throws GraphError {
         GraphBuilders builder = getErrorIgnoringBuilder();
         builder.node("A");
         builder.node("B");
         builder.edge("A", "C", "B");
         builder.edge("B", "C", "A");
         builder.graph("Duplicated");
-        Graph invalid1 = builder.getGraphResult();
+        Graph invalid1 = builder.getResult(Graph.class);
+
         assertFalse(invalid1.verify());
         addExpectedTriple(Triple.edge(Name.identifier("A"), Name.identifier("C"), Name.identifier("B")));
         addExpectedTriple(Triple.edge(Name.identifier("B"), Name.identifier("C"), Name.identifier("A")));
@@ -232,7 +253,8 @@ public class GraphTest extends AbstractTest {
         builder.node("B");
         builder.edge("A", "A", "B");
         builder.graph("Duplicated");
-        Graph invalid2 = builder.getGraphResult();
+        Graph invalid2 = builder.getResult(Graph.class);
+
         assertFalse(invalid2.verify());
         assertTrue(invalid2.duplicateNames().count() > 0);
     }

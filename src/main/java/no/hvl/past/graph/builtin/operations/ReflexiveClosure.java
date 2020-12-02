@@ -15,7 +15,7 @@ public class ReflexiveClosure implements GraphOperation {
     }
 
     @Override
-    public TypedGraph execute(TypedGraph instance, ExecutionContext context) {
+    public GraphMorphism execute(GraphMorphism instance, ExecutionContext context) {
         GraphBuilders b = new GraphBuilders().importGraph(instance.domain());
         instance.allInstances(Universe.ONE_NODE_THE_NODE)
                 .map(n -> Triple.edge(n.getLabel(), getName().appliedTo(n.getLabel()), n.getLabel()))
@@ -27,25 +27,21 @@ public class ReflexiveClosure implements GraphOperation {
         b.codomain(Universe.LOOP);
         b.morphism(getName().appliedTo(instance.getName()));
         try {
-            return TypedGraph.interpret(b.fetchResultMorphism());
+            return b.getResult(GraphMorphism.class);
         } catch (GraphError graphError) {
             throw new ShouldNotHappenException(getClass(), "execute", graphError);
         }
     }
 
+
     @Override
-    public boolean isExecuted(TypedGraph instance) {
+    public boolean isExecutedCorrectly(GraphMorphism instance) {
         return false;
     }
 
     @Override
-    public boolean isExecutedCorrectly(TypedGraph instance) {
-        return false;
-    }
-
-    @Override
-    public boolean undo(TypedGraph instance) {
-        return false;
+    public GraphMorphism undo(GraphMorphism instance, ExecutionContext context) {
+        return instance;
     }
 
     @Override

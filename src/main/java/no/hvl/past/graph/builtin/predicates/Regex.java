@@ -30,7 +30,7 @@ public class Regex implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.ONE_NODE_THE_NODE)
                 .allMatch(t -> {
                     if (t.getLabel() instanceof StringValue) {

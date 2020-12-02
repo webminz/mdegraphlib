@@ -11,14 +11,14 @@ public class PredicatesTest {
 
     @Test
     public void testSingleton() throws GraphError {
-        GraphMorphism m0 = new GraphBuilders().domain(Universe.EMPTY).codomain(Universe.ONE_NODE).morphism("M0").fetchResultMorphism();
-        GraphMorphism m1 = new GraphBuilders().node("A").graph("oneA").codomain(Universe.ONE_NODE).map(Name.identifier("A"), Universe.ONE_NODE_THE_NODE).morphism("M1").fetchResultMorphism();
+        GraphMorphism m0 = new GraphBuilders().domain(Universe.EMPTY).codomain(Universe.ONE_NODE).morphism("M0").getResult(GraphMorphism.class);
+        GraphMorphism m1 = new GraphBuilders().node("A").graph("oneA").codomain(Universe.ONE_NODE).map(Name.identifier("A"), Universe.ONE_NODE_THE_NODE).morphism("M1").getResult(GraphMorphism.class);
         GraphMorphism m2 = new GraphBuilders().node("A").node("B").node("C").graph("ABC").codomain(Universe.ONE_NODE)
                 .map(Name.identifier("A"), Universe.ONE_NODE_THE_NODE)
                 .map(Name.identifier("B"), Universe.ONE_NODE_THE_NODE)
                 .map(Name.identifier("C"), Universe.ONE_NODE_THE_NODE)
                 .morphism("M2")
-                .fetchResultMorphism();
+                .getResult(GraphMorphism.class);
         assertFalse(Singleton.getInstance().check(TypedGraph.interpret(m0)));
         assertTrue(Singleton.getInstance().check(TypedGraph.interpret(m1)));
         assertFalse(Singleton.getInstance().check(TypedGraph.interpret(m2)));

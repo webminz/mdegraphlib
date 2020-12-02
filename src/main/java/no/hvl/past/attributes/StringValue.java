@@ -27,6 +27,10 @@ public final class StringValue extends Value {
         return new StringValue(this.value.substring(from.intCast(), from.intCast() + length.intCast()));
     }
 
+    public StringValue substring(IntegerValue from) {
+        return new StringValue(this.value.substring(from.intCast()));
+    }
+
     public String getStringValue() {
         return value;
     }

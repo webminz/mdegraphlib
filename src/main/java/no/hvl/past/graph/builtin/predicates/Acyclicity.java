@@ -26,7 +26,7 @@ public class Acyclicity implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         Set<Triple> select = instance.allInstances(Universe.LOOP_THE_LOOP).collect(Collectors.toSet());
         Set<Triple> closure = closure(select);
         return select.stream()

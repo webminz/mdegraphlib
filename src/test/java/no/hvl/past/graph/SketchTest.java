@@ -2,6 +2,7 @@ package no.hvl.past.graph;
 
 import no.hvl.past.names.Identifier;
 import no.hvl.past.names.Name;
+import no.hvl.past.util.ShouldNotHappenException;
 
 public class SketchTest {
 
@@ -24,35 +25,44 @@ public class SketchTest {
     private static final Identifier REFERENCE_NAME = Name.identifier("reference");
     private static final Identifier ATTRIBUTE_NAME = Name.identifier("attribute");
 
-    public static final Sketch OO_KERNEL = new GraphBuilders()
-            .node(TYPE_NAME)
-            .node(VALUE_NAME)
-            .node(LITERAL_NAME)
-            .node(ENUM_NAME)
-            .node(FLOAT_NAME)
-            .node(BOOL_NAME)
-            .node(STRING_NAME)
-            .node(INT_NAME)
-            .node(CUSTOM_NAME)
-            .edge(ENUM_NAME, ENUM_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
-            .edge(ENUM_NAME, ENUM_INDEX_NAME, LITERAL_NAME)
-            .edge(FLOAT_NAME, FLOAT_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
-            .edge(BOOL_NAME, BOOL_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
-            .edge(STRING_NAME, STRING_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
-            .edge(INT_NAME, INT_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
-            .edge(CUSTOM_NAME, CUSTOM_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
-            .edge(TYPE_NAME, ATTRIBUTE_NAME, VALUE_NAME)
-            .edge(TYPE_NAME, REFERENCE_NAME, TYPE_NAME)
-            .edge(TYPE_NAME, CONTAINMENT_NAME, TYPE_NAME)
-            .edge(TYPE_NAME, EXTENDS_NAME, TYPE_NAME)
-            .edge(TYPE_NAME, SUPER_NAME, TYPE_NAME)
-            .edge(TYPE_NAME, SUPER_NAME.composeSequentially(REFERENCE_NAME), TYPE_NAME)
-            .edge(TYPE_NAME, SUPER_NAME.composeSequentially(ATTRIBUTE_NAME), TYPE_NAME)
-            .edge(TYPE_NAME, REFERENCE_NAME.downTypeAlong(SUPER_NAME), TYPE_NAME)
-            .graph(OOK_GRAPH_NAME)
-            // Diagrams
-            .sketch(OOK_NAME)
-            .getSketchResult();
+    public static final Sketch OO_KERNEL = buildOOKernel();
+
+    private static Sketch buildOOKernel() {
+        try {
+            return new GraphBuilders()
+                    .node(TYPE_NAME)
+                    .node(VALUE_NAME)
+                    .node(LITERAL_NAME)
+                    .node(ENUM_NAME)
+                    .node(FLOAT_NAME)
+                    .node(BOOL_NAME)
+                    .node(STRING_NAME)
+                    .node(INT_NAME)
+                    .node(CUSTOM_NAME)
+                    .edge(ENUM_NAME, ENUM_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
+                    .edge(ENUM_NAME, ENUM_INDEX_NAME, LITERAL_NAME)
+                    .edge(FLOAT_NAME, FLOAT_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
+                    .edge(BOOL_NAME, BOOL_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
+                    .edge(STRING_NAME, STRING_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
+                    .edge(INT_NAME, INT_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
+                    .edge(CUSTOM_NAME, CUSTOM_NAME.subTypeOf(VALUE_NAME), VALUE_NAME)
+                    .edge(TYPE_NAME, ATTRIBUTE_NAME, VALUE_NAME)
+                    .edge(TYPE_NAME, REFERENCE_NAME, TYPE_NAME)
+                    .edge(TYPE_NAME, CONTAINMENT_NAME, TYPE_NAME)
+                    .edge(TYPE_NAME, EXTENDS_NAME, TYPE_NAME)
+                    .edge(TYPE_NAME, SUPER_NAME, TYPE_NAME)
+                    .edge(TYPE_NAME, SUPER_NAME.composeSequentially(REFERENCE_NAME), TYPE_NAME)
+                    .edge(TYPE_NAME, SUPER_NAME.composeSequentially(ATTRIBUTE_NAME), TYPE_NAME)
+                    .edge(TYPE_NAME, REFERENCE_NAME.downTypeAlong(SUPER_NAME), TYPE_NAME)
+                    .graph(OOK_GRAPH_NAME)
+                    // Diagrams
+                    .sketch(OOK_NAME)
+                    .getResult(Sketch.class);
+        } catch (GraphError error) {
+            throw new ShouldNotHappenException(SketchTest.class, "buildOOKernel", error);
+        }
+
+    }
 
 
 }

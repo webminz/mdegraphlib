@@ -170,7 +170,6 @@ public class NamesTest {
         assertEquals(a0.compareWith(a1), ProperComparator.CompareResult.LESS_THAN);
         assertEquals(a2.compareWith(a0), ProperComparator.CompareResult.BIGGER_THAN);
 
-        // TODO
     }
 
 

@@ -27,7 +27,7 @@ public class Commutes implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         Set<Triple> left = instance.allInstances(Universe.CELL_LHS).collect(Collectors.toSet());
         Set<Triple> right = instance.allInstances(Universe.CELL_RHS).collect(Collectors.toSet());
         Set<Name> sources = left.stream().map(Triple::getSource).collect(Collectors.toSet());

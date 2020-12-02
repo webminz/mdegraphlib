@@ -1,7 +1,7 @@
 package no.hvl.past.graph;
 
 public class DiagrammaticGraphTest {
-
+// TODO move these into the new sketch test
 
 //    /**
 //     * This test combines test for compose and composeIncident by applying

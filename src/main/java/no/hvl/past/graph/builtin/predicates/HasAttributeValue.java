@@ -16,7 +16,7 @@ public class HasAttributeValue implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.ARROW_THE_ARROW).allMatch(triple -> triple.getTarget().equals(value));
     }
 

@@ -8,7 +8,9 @@ import no.hvl.past.names.Name;
 import no.hvl.past.names.PrintingStrategy;
 import no.hvl.past.util.Pair;
 
+import javax.lang.model.type.ErrorType;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -89,6 +91,10 @@ public class GraphError extends Exception {
         return this.errors.get(ERROR_TYPE.AMBIGUOS_MAPPING);
     }
 
+    public Collection<Name> getIllFormed() {
+        return this.errors.get(ERROR_TYPE.ILL_FORMED);
+    }
+
 
     public enum ERROR_TYPE {
         DUPLICATE_NAME,
@@ -98,7 +104,8 @@ public class GraphError extends Exception {
         DOMAIN_MISMATCH,
         CODOMAIN_MISMATCH,
         ILL_FORMED,
-        AMBIGUOS_MAPPING;
+        AMBIGUOS_MAPPING,
+        NOT_CONSTRUCTED;
     }
 
 

@@ -34,7 +34,7 @@ public class GraphMorphismComposition implements GraphMorphism {
 
     @Override
     public boolean definedAt(Name node) {
-        return first.applyOnNode(node).map(second::definedAt).orElse(false);
+        return first.map(node).map(second::definedAt).orElse(false);
     }
 
     @Override
@@ -48,8 +48,8 @@ public class GraphMorphismComposition implements GraphMorphism {
     }
 
     @Override
-    public Stream<Triple> select(Triple to) {
-        return second.select(to).flatMap(first::select);
+    public Stream<Triple> preimage(Triple to) {
+        return second.preimage(to).flatMap(first::preimage);
     }
 
     @Override

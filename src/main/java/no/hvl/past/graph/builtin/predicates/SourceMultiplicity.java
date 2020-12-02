@@ -29,7 +29,7 @@ public class SourceMultiplicity implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.ARROW_TRG_NAME).map(Triple::getTarget).allMatch(s -> {
             long n = instance.allInstances(Universe.ARROW_THE_ARROW).filter(t -> t.getTarget().equals(s)).count();
             if (lowerBound >= 0 && upperBound >= 0) {
@@ -47,7 +47,7 @@ public class SourceMultiplicity implements GraphPredicate {
         if (upperBound < 0 && lowerBound <= 0) {
             return new GraphPredicate() {
                 @Override
-                public boolean check(TypedGraph instance) {
+                public boolean check(GraphMorphism instance) {
                     return true;
                 }
 
@@ -65,7 +65,7 @@ public class SourceMultiplicity implements GraphPredicate {
         }else if (upperBound == 1 && lowerBound == 1) { // 1..1. -> total + function predicate
             return new GraphPredicate() {
                 @Override
-                public boolean check(TypedGraph instance) {
+                public boolean check(GraphMorphism instance) {
                     return Injective.getInstance().check(instance) && Surjective.getInstance().check(instance);
                 }
 

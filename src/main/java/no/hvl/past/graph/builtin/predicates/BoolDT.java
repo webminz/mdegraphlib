@@ -21,7 +21,7 @@ public class BoolDT implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.ONE_NODE_THE_NODE)
                 .allMatch(t -> t.getLabel().isValue() && (t.getLabel() instanceof BoolValue));
     }

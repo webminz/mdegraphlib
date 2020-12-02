@@ -9,6 +9,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 
 public class GraphMatchingTest extends AbstractTest{
+// TODO restore this methods
 
 //    @Test
 //    public void testMatchingOnlyNodes() {

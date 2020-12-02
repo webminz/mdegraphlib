@@ -24,7 +24,7 @@ public class Singleton implements GraphPredicate {
 
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.ONE_NODE_THE_NODE).count() == 1;
     }
 

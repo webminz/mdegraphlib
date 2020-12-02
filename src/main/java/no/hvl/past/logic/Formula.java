@@ -1,13 +1,14 @@
 package no.hvl.past.logic;
 
-import no.hvl.past.graph.GraphMorphism;
-import no.hvl.past.names.Variable;
+/**
+ * A syntactic representation of a class of models.
+ */
+public interface Formula<Sig extends Signature> {
 
-import java.util.Set;
+    /**
+     * Checks if a given structure satisfies this formula, i.e. if
+     * it is an instance of the generated theory of this formula.
+     */
+    boolean isSatisfied(Model<Sig> model);
 
-public abstract class Formula {
-
-    public abstract Set<Variable> getVariables();
-
-    public abstract boolean verify(Context context, GraphMorphism instance);
 }

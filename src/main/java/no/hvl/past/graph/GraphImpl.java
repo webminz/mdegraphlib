@@ -111,21 +111,6 @@ public class GraphImpl implements StateSpace<Name, Triple>, Graph, Iterable<Trip
     }
 
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof GraphImpl) { // Equality of graphs is based on their name, therefore it is important to make sure that they have unique names
-            GraphImpl other = (GraphImpl) obj;
-            return this.name.equals(other.name);
-        }
-        return false;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(this.name);
-    }
-
-
     // Factory methods
 
     public static GraphImpl create(Name name, Set<Triple> elements) throws GraphError {

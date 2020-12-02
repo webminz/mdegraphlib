@@ -1,7 +1,12 @@
 package no.hvl.past.graph;
 
+import com.google.common.collect.Sets;
+import jdk.nashorn.internal.objects.AccessorPropertyDescriptor;
+import no.hvl.past.attributes.StringValue;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.names.Name;
+import no.hvl.past.names.Value;
 import no.hvl.past.util.Pair;
 
 
@@ -9,6 +14,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class GraphBuilders {
+
+    private static final Name TEMPLATE_GRAPH_NAME = Name.identifier("__TEMPLATE");
 
     /**
      * When this flag is set to true, upon creation of new elements the missing context is automatically
@@ -38,7 +45,7 @@ public class GraphBuilders {
     private final List<Sketch> sketchAggregator = new ArrayList<>();
     private final Stack<GraphLabelTheory> labelStack = new Stack<>();
 
-    private final Stack<FrameworkElement> resultTypeStack = new Stack<>();
+    private final Stack<Class<? extends Element>> resultTypeStack = new Stack<>();
 
     public GraphBuilders(Universe universe, boolean createContext, boolean ignoreErrors) {
         this.universe = universe;
@@ -50,6 +57,15 @@ public class GraphBuilders {
         this.createContext = true;
         this.ignoreErrors = true;
     }
+
+    private boolean isBuildingDomain() {
+        return this.createContext && (this.graphAggregator.isEmpty() || this.graphAggregator.get(0).getName().equals(TEMPLATE_GRAPH_NAME));
+    }
+
+    private boolean isBuildingCodomain() {
+        return this.createContext && (this.graphAggregator.isEmpty() || this.graphAggregator.size() == 1 || this.graphAggregator.get(1).getName().equals(TEMPLATE_GRAPH_NAME));
+    }
+
 
     /**
      * Constructs a node with the given name.
@@ -72,24 +88,11 @@ public class GraphBuilders {
      * Constructs an edge.
      */
     public GraphBuilders edge(Name from, Name label, Name to) {
-        if (edgeAggregator.stream().anyMatch(t -> t.getLabel().equals(label))) {
-            if (!ignoreErrors) {
-                this.errors.add(new Pair<>(label, GraphError.ERROR_TYPE.DUPLICATE_NAME));
-            }
-        }
-        if (!nodeAggregator.contains(from)) {
-            if (createContext) {
+        if (createContext && !nodeAggregator.contains(from)) {
                 this.nodeAggregator.add(from);
-            } else if (!ignoreErrors) {
-                this.errors.add(new Pair<>(label, GraphError.ERROR_TYPE.DANGLING_EDGE));
-            }
         }
-        if (!nodeAggregator.contains(to)) {
-            if (createContext) {
+        if (createContext && !nodeAggregator.contains(to)) {
                 this.nodeAggregator.add(to);
-            } else if (!ignoreErrors) {
-                this.errors.add(new Pair<>(label, GraphError.ERROR_TYPE.DANGLING_EDGE));
-            }
         }
         edgeAggregator.add(new Triple(from, label, to));
         return this;
@@ -114,10 +117,19 @@ public class GraphBuilders {
         elements.addAll(nodeAggregator.stream().map(Triple::node).collect(Collectors.toSet()));
         elements.addAll(edgeAggregator);
         Graph constructed = new GraphImpl(name, elements);
-        this.graphAggregator.add(constructed);
-        this.resultTypeStack.push(FrameworkElement.GRAPH);
+
         this.nodeAggregator.clear();
         this.edgeAggregator.clear();
+
+        if (!ignoreErrors && !constructed.verify()) {
+            constructed.duplicateNames().map(n -> new Pair<>(n, GraphError.ERROR_TYPE.DUPLICATE_NAME)).forEach(this.errors::add);
+            constructed.danglingEdges().map(n -> new Pair<>(n.getLabel(), GraphError.ERROR_TYPE.DANGLING_EDGE)).forEach(this.errors::add);
+            return this;
+        }
+
+        this.graphAggregator.add(constructed);
+        this.resultTypeStack.push(Graph.class);
+        this.universe.register(constructed);
         return this;
     }
 
@@ -130,107 +142,40 @@ public class GraphBuilders {
         return this;
     }
 
+    public GraphBuilders domain(Name name) {
+        if (this.universe.getTypeOfElement(name).map(FrameworkElement.GRAPH::equals).orElse(false)) {
+            this.graphAggregator.add(0, (Graph) this.universe.getElement(name).get());
+        } else {
+            this.errors.add(new Pair<>(name, GraphError.ERROR_TYPE.UNKNOWN_MEMBER));
+        }
+        return this;
+    }
+
     public GraphBuilders codomain(Graph graph) {
         if (this.graphAggregator.isEmpty()) {
-            this.graphAggregator.add(Universe.EMPTY);
+            this.graphAggregator.add(new GraphImpl(TEMPLATE_GRAPH_NAME, Collections.emptySet()));
         }
         this.graphAggregator.add(1, graph);
         return this;
     }
 
     public GraphBuilders codomain(Name identifier) {
-        // TODO
+        if (this.universe.getTypeOfElement(identifier).map(FrameworkElement.GRAPH::equals).orElse(false)) {
+            this.graphAggregator.add(1, (Graph) this.universe.getElement(identifier).get());
+        } else {
+            this.errors.add(new Pair<>(identifier, GraphError.ERROR_TYPE.UNKNOWN_MEMBER));
+        }
         return this;
     }
 
 
-
     public GraphBuilders map(Name from, Name to) {
-        // Already there
-        if (bindingAggregator.containsKey(from)) {
-            if (!bindingAggregator.get(from).equals(to)) {
-                if (!ignoreErrors) {
-                    this.errors.add(new Pair<>(from, GraphError.ERROR_TYPE.AMBIGUOS_MAPPING));
-                }
+        if (this.bindingAggregator.containsKey(from) && !ignoreErrors) {
+            if (!this.bindingAggregator.get(from).equals(to)) {
+                this.errors.add(new Pair<>(from, GraphError.ERROR_TYPE.AMBIGUOS_MAPPING));
                 return this;
             }
         }
-
-        // We have no graphs given
-        if (this.graphAggregator.isEmpty()) {
-            if (createContext) {
-                this.bindingAggregator.put(from, to);
-            } else if (!this.ignoreErrors) {
-                this.errors.add(new Pair<>(from, GraphError.ERROR_TYPE.UNKNOWN_MEMBER));
-            }
-            return this;
-        }
-
-
-        // We have no codomain
-        if (this.graphAggregator.size() <= 1) {
-            if (createContext) {
-                this.bindingAggregator.put(from, to);
-            } else if (!ignoreErrors) {
-                this.errors.add(new Pair<>(to, GraphError.ERROR_TYPE.UNKNOWN_MEMBER));
-            }
-            return this;
-        }
-
-        // Okay we have both proceed regularly ...
-
-        // if we have a domain we can check if the 'from' name actually exists there
-        if (this.graphAggregator.get(0).isEmpty() && createContext) {
-            if (!ignoreErrors && (!this.nodeAggregator.contains(from) && this.edgeAggregator.stream().map(Triple::getLabel).noneMatch(from::equals))) {
-                this.errors.add(new Pair<>(from, GraphError.ERROR_TYPE.UNKNOWN_MEMBER));
-                return this;
-            }
-        } else {
-            if (!ignoreErrors && !this.graphAggregator.get(0).mentions(from)) {
-                this.errors.add(new Pair<>(from, GraphError.ERROR_TYPE.UNKNOWN_MEMBER));
-                return this;
-            }
-        }
-
-
-        // if we have a codomain we can check if the 'to' name actually exists there
-        if (this.graphAggregator.size() >= 2) {
-            if (!ignoreErrors && !this.graphAggregator.get(1).mentions(to)) {
-                this.errors.add(new Pair<>(to, GraphError.ERROR_TYPE.UNKNOWN_MEMBER));
-                return this;
-            }
-        }
-
-        // when we have both domain and codomain we check for the homomorphism property
-        if (this.graphAggregator.size() >= 2) {
-            Optional<Triple> fromTriple;
-            if (this.graphAggregator.get(0).isEmpty()) {
-                fromTriple = this.edgeAggregator.stream().filter(triple -> triple.getLabel().equals(from)).findFirst();
-            } else {
-                fromTriple = this.graphAggregator.get(0).get(from);
-            }
-
-            if (fromTriple.isPresent() && fromTriple.get().isEddge() && this.graphAggregator.get(1).mentions(to)) {
-                Optional<Triple> toTriple = this.graphAggregator.get(1).get(to);
-                boolean hasError = false;
-                if (this.bindingAggregator.containsKey(fromTriple.get().getSource()) &&
-                        !this.bindingAggregator.get(fromTriple.get().getSource()).equals(toTriple.get().getSource())) {
-                    hasError = true;
-                }
-                if (this.bindingAggregator.containsKey(fromTriple.get().getTarget()) &&
-                        !this.bindingAggregator.get(fromTriple.get().getTarget()).equals(toTriple.get().getTarget())) {
-                    hasError = true;
-                }
-                if (hasError) {
-                    if (!ignoreErrors) {
-                        this.errors.add(new Pair<>(from, GraphError.ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION));
-                    }
-                    return this;
-                }
-            }
-
-        }
-
         this.bindingAggregator.put(from, to);
         return this;
     }
@@ -242,7 +187,7 @@ public class GraphBuilders {
     public GraphBuilders morphism(Name morphismName) {
         Map<Name, Name> binding = new HashMap<>(this.bindingAggregator);
 
-        if (createContext) {
+        if (isBuildingDomain()) {
             if (this.graphAggregator.isEmpty()) {
                 this.bindingAggregator.keySet().stream().forEach(from -> {
                     if (!this.nodeAggregator.contains(from) && this.edgeAggregator.stream().map(Triple::getLabel).noneMatch(from::equals)) {
@@ -253,23 +198,21 @@ public class GraphBuilders {
             } else if (this.graphAggregator.get(0).isEmpty() && !this.bindingAggregator.isEmpty()) {
                 this.graph(Name.identifier("dom").appliedTo(morphismName));
             }
+        }
 
-            if (this.graphAggregator.size() <= 1) {
-                Set<Triple> codTriples = this.graphAggregator.get(0).elements().map(triple -> triple.map(n -> {
-                    if (this.bindingAggregator.containsKey(n)) {
-                        return Optional.of(this.bindingAggregator.get(n));
-                    } else {
-                        return Optional.empty();
-                    }
-                })).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toSet());
-                this.graphAggregator.add(new GraphImpl(Name.identifier("cod").appliedTo(morphismName), codTriples));
-            }
+        if (isBuildingCodomain()) {
+            Set<Triple> codTriples = this.graphAggregator.get(0).elements().map(triple -> triple.map(n -> {
+                if (this.bindingAggregator.containsKey(n)) {
+                    return Optional.of(this.bindingAggregator.get(n));
+                } else {
+                    return Optional.empty();
+                }
+            })).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toSet());
+            this.graphAggregator.add(new GraphImpl(Name.identifier("cod").appliedTo(morphismName), codTriples));
         }
 
         if (this.graphAggregator.size() < 2) {
-            if (!ignoreErrors) {
-                this.errors.add(new Pair<>(morphismName, GraphError.ERROR_TYPE.ILL_FORMED));
-            }
+            this.errors.add(new Pair<>(morphismName, GraphError.ERROR_TYPE.ILL_FORMED));
             return this;
         }
 
@@ -277,8 +220,16 @@ public class GraphBuilders {
         this.graphAggregator.remove(1);
         this.graphAggregator.remove(0);
         this.bindingAggregator.clear();
+
+        if (!ignoreErrors && ! constructed.verify()) {
+           constructed.mappedToUndefined().map(t -> new Pair<>(t.getLabel(), GraphError.ERROR_TYPE.UNKNOWN_MEMBER)).forEach(this.errors::add);
+           constructed.mappedToUndefined().map(t -> new Pair<>(t.getLabel(), GraphError.ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION)).forEach(this.errors::add);
+            return this;
+        }
+
+        this.universe.register(constructed);
         this.morphismAggregator.add(constructed);
-        this.resultTypeStack.add(FrameworkElement.GRAPH_MORPHISM);
+        this.resultTypeStack.add(GraphMorphism.class);
         return this;
     }
 
@@ -306,7 +257,7 @@ public class GraphBuilders {
         this.diagramAggregator.add(diagram);
         this.graphAggregator.add(0, target);
         this.morphismAggregator.remove(this.morphismAggregator.size() - 1);
-        this.resultTypeStack.push(FrameworkElement.DIAGRAM);
+        this.resultTypeStack.push(Diagram.class);
         return this;
     }
 
@@ -329,66 +280,9 @@ public class GraphBuilders {
         if (this.resultTypeStack.peek().equals(FrameworkElement.GRAPH)) {
             this.resultTypeStack.pop();
         }
-        this.resultTypeStack.push(FrameworkElement.SKETCH);
+        this.resultTypeStack.push(Sketch.class);
         return this;
     }
-
-    Graph getGraphResult() {
-        Graph result = this.graphAggregator.get(this.graphAggregator.size() - 1);
-        this.graphAggregator.remove(this.graphAggregator.size() - 1);
-        return result;
-    }
-
-    GraphMorphism getMorphismResult() {
-        GraphMorphism result = this.morphismAggregator.get(this.morphismAggregator.size() - 1);
-        this.morphismAggregator.remove(this.morphismAggregator.size() - 1);
-        return result;
-    }
-
-    Sketch getSketchResult() {
-        Sketch result = this.sketchAggregator.get(this.sketchAggregator.size() - 1);
-        this.sketchAggregator.remove(this.sketchAggregator.size() - 1);
-        return result;
-    }
-
-
-    public Graph fetchResultGraph() throws GraphError {
-        if (!this.errors.isEmpty()) {
-            throw new GraphError(this.errors);
-        }
-        if (!this.resultTypeStack.isEmpty() && this.resultTypeStack.peek().equals(FrameworkElement.GRAPH)) {
-            this.resultTypeStack.pop();
-            return getGraphResult();
-        } else {
-            throw new GraphError(GraphError.ERROR_TYPE.ILL_FORMED, Collections.emptySet());
-        }
-    }
-
-    public GraphMorphism fetchResultMorphism() throws GraphError {
-        if (!this.errors.isEmpty()) {
-            throw new GraphError(this.errors);
-        }
-        if (!this.resultTypeStack.isEmpty() && this.resultTypeStack.peek().equals(FrameworkElement.GRAPH_MORPHISM)) {
-            this.resultTypeStack.pop();
-            return getMorphismResult();
-        } else {
-            throw new GraphError(GraphError.ERROR_TYPE.ILL_FORMED, Collections.emptySet());
-        }
-    }
-
-    public Sketch fetchResultSketch() throws GraphError {
-        if (!this.errors.isEmpty()) {
-            throw new GraphError(errors);
-        }
-        if (!this.resultTypeStack.isEmpty() && this.resultTypeStack.peek().equals(FrameworkElement.SKETCH)) {
-            this.resultTypeStack.pop();
-            return getSketchResult();
-        } else {
-            throw new GraphError(GraphError.ERROR_TYPE.ILL_FORMED, Collections.emptySet());
-        }
-
-    }
-
 
     public GraphBuilders importGraph(Graph domain) {
         this.nodeAggregator.addAll(domain.nodes().collect(Collectors.toSet()));
@@ -423,4 +317,55 @@ public class GraphBuilders {
     }
 
 
+    public GraphBuilders attribute(String owner, String attributeName, Value value) {
+        return this.edge(Name.identifier(owner), Name.identifier(attributeName).prefixWith(Name.identifier(owner)), value);
+    }
+
+    public GraphBuilders inheritanceGraph(String name) {
+        return this.inheritanceGraph(Name.identifier(name));
+    }
+
+    public GraphBuilders inheritanceGraph(Name name) {
+        this.graph(name);
+        if (!graphAggregator.isEmpty()) {
+            Graph base = graphAggregator.get(graphAggregator.size() - 1);
+            graphAggregator.remove(graphAggregator.size() - 1);
+            graphAggregator.add(new InheritanceAugmentedGraph(base, Tuple.fromMap(bindingAggregator)));
+            this.resultTypeStack.push(InheritanceGraph.class);
+        }
+        return this;
+    }
+
+    public <E extends Element> E getResult(Class<E> type) throws GraphError {
+        if (!this.errors.isEmpty()) {
+            throw new GraphError(errors);
+        }
+
+        if (this.resultTypeStack.isEmpty() || !type.isAssignableFrom(this.resultTypeStack.peek())) {
+            throw new GraphError(GraphError.ERROR_TYPE.NOT_CONSTRUCTED, Collections.emptySet());
+        }
+
+        this.resultTypeStack.pop();
+
+        Element result = null;
+
+        if (Graph.class.isAssignableFrom(type)) {
+            result = this.graphAggregator.get(this.graphAggregator.size() - 1);
+            this.graphAggregator.remove(this.graphAggregator.size() - 1);
+        } else if (GraphMorphism.class.isAssignableFrom(type)) {
+            result = this.morphismAggregator.get(this.morphismAggregator.size() - 1);
+            this.morphismAggregator.remove(this.morphismAggregator.size() - 1);
+        } else if (Sketch.class.isAssignableFrom(type)) {
+            result = this.sketchAggregator.get(this.sketchAggregator.size() - 1);
+            this.sketchAggregator.remove(this.sketchAggregator.size() - 1);
+        } else { // TODO other framework elements
+            throw new GraphError(GraphError.ERROR_TYPE.NOT_CONSTRUCTED, Collections.emptySet());
+        }
+
+        try {
+            return (E) result;
+        } catch (ClassCastException e) {
+            throw new GraphError(Collections.singletonList(new Pair<>(result.getName(), GraphError.ERROR_TYPE.ILL_FORMED)));
+        }
+    }
 }

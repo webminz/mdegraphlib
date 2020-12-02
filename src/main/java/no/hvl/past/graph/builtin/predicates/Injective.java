@@ -33,7 +33,7 @@ public class Injective implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         List<Name> targets = instance.allInstances(Universe.ARROW_THE_ARROW).map(Triple::getTarget).collect(Collectors.toList());
         Set<Name> targetsset = new HashSet<>(targets);
         return targets.size() == targetsset.size();

@@ -20,7 +20,7 @@ public class Inverse implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.CYCLE_FWD).allMatch(t1 ->
                 instance.allInstances(Universe.CYCLE_BWD)
                         .filter(t -> t.getSource().equals(t1.getTarget()))

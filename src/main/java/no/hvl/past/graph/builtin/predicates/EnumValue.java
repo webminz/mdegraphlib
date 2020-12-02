@@ -15,7 +15,7 @@ public class EnumValue implements GraphPredicate {
     }
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.ARROW_THE_ARROW)
                 .map(Triple::getTarget)
                 .allMatch(allowed::contains);

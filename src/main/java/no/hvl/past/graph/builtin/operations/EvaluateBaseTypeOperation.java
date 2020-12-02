@@ -18,24 +18,20 @@ public class EvaluateBaseTypeOperation implements GraphOperation {
     }
 
     @Override
-    public TypedGraph execute(TypedGraph instance, ExecutionContext context) {
+    public GraphMorphism execute(GraphMorphism instance, ExecutionContext context) {
         return null;
     }
 
     @Override
-    public boolean isExecuted(TypedGraph instance) {
+    public boolean isExecutedCorrectly(GraphMorphism instance) {
         return false;
     }
 
     @Override
-    public boolean isExecutedCorrectly(TypedGraph instance) {
-        return false;
+    public GraphMorphism undo(GraphMorphism instance, ExecutionContext context) {
+        return instance;
     }
 
-    @Override
-    public boolean undo(TypedGraph instance) {
-        return false;
-    }
 
     @Override
     public String nameAsString() {
@@ -50,7 +46,7 @@ public class EvaluateBaseTypeOperation implements GraphOperation {
     @Override
     public Graph overlapArity() {
         try {
-            return new GraphBuilders().node("0").node("1").graph("TWO_NODES").fetchResultGraph();
+            return new GraphBuilders().node("0").node("1").graph("TWO_NODES").getResult(Graph.class);
         } catch (GraphError graphError) {
             throw new ShouldNotHappenException(getClass(), "overlapArity", graphError);
         }

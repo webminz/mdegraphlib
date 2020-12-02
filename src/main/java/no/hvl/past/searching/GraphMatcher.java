@@ -100,11 +100,11 @@ public class GraphMatcher {
         Set<CSPSolver.BinaryConstraint<Triple>> constraints = new HashSet<>();
         Set<CSPSolver.AllDiffConstraint<Triple>> allDiffConstraints = new HashSet<>();
         morphism.codomain().elements().filter(Triple::isNode).forEach(t ->
-                variables.put(t.getLabel(), new NodeVar(t.getLabel(), morphism.select(t).map(target -> target.mapName(Name::secondPart)).collect(Collectors.toSet()))));
+                variables.put(t.getLabel(), new NodeVar(t.getLabel(), morphism.preimage(t).map(target -> target.mapName(Name::secondPart)).collect(Collectors.toSet()))));
         morphism.codomain().elements().filter(Triple::isEddge).forEach(t -> {
             NodeVar sourceVar = (NodeVar) variables.get(t.getSource());
             NodeVar targetVar = (NodeVar) variables.get(t.getTarget());
-            EdgeVar edgeVar = new EdgeVar(t.getLabel(), morphism.select(t).map(target -> target.mapName(Name::secondPart)).collect(Collectors.toSet()));
+            EdgeVar edgeVar = new EdgeVar(t.getLabel(), morphism.preimage(t).map(target -> target.mapName(Name::secondPart)).collect(Collectors.toSet()));
             constraints.add(new SrcIncidence(edgeVar, sourceVar, morphism.domain()));
             constraints.add(new TrgIncidence(edgeVar, targetVar, morphism.domain()));
             variables.put(t.getLabel(), edgeVar);
@@ -141,7 +141,7 @@ public class GraphMatcher {
         GraphBuilders builder = new GraphBuilders().domain(domain).codomain(codomain);
         cspSolution.entrySet().stream().forEach(kv -> builder.map(kv.getKey().name, kv.getValue().getLabel()));
         try {
-            return builder.morphism(nextName()).fetchResultMorphism();
+            return builder.morphism(nextName()).getResult(GraphMorphism.class);
         } catch (GraphError graphError) {
             throw new ShouldNotHappenException(getClass(), "turnIntoSolution", graphError);
         }

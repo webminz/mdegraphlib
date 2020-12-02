@@ -7,6 +7,7 @@ import org.junit.Test;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 public class AttributesTest {
 
@@ -175,12 +176,66 @@ public class AttributesTest {
 
     @Test
     public void testStrings() {
-        // TODO
+        Value[] arguments = new Value[3];
+
+        arguments[0] = Name.value("Optimist");
+        arguments[1] = Name.value(4);
+        arguments[2] = Name.value(4);
+        assertEquals(Name.value("mist"), BuiltinOperations.Substring.getInstance().apply(arguments));
+
+        arguments =new Value[2];
+        arguments[0] = Name.value("Hello");
+        arguments[1] = Name.value(", World!");
+        assertEquals(Name.value("Hello, World!"), BuiltinOperations.Concatenation.getInstance().apply(arguments));
+
+
+        arguments[0] = Name.value("The black brown fox jumped over the black brown house");
+        arguments[1] = Name.value("brown");
+        assertEquals(Name.value(10), BuiltinOperations.FirstIndexOf.getInstance().apply(arguments));
+
+        arguments = new Value[1];
+        arguments[0] = Name.value("Hallo");
+        assertEquals(Name.value("ollaH"), BuiltinOperations.Reverse.getInstance().apply(arguments));
+
+        assertEquals(Name.value(5), BuiltinOperations.Length.getInstance().apply(arguments));
     }
 
     @Test
     public void testParsingAndToString() {
-        // TODO
+
+        Value[] argument = new Value[1];
+
+        argument[0] = Name.value("23");
+        Value result = BuiltinOperations.ParseInt.getInstance().apply(argument);
+        assertTrue(result instanceof IntegerValue);
+        assertEquals(Name.value(23), result);
+
+        argument[0] = Name.value("3.14159");
+        result = BuiltinOperations.ParseFloat.getInstance().applyImplementation(argument);
+        assertTrue(result instanceof FloatValue);
+        assertEquals(Name.value(3.14159), result);
+
+        assertEquals(Name.value(3), BuiltinOperations.ParseInt.getInstance().apply(argument));
+
+        argument[0] = Name.value("1.5 litres");
+        assertEquals(ErrorValue.INSTANCE, BuiltinOperations.ParseFloat.getInstance().apply(argument));
+
+        argument[0] = Name.value("true");
+        assertEquals(Name.trueValue(), BuiltinOperations.ParseBool.getInstance().apply(argument));
+        argument[0] = Name.value("FALSE");
+        assertEquals(Name.falseValue(), BuiltinOperations.ParseBool.getInstance().apply(argument));
+        argument[0] = Name.value(0);
+        assertEquals(Name.falseValue(), BuiltinOperations.ParseBool.getInstance().apply(argument));
+
+        argument[0] = Name.value(3.14159);
+        result = BuiltinOperations.ToString.getInstance().apply(argument);
+        assertTrue(result instanceof StringValue);
+        assertEquals(Name.value("3.14159"), result);
+
+        argument[0] = Name.value(1);
+        argument[0] = BuiltinOperations.ParseBool.getInstance().apply(argument);
+        assertEquals(Name.value("true"), BuiltinOperations.ToString.getInstance().apply(argument));
+
     }
 
 }

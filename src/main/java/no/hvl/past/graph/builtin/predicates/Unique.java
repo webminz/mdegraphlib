@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 public class Unique implements GraphPredicate {
 
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.ARROW_SRC_NAME).allMatch(node -> {
             List<Name> collect = instance.allInstances(Universe.ARROW_THE_ARROW).filter(triple -> triple.getSource().equals(node)).map(Triple::getTarget).collect(Collectors.toList());
             Set<Name> withoutDups = new HashSet<>(collect);

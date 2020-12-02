@@ -6,7 +6,7 @@ import no.hvl.past.names.Name;
 
 public class Ordered implements GraphPredicate {
     @Override
-    public boolean check(TypedGraph instance) {
+    public boolean check(GraphMorphism instance) {
         return instance.allInstances(Universe.ARROW_THE_ARROW).map(Triple::getLabel).allMatch(Name::isIndexed);
     }
 

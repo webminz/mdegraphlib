@@ -7,30 +7,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class Disjunction extends Formula {
+public class Disjunction<Sig extends Signature> extends FormulaCombinator<Sig> {
 
-    private final List<Formula> subFormulas;
-
-    public Disjunction(List<Formula> subFormulas) {
-        this.subFormulas = subFormulas;
+    public Disjunction(Formula<Sig> lhs, Formula<Sig> rhs) {
+        super(lhs, rhs);
     }
 
     @Override
-    public Set<Variable> getVariables() {
-        Set<Variable> result = new HashSet<>();
-        for (Formula f : subFormulas) {
-            result.addAll(f.getVariables());
-        }
-        return result;
-    }
-
-    @Override
-    public boolean verify(Context context, GraphMorphism instance) {
-        for (Formula f : subFormulas) {
-            if (f.verify(context, instance)) {
-                return true;
-            }
-        }
-        return false;
+    public boolean isSatisfied(Model<Sig> model) {
+        return getLhs().isSatisfied(model) || getRhs().isSatisfied(model);
     }
 }

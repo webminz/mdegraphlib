@@ -18,7 +18,7 @@ import static junit.framework.TestCase.assertTrue;
 
 class AbstractTest {
 
-    private final Universe universe = new UniverseImpl(UniverseImpl.EMPTY);
+    protected static final Universe universe = new UniverseImpl(UniverseImpl.EMPTY);
     private final Set<Triple> expected = new HashSet<>();
 
     public GraphBuilders getPrototypeBuilder() {
@@ -46,7 +46,9 @@ class AbstractTest {
     }
 
     Stream<Triple> expected() {
-        return this.expected.stream();
+        Set<Triple> result = new HashSet<>(this.expected);
+        this.expected.clear();
+        return result.stream();
     }
 
     static <T> void assertStreamEquals(Stream<T> expected, Stream<T> actual) {
@@ -129,6 +131,10 @@ class AbstractTest {
 
     protected void assertAmbiguouslyMapped(Name ambiguosMapped, GraphError error) {
         assertTrue(error.getAmbiguousMappings().contains(ambiguosMapped));
+    }
+
+    protected void assertIllFormed(Name m, GraphError error) {
+        assertTrue(error.getIllFormed().contains(m));
     }
 
     public static void assertGraphsEqual(Graph graph, Triple... allEdges) {

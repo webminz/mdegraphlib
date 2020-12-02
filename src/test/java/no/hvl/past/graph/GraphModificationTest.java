@@ -17,6 +17,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class GraphModificationTest {
+// TODO restore this methods and make the work with sub/sub-objects
+
+
 
 //    GraphImpl TEST = new GraphBuilder("G")
 //            .edge("1", "a", "2")
