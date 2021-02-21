@@ -16,7 +16,7 @@ public abstract class MonicMorphism extends AbstractModification {
     }
 
     @Override
-    public boolean isInjective() {
+    public boolean isMonic() {
         return true;
     }
 

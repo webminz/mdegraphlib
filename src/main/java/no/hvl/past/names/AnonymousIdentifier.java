@@ -1,5 +1,7 @@
 package no.hvl.past.names;
 
+import no.hvl.past.util.ByteUtils;
+
 import java.util.Optional;
 
 /**
@@ -20,12 +22,7 @@ public class AnonymousIdentifier extends Identifier {
 
     @Override
     public byte[] serialize() {
-        byte[] result = new byte[4];
         int originalHashCode = System.identityHashCode(this);
-        result[0] = (byte) originalHashCode;
-        result[1] = (byte) (originalHashCode >> 8);
-        result[2] = (byte) (originalHashCode >> 16);
-        result[3] = (byte) (originalHashCode >> 24);
-        return result;
+        return ByteUtils.intToByteArray(originalHashCode, true);
     }
 }

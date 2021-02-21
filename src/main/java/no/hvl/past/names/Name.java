@@ -4,8 +4,11 @@ import no.hvl.past.attributes.BoolValue;
 import no.hvl.past.attributes.FloatValue;
 import no.hvl.past.attributes.IntegerValue;
 import no.hvl.past.attributes.StringValue;
+import no.hvl.past.logic.Formula;
+import no.hvl.past.logic.Model;
 import no.hvl.past.util.ProperComparator;
 
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.*;
 
@@ -20,7 +23,7 @@ import java.util.*;
  * The commonality of all names is that it can be serialized into a bytearray.
  * Equality of names is based on the bytearray representation.
  */
-public abstract class Name implements ProperComparator<Name> {
+public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
 
     static final byte IDENTIFIER_MAGIC_BYTE = (byte) 0x00E0;
     static final byte VARIABLE_MAGIC_BYTE = (byte) 0x00E1;
@@ -89,9 +92,8 @@ public abstract class Name implements ProperComparator<Name> {
 
     /**
      * Compares two names with each other.
-     * Normally names are either equal or non-comparable.
-     * But some sub-types of names, e.g. values, indices etc.
-     * may be comparable.
+     * Normally names are either equal or non-comparable, i.e. a discrete partial order.
+     * But some sub-classes of names (e.g. values, indices, user defined identifiers,...) may have a total order.
      */
     public CompareResult compareWith(Name other) {
         if (identity(other)) {
@@ -99,6 +101,14 @@ public abstract class Name implements ProperComparator<Name> {
         } else {
             return CompareResult.INCOMPARABLE;
         }
+    }
+
+    /**
+     * Returns true if this name together with the given argument fall into a subclass of names that has
+     * a total order.
+     */
+    public boolean inATotalOrderWith(Name other) {
+        return false;
     }
 
     /**
@@ -201,6 +211,22 @@ public abstract class Name implements ProperComparator<Name> {
     public Name times(Name other) {
         return new BinaryCombinator(this, other, BinaryCombinator.Operation.TIMES);}
 
+    public Name projectionOn(Name other) {
+        return new BinaryCombinator(this, other, BinaryCombinator.Operation.PROJECTION);
+    }
+
+    public Name injectedFrom(Name src) {
+        return new BinaryCombinator(this, src, BinaryCombinator.Operation.INJECTION);
+    }
+
+    public Name preimage(Name name) {
+        return new BinaryCombinator(this, name, BinaryCombinator.Operation.PREIMAGE);
+    }
+
+    public Name extendedBy(Name name) {
+        return new BinaryCombinator(this, name, BinaryCombinator.Operation.AUGMENTED_WITH);
+    }
+
 
     public Name sum(Name other) {
         return new BinaryCombinator(this, other, BinaryCombinator.Operation.COPRODUCT);
@@ -211,7 +237,7 @@ public abstract class Name implements ProperComparator<Name> {
 
 
     public Name mergeWith(Name... others) {
-        return Name.merge(Arrays.asList(others));
+        return this.mergeWith(Arrays.asList(others));
     }
 
     public Name mergeWith(List<Name> others) {
@@ -221,8 +247,12 @@ public abstract class Name implements ProperComparator<Name> {
         return Name.merge(all);
     }
 
-    public static Name merge(Collection<Name> all) {
+    public static Name merge(List<Name> all) {
         return new MulitaryCombinator(all, MulitaryCombinator.Operation.UNION);
+    }
+
+    public static Name concat(List<Name> all) {
+        return new MulitaryCombinator(all, MulitaryCombinator.Operation.CONCAT);
     }
 
     public Name inverse() {
@@ -231,6 +261,10 @@ public abstract class Name implements ProperComparator<Name> {
 
     public Name iterated(){
         return new UnaryCombinator(this, UnaryCombinator.Operation.ITERATED);
+    }
+
+    public Name copied() {
+        return new UnaryCombinator(this, UnaryCombinator.Operation.COPIED);
     }
 
     public Name complement(){
@@ -245,13 +279,31 @@ public abstract class Name implements ProperComparator<Name> {
         return new UnaryCombinator(this, UnaryCombinator.Operation.MANDATORY);
     }
 
+    public Name global() {
+        return new UnaryCombinator(this, UnaryCombinator.Operation.GLOBAL);
+    }
+
+    public Name absolute() {
+        return new UnaryCombinator(this, UnaryCombinator.Operation.ABSOLUTE);
+
+    }
+
     public Name index(long idx) {
         return new Index(this, idx);
     }
 
-    public Name downTypeAlong(Identifier superName) {
+    public Name downTypeAlong(Name superName) {
         return new BinaryCombinator(this, superName, BinaryCombinator.Operation.DOWNTYPE);
     }
+
+    public Name addSuffix(Name suffix) {
+        return new Prefix(suffix, this);
+    }
+
+    public Name childOf(Name parent) {
+        return new BinaryCombinator(this, parent, BinaryCombinator.Operation.CHILD_OF);
+    };
+
 
     // Factory methods
 
@@ -303,12 +355,21 @@ public abstract class Name implements ProperComparator<Name> {
         return new BoolValue(false);
     }
 
-
-    public Name addSuffix(Name suffix) {
-        return new Prefix(suffix, this);
+    public  Name unprefixTop() {
+        return this;
     }
 
-    public Name absolute() {
-        return new UnaryCombinator(this, UnaryCombinator.Operation.ABSOLUTE);
+    @Override
+    public boolean isSatisfied(Model<NameSet> model) {
+        // Every Name is also an atomic propositional formula
+        if (model instanceof NameSet) {
+            NameSet instance = (NameSet) model;
+            return instance.contains(this);
+        }
+        return false;
+    }
+
+    public Name substitution(Name name) {
+        return new BinaryCombinator(this, name, BinaryCombinator.Operation.SUBSTITUTION);
     }
 }

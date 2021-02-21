@@ -2,6 +2,7 @@ package no.hvl.past.names;
 
 import no.hvl.past.util.ByteUtils;
 
+import java.io.BufferedWriter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -13,16 +14,21 @@ public final class MulitaryCombinator extends Combinator {
             public String print(PrintingStrategy strategy, List<String> arguments) {
                 return strategy.merge(arguments);
             }
+        }, CONCAT {
+            @Override
+            public String print(PrintingStrategy strategy, List<String> arguments) {
+                return null;
+            }
         };
 
         public abstract String print(PrintingStrategy strategy, List<String> arguments);
 
     }
 
-    private final Collection<Name> names;
+    private final List<Name> names;
     private final Operation op;
 
-    MulitaryCombinator(Collection<Name> names, Operation op) {
+    MulitaryCombinator(List<Name> names, Operation op) {
         this.names = names;
         this.op = op;
     }

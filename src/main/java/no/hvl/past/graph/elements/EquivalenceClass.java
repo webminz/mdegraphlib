@@ -132,137 +132,137 @@ public class EquivalenceClass {
         return Objects.hash(slots);
     }
 
-    public Triple representativeWithNSPrecedence(List<Name> nsHierarchy) {
-        Holder<Name> srcName = new Holder<>();
-        Holder<Name> lblName = new Holder<>();
-        Holder<Name> trgName = new Holder<>();
-        for (Name ns : nsHierarchy) {
-            if (!srcName.hasValue()) {
-                if (this.slots.containsKey(ns)) {
-                    Collection<Triple> triples = this.slots.get(ns);
-                    if (triples.size() == 1) {
-                        srcName.set(triples.iterator().next().getSource());
-                    } else {
-                        srcName.set(Name.merge(triples.stream().map(Triple::getSource).collect(Collectors.toSet())));
-                    }
-                }
-            }
-            if (!lblName.hasValue()) {
-                if (this.slots.containsKey(ns)) {
-                    Collection<Triple> triples = this.slots.get(ns);
-                    if (triples.size() == 1) {
-                        lblName.set(triples.iterator().next().getLabel());
-                    } else {
-                        lblName.set(Name.merge(triples.stream().map(Triple::getLabel).collect(Collectors.toSet())));
-                    }
-                }
-            }
-            if (!trgName.hasValue()) {
-                if (this.slots.containsKey(ns)) {
-                    Collection<Triple> triples = this.slots.get(ns);
-                    if (triples.size() == 1) {
-                        trgName.set(triples.iterator().next().getTarget());
-                    } else {
-                        trgName.set(Name.merge(triples.stream().map(Triple::getTarget).collect(Collectors.toSet())));
-                    }
-                }
-            }
-        }
-        if (srcName.hasValue() && lblName.hasValue() && trgName.hasValue()) {
-            return Triple.edge(srcName.unsafeGet(), lblName.unsafeGet(), trgName.unsafeGet());
-        } else {
-            return representative();
-        }
-    }
+//    public Triple representativeWithNSPrecedence(List<Name> nsHierarchy) {
+//        Holder<Name> srcName = new Holder<>();
+//        Holder<Name> lblName = new Holder<>();
+//        Holder<Name> trgName = new Holder<>();
+//        for (Name ns : nsHierarchy) {
+//            if (!srcName.hasValue()) {
+//                if (this.slots.containsKey(ns)) {
+//                    Collection<Triple> triples = this.slots.get(ns);
+//                    if (triples.size() == 1) {
+//                        srcName.set(triples.iterator().next().getSource());
+//                    } else {
+//                        srcName.set(Name.merge(triples.stream().map(Triple::getSource).collect(Collectors.toSet())));
+//                    }
+//                }
+//            }
+//            if (!lblName.hasValue()) {
+//                if (this.slots.containsKey(ns)) {
+//                    Collection<Triple> triples = this.slots.get(ns);
+//                    if (triples.size() == 1) {
+//                        lblName.set(triples.iterator().next().getLabel());
+//                    } else {
+//                        lblName.set(Name.merge(triples.stream().map(Triple::getLabel).collect(Collectors.toSet())));
+//                    }
+//                }
+//            }
+//            if (!trgName.hasValue()) {
+//                if (this.slots.containsKey(ns)) {
+//                    Collection<Triple> triples = this.slots.get(ns);
+//                    if (triples.size() == 1) {
+//                        trgName.set(triples.iterator().next().getTarget());
+//                    } else {
+//                        trgName.set(Name.merge(triples.stream().map(Triple::getTarget).collect(Collectors.toSet())));
+//                    }
+//                }
+//            }
+//        }
+//        if (srcName.hasValue() && lblName.hasValue() && trgName.hasValue()) {
+//            return Triple.edge(srcName.unsafeGet(), lblName.unsafeGet(), trgName.unsafeGet());
+//        } else {
+//            return representative();
+//        }
+//    }
+//
+//    /**
+//     * Turns this whole class into a single Triple.
+//     * By default this is done by merging all names.
+//     */
+//    public Triple representative() {
+//        Set<Name> sourceNames = new HashSet<>();
+//        Set<Name> labelNames = new HashSet<>();
+//        Set<Name> targetNames = new HashSet<>();
+//        this.slots.entries().forEach(kv -> {
+//            Triple triple;
+//            if (kv.getKey().equals(PLACEHOLDER_NS)) {
+//                triple = kv.getValue();
+//            } else {
+//                triple = kv.getValue().prefix(kv.getKey());
+//            }
+//            sourceNames.add(triple.getSource());
+//            labelNames.add(triple.getLabel());
+//            targetNames.add(triple.getTarget());
+//        });
+//        return new Triple(Name.merge(sourceNames), Name.merge(labelNames), Name.merge(targetNames));
+//    }
 
-    /**
-     * Turns this whole class into a single Triple.
-     * By default this is done by merging all names.
-     */
-    public Triple representative() {
-        Set<Name> sourceNames = new HashSet<>();
-        Set<Name> labelNames = new HashSet<>();
-        Set<Name> targetNames = new HashSet<>();
-        this.slots.entries().forEach(kv -> {
-            Triple triple;
-            if (kv.getKey().equals(PLACEHOLDER_NS)) {
-                triple = kv.getValue();
-            } else {
-                triple = kv.getValue().prefix(kv.getKey());
-            }
-            sourceNames.add(triple.getSource());
-            labelNames.add(triple.getLabel());
-            targetNames.add(triple.getTarget());
-        });
-        return new Triple(Name.merge(sourceNames), Name.merge(labelNames), Name.merge(targetNames));
-    }
-
-    /**
-     * Turns this whole class into a single Triple by merging the names
-     * but this time the sources are also represented by classes.
-     */
-    public Triple properRepresentative(Collection<EquivalenceClass> nodeClasses) {
-        Set<Name> labelNames = new HashSet<>();
-        Holder<Name> srcName = new Holder<>();
-        Holder<Name> trgName = new Holder<>();
-        this.slots.entries().forEach(kv -> {
-            Triple t = kv.getValue();
-            labelNames.add(t.getLabel().prefixWith(kv.getKey()));
-            if (!srcName.hasValue()) {
-                nodeClasses
-                        .stream()
-                        .filter(eqv -> eqv.containsNode(kv.getKey(), t.getSource()))
-                        .findFirst()
-                        .map(EquivalenceClass::representative)
-                        .map(Triple::getLabel)
-                        .ifPresent(srcName::set);
-            }
-            if (!trgName.hasValue()) {
-                nodeClasses
-                        .stream()
-                        .filter(eqv -> eqv.containsNode(kv.getKey(), t.getTarget()))
-                        .findFirst().map(EquivalenceClass::representative)
-                        .map(Triple::getLabel)
-                        .ifPresent(trgName::set);
-            }
-        });
-        if (!srcName.hasValue() || !trgName.hasValue()) {
-            return representative();
-        }
-        return new Triple(srcName.unsafeGet(), Name.merge(labelNames), trgName.unsafeGet());
-    }
-
-    public Triple properRepresentativeWithNSHierarch(Collection<EquivalenceClass> nodeClasses, List<Name> nsHierarchy) {
-        Set<Name> labelNames = new HashSet<>();
-        Holder<Name> srcName = new Holder<>();
-        Holder<Name> trgName = new Holder<>();
-        this.slots.entries().forEach(kv -> {
-            Triple t = kv.getValue();
-            labelNames.add(t.getLabel().prefixWith(kv.getKey()));
-            if (!srcName.hasValue()) {
-                nodeClasses
-                        .stream()
-                        .filter(eqv -> eqv.containsNode(kv.getKey(), t.getSource()))
-                        .findFirst()
-                        .map(eqv -> eqv.representativeWithNSPrecedence(nsHierarchy))
-                        .map(Triple::getLabel)
-                        .ifPresent(srcName::set);
-            }
-            if (!trgName.hasValue()) {
-                nodeClasses
-                        .stream()
-                        .filter(eqv -> eqv.containsNode(kv.getKey(), t.getTarget()))
-                        .findFirst()
-                        .map(eqv -> eqv.representativeWithNSPrecedence(nsHierarchy))
-                        .map(Triple::getLabel)
-                        .ifPresent(trgName::set);
-            }
-        });
-        if (!srcName.hasValue() || !trgName.hasValue()) {
-            return representativeWithNSPrecedence(nsHierarchy);
-        }
-        return new Triple(srcName.unsafeGet(), Name.merge(labelNames), trgName.unsafeGet());
-    }
+//    /**
+//     * Turns this whole class into a single Triple by merging the names
+//     * but this time the sources are also represented by classes.
+//     */
+//    public Triple properRepresentative(Collection<EquivalenceClass> nodeClasses) {
+//        Set<Name> labelNames = new HashSet<>();
+//        Holder<Name> srcName = new Holder<>();
+//        Holder<Name> trgName = new Holder<>();
+//        this.slots.entries().forEach(kv -> {
+//            Triple t = kv.getValue();
+//            labelNames.add(t.getLabel().prefixWith(kv.getKey()));
+//            if (!srcName.hasValue()) {
+//                nodeClasses
+//                        .stream()
+//                        .filter(eqv -> eqv.containsNode(kv.getKey(), t.getSource()))
+//                        .findFirst()
+//                        .map(EquivalenceClass::representative)
+//                        .map(Triple::getLabel)
+//                        .ifPresent(srcName::set);
+//            }
+//            if (!trgName.hasValue()) {
+//                nodeClasses
+//                        .stream()
+//                        .filter(eqv -> eqv.containsNode(kv.getKey(), t.getTarget()))
+//                        .findFirst().map(EquivalenceClass::representative)
+//                        .map(Triple::getLabel)
+//                        .ifPresent(trgName::set);
+//            }
+//        });
+//        if (!srcName.hasValue() || !trgName.hasValue()) {
+//            return representative();
+//        }
+//        return new Triple(srcName.unsafeGet(), Name.merge(labelNames), trgName.unsafeGet());
+//    }
+//
+//    public Triple properRepresentativeWithNSHierarch(Collection<EquivalenceClass> nodeClasses, List<Name> nsHierarchy) {
+//        Set<Name> labelNames = new HashSet<>();
+//        Holder<Name> srcName = new Holder<>();
+//        Holder<Name> trgName = new Holder<>();
+//        this.slots.entries().forEach(kv -> {
+//            Triple t = kv.getValue();
+//            labelNames.add(t.getLabel().prefixWith(kv.getKey()));
+//            if (!srcName.hasValue()) {
+//                nodeClasses
+//                        .stream()
+//                        .filter(eqv -> eqv.containsNode(kv.getKey(), t.getSource()))
+//                        .findFirst()
+//                        .map(eqv -> eqv.representativeWithNSPrecedence(nsHierarchy))
+//                        .map(Triple::getLabel)
+//                        .ifPresent(srcName::set);
+//            }
+//            if (!trgName.hasValue()) {
+//                nodeClasses
+//                        .stream()
+//                        .filter(eqv -> eqv.containsNode(kv.getKey(), t.getTarget()))
+//                        .findFirst()
+//                        .map(eqv -> eqv.representativeWithNSPrecedence(nsHierarchy))
+//                        .map(Triple::getLabel)
+//                        .ifPresent(trgName::set);
+//            }
+//        });
+//        if (!srcName.hasValue() || !trgName.hasValue()) {
+//            return representativeWithNSPrecedence(nsHierarchy);
+//        }
+//        return new Triple(srcName.unsafeGet(), Name.merge(labelNames), trgName.unsafeGet());
+//    }
 
     public static EquivalenceClass create(List<Name> slotNames, List<Triple> prefixedTriples) {
         Multimap<Name, Triple> multimap = HashMultimap.create();

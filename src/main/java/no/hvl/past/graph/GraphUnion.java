@@ -91,31 +91,31 @@ public class GraphUnion implements Graph {
             return Stream.empty();
         }
         Iterator<Graph> i = this.members.iterator();
-        Stream<Triple> result = i.next().elements();
+        Stream<Triple> result = i.next().prefix().elements();
         while (i.hasNext()) {
-            result = Stream.concat(result, i.next().elements());
+            result = Stream.concat(result, i.next().prefix().elements());
         }
         return result;
     }
 
     @Override
     public boolean contains(Triple triple) {
-        return this.members.stream().anyMatch(m -> m.contains(triple));
+        return this.members.stream().anyMatch(m -> m.contains(triple.mapName(Name::unprefixTop)));
     }
 
     @Override
     public boolean mentions(Name name) {
-        return this.members.stream().anyMatch(m -> m.mentions(name));
+        return this.members.stream().anyMatch(m -> m.mentions(name.unprefixTop()));
     }
 
     @Override
     public Stream<Triple> outgoing(Name from) {
-        return this.members.stream().flatMap(m -> m.outgoing(from));
+        return this.members.stream().flatMap(m -> m.outgoing(from.unprefixTop()));
     }
 
     @Override
     public Stream<Triple> incoming(Name to) {
-        return this.members.stream().flatMap(m -> m.incoming(to));
+        return this.members.stream().flatMap(m -> m.incoming(to.unprefixTop()));
     }
 
     @Override
@@ -129,6 +129,44 @@ public class GraphUnion implements Graph {
         return Optional.empty();
     }
 
+
+    public Optional<GraphMorphism> inclusionOf(Graph member) {
+        if (members.contains(member)) {
+            return Optional.of(new GraphMorphism() {
+                @Override
+                public Graph domain() {
+                    return member;
+                }
+
+                @Override
+                public Graph codomain() {
+                    return GraphUnion.this;
+                }
+
+                @Override
+                public Optional<Name> map(Name name) {
+                    return Optional.of(name.prefixWith(member.getName()));
+                }
+
+                @Override
+                public Optional<Triple> apply(Triple from) {
+                    return Optional.of(
+                            Triple.edge(
+                                    from.getSource().prefixWith(member.getName()),
+                                    from.getLabel().prefixWith(member.getName()),
+                                    from.getTarget().prefixWith(member.getName())
+                            )
+                    );
+                }
+
+                @Override
+                public Name getName() {
+                    return member.getName().subTypeOf(GraphUnion.this.name);
+                }
+            });
+        }
+        return Optional.empty();
+    }
 
 //    @Override
 //    public Iterator<Triple> iterator() {

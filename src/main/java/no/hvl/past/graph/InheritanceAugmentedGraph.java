@@ -22,7 +22,7 @@ public class InheritanceAugmentedGraph implements InheritanceGraph {
     public boolean isUnder(Name subnode, Name supernode) {
         // Reflexivity
         if (subnode.equals(supernode)) {
-            return true;
+            return isNode(subnode);
         }
         return inheritanceEdges.stream().anyMatch(t -> t.getDomain().equals(subnode) && t.getCodomain().equals(supernode));
     }

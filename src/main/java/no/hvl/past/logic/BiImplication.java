@@ -1,6 +1,6 @@
 package no.hvl.past.logic;
 
-public class BiImplication<Sig extends Signature> extends FormulaCombinator<Sig> {
+public class BiImplication<Sig extends Signature> extends BinaryFormulaCombinator<Sig> {
 
     public BiImplication(Formula<Sig> lhs, Formula<Sig> rhs) {
         super(lhs, rhs);

@@ -58,7 +58,11 @@ public final class Prefix extends Name {
 
     @Override
     public boolean contains(Name name) {
-        return prefix.equals(name) || nested.contains(name);
+        if (name instanceof Prefix) {
+            Prefix other = (Prefix) name;
+            return this.prefix.equals(other.prefix) && this.nested.contains(other.nested);
+        }
+        return  nested.contains(name);
     }
 
     @Override
@@ -119,5 +123,10 @@ public final class Prefix extends Name {
             return this.nested.compareWith(otherPrefixed.nested);
         }
         return super.compareWith(other);
+    }
+
+    @Override
+    public Name unprefixTop() {
+        return nested;
     }
 }

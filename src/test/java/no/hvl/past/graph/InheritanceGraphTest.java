@@ -1,12 +1,12 @@
 package no.hvl.past.graph;
 
+import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.util.ShouldNotHappenException;
 import org.junit.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-public class InheritanceGraphTest extends AbstractTest {
+public class InheritanceGraphTest extends AbstractGraphTest {
 
 
     InheritanceGraph IGRAPH = buildExample();
@@ -53,9 +53,50 @@ public class InheritanceGraphTest extends AbstractTest {
     }
 
     @Test
-    public void testGraph() {
-        assertFalse(InheritanceGraph.class.isAssignableFrom(Graph.class));
-        assertTrue(Graph.class.isAssignableFrom(InheritanceGraph.class));
+    public void testInheritance() {
+        assertTrue(IGRAPH.contains(Triple.node(id("Person"))));
+        assertFalse(IGRAPH.contains(Triple.node(id("Car"))));
+        assertTrue(IGRAPH.contains(Triple.edge(id("Person"), id("contact"), id("CommunicationChannel"))));
+        assertFalse(IGRAPH.contains(Triple.edge(id("NaturalPerson"), id("NaturalPerson").subTypeOf(id("Person")), id("Person"))));
+
+        // reflexivity
+        assertTrue(IGRAPH.isUnder(id("Person"), id("Person")));
+        // but not for edges
+        assertFalse(IGRAPH.isUnder(id("signee"), id("signee")));
+        // neither for elements that are not part of the graph.
+        assertFalse(IGRAPH.isUnder(id("Car"), id("Car")));
+
+        // normal
+        assertFalse(IGRAPH.isUnder(id("PermanentPosition"), id("Person")));
+        assertTrue(IGRAPH.isUnder(id("NaturalPerson"), id("Person")));
+        assertFalse(IGRAPH.isUnder(id("Person"), id("NaturalPerson")));
+        assertTrue(IGRAPH.isUnder(id("JuridicalPerson"), id("Person")));
+        assertTrue(IGRAPH.isUnder(id("ElectronicalCommunicationChannel"), id("CommunicationChannel")));
+        assertTrue(IGRAPH.isUnder(id("Email"), id("ElectronicalCommunicationChannel")));
+
+        // transitivity
+        assertTrue(IGRAPH.isUnder(id("Email"), id("CommunicationChannel")));
+    }
+
+
+    @Test
+    public void testAdmissableBuilders() throws GraphError {
+        Graph result = getContextCreatingBuilder()
+                .edge("A", "f", "B")
+                .map("A", "B")
+                .inheritanceGraph("N")
+                .getResult(Graph.class);
+        assertTrue(result instanceof InheritanceGraph);
+
+        try {
+            getContextCreatingBuilder()
+                    .edge("A", "f", "B")
+                    .map("A", "B")
+                    .graph("N")
+                    .getResult(InheritanceGraph.class);
+            fail();
+        } catch (GraphError error) {
+        }
     }
 
 

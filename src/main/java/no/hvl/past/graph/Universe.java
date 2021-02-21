@@ -5,7 +5,9 @@ import com.google.common.graph.GraphBuilder;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
 
+import javax.jws.Oneway;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
@@ -208,6 +210,103 @@ public interface Universe extends Graph {
                     Triple.edge(Name.identifier("2"), Name.identifier("23"), Name.identifier("3"))
             )
     );
+
+
+    Graph SPAN_3 = multiSpan(3);
+
+    Triple SPAN_3_EDGE = multiSpanEdge(3);
+
+    Triple PRODUCT_LEFT_COMPARATOR_EDGE = Triple.edge(Name.identifier("3"), Name.identifier("31"), Name.identifier("1"));
+    Triple PRODUCT_RIGHT_COMPARATOR_EDGE = Triple.edge(Name.identifier("3"), Name.identifier("32"), Name.identifier("2"));
+    Triple PRODUCT_MEDIATOR_EDGE = Triple.edge(Name.identifier("3"), Name.identifier("30"), Name.identifier("0"));
+
+    Graph PRODUCT_MEDIATOR_DIAGRAM = new GraphImpl(Name.identifier("PRODUCT_MEDIATOR"),
+            Sets.newHashSet(
+                    Triple.node(SPAN_LEFT_LEG.getSource()),
+                    Triple.node(SPAN_LEFT_LEG.getTarget()),
+                    Triple.node(SPAN_RIGHT_LEG.getTarget()),
+                    Triple.node(PRODUCT_MEDIATOR_EDGE.getSource()),
+                    SPAN_LEFT_LEG,
+                    SPAN_RIGHT_LEG,
+                    PRODUCT_LEFT_COMPARATOR_EDGE,
+                    PRODUCT_RIGHT_COMPARATOR_EDGE,
+                    PRODUCT_MEDIATOR_EDGE
+            ));
+
+
+    Triple COPRODUCT_LEFT_COMPARATOR_EDGE = Triple.edge(Name.identifier("1"), Name.identifier("13"), Name.identifier("3"));
+    Triple COPRODUCT_RIGHT_COMPARATOR_EDGE = Triple.edge(Name.identifier("2"), Name.identifier("23"), Name.identifier("3"));
+    Triple CoPRODUCT_MEDIATOR_EDGE = Triple.edge(Name.identifier("0"), Name.identifier("03"), Name.identifier("3"));
+
+    Graph COPRODUCT_MEDIATOR_DIAGRAM = new GraphImpl(Name.identifier("PRODUCT_MEDIATOR"),
+            Sets.newHashSet(
+                    Triple.node(COSPAN_LEFT_LEG.getTarget()),
+                    Triple.node(COSPAN_LEFT_LEG.getSource()),
+                    Triple.node(COSPAN_RIGHT_LEG.getSource()),
+                    Triple.node(CoPRODUCT_MEDIATOR_EDGE.getTarget()),
+                    COSPAN_LEFT_LEG,
+                    COSPAN_RIGHT_LEG,
+                    COPRODUCT_LEFT_COMPARATOR_EDGE,
+                    COPRODUCT_RIGHT_COMPARATOR_EDGE,
+                    CoPRODUCT_MEDIATOR_EDGE
+            ));
+
+
+    Triple EQUALIZER_MEDIATOR = Triple.edge(
+            Name.identifier("2"),
+            Name.identifier("20"),
+            Name.identifier("0")
+    );
+
+    Graph EQUALIZER_DIAGRAM = new GraphImpl(Name.identifier("EQUALIZER"),
+            Sets.newHashSet(
+                    Triple.node(CELL_LHS.getSource()),
+                    Triple.node(CELL_RHS.getTarget()),
+                    Triple.node(EQUALIZER_MEDIATOR.getSource()),
+                    CELL_LHS,
+                    CELL_RHS,
+                    EQUALIZER_MEDIATOR
+            ));
+
+    Triple COEQUALIZER_MEDIATOR = Triple.edge(
+            Name.identifier("1"),
+            Name.identifier("12"),
+            Name.identifier("2")
+    );
+
+
+    Graph COEQUALIZER_DIAGRAM = new GraphImpl(Name.identifier("COEQUALIZER"),
+            Sets.newHashSet(
+                    Triple.node(CELL_LHS.getSource()),
+                    Triple.node(CELL_RHS.getTarget()),
+                    Triple.node(COEQUALIZER_MEDIATOR.getTarget()),
+                    CELL_LHS,
+                    CELL_RHS,
+                    COEQUALIZER_MEDIATOR
+            ));
+
+
+    static Graph multiSpan(int arity) {
+        if (arity > 0) {
+            Set<Triple> elements = new HashSet<>();
+            elements.add(Triple.node(Name.identifier("0")));
+            for (int i = 1; i <= arity; i++) {
+                elements.add(Triple.node(Name.identifier(Integer.toString(i))));
+                elements.add(multiSpanEdge(i));
+            }
+            return new GraphImpl(Name.identifier("SPAN_" + arity), elements);
+        } else {
+            return ONE_NODE;
+        }
+    }
+
+    static Triple multiSpanEdge(int no) {
+        return Triple.edge(
+                Name.identifier("0"),
+                Name.identifier("0" + no),
+                Name.identifier(Integer.toString(no)
+                ));
+    }
 
 
 }

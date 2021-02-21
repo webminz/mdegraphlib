@@ -46,7 +46,7 @@ public class UniverseImpl implements Graph, Universe {
     private final Map<Name, Element> globalRegistry;
     private final Universe next;
 
-    UniverseImpl(Universe next) {
+    public UniverseImpl(Universe next) {
         this.globalRegistry = new HashMap<>();
         this.next = next;
     }

@@ -49,7 +49,18 @@ public final class UnaryCombinator extends Combinator {
             public String print(PrintingStrategy strategy, String nested) {
                 return strategy.absolute(nested);
             }
+        }, COPIED {
+            @Override
+            public String print(PrintingStrategy strategy, String nested) {
+                return strategy.copied(nested);
+            }
+        }, GLOBAL {
+            @Override
+            public String print(PrintingStrategy strategy, String nested) {
+                return strategy.global(nested);
+            }
         };
+
 
 
 
@@ -135,5 +146,10 @@ public final class UnaryCombinator extends Combinator {
     @Override
     public boolean isMultipart() {
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return this.print(PrintingStrategy.DETAILED);
     }
 }

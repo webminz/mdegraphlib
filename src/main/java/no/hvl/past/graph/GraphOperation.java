@@ -1,9 +1,9 @@
 package no.hvl.past.graph;
 
-import no.hvl.past.ExtensionPoint;
+import no.hvl.past.plugin.ExtensionPoint;
 import no.hvl.past.logic.Model;
 
-public interface GraphOperation extends GraphLabelTheory, ExtensionPoint {
+public interface GraphOperation extends GraphTheory, ExtensionPoint {
 
     /**
      * A subgraph of the operation's arity (scope) graph,
@@ -50,7 +50,7 @@ public interface GraphOperation extends GraphLabelTheory, ExtensionPoint {
      * creating new elements freely, i.e. the semantics of a graph
      * operation are encoded in a free-construction (epi-reflective subcategory).
      */
-    GraphMorphism execute(GraphMorphism instance, ExecutionContext context);
+    GraphMorphism execute(GraphMorphism instance, ExecutionContext context) throws GraphError;
 
     /**
      * Every operation can likewise be interpreted as a predicate,
@@ -64,14 +64,14 @@ public interface GraphOperation extends GraphLabelTheory, ExtensionPoint {
      * Reverts an applied operation on an instance graph, by simply deleting all elements
      * that are typed over elements from the output graph.
      */
-    GraphMorphism undo(GraphMorphism instance, ExecutionContext context);
+    GraphMorphism undo(GraphMorphism instance, ExecutionContext context) throws GraphError;
 
     /**
      * Since a graph operation is a free construction, they
      * provide a unique way of `fixing' wrongly executed by operations
      * by first reverting the wrong elements and the applying the epi-reflector.
      */
-    default GraphMorphism fix(GraphMorphism instance, ExecutionContext context) {
+    default GraphMorphism fix(GraphMorphism instance, ExecutionContext context) throws GraphError {
         if (!isExecutedCorrectly(instance)) {
             return execute(undo(instance, context), context);
         }

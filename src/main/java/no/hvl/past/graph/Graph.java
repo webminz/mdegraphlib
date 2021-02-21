@@ -2,14 +2,14 @@ package no.hvl.past.graph;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.Multisets;
-import com.google.common.collect.Streams;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.logic.Formula;
+import no.hvl.past.logic.Model;
 import no.hvl.past.logic.Signature;
 import no.hvl.past.names.Name;
-import no.hvl.past.util.SearchEngine;
-import no.hvl.past.util.StateSpace;
-import no.hvl.past.util.StreamExtensions;
+import no.hvl.past.searching.SearchEngine;
+import no.hvl.past.searching.StateSpace;
+import no.hvl.past.util.StreamExt;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,7 +23,7 @@ import java.util.stream.Stream;
  * they can represent all relevant artifacts, i.e.
  * Software (Meta-)models, source code (via the AST), XML documents, Database Schema etc.
  */
-public interface Graph extends Element, StateSpace<Name, Triple>, Signature {
+public interface Graph extends Element, StateSpace<Name, Triple>, Signature, Formula<Graph> {
 
     /**
      * Provides a stream with all graph elements (triples).
@@ -156,6 +156,16 @@ public interface Graph extends Element, StateSpace<Name, Triple>, Signature {
                 .isPresent();
     }
 
+    @Override
+   default boolean isSyntacticallyCorrect(Model<? extends Signature> model) {
+        if (model instanceof GraphMorphism) {
+            GraphMorphism morphism = (GraphMorphism) model;
+            return morphism.codomain().equals(this) && morphism.verify();
+        }
+        return false;
+    }
+
+
     // inherited methods to implement
 
     // From element
@@ -163,8 +173,9 @@ public interface Graph extends Element, StateSpace<Name, Triple>, Signature {
     @Override
     default void accept(Visitor visitor) {
         visitor.beginGraph();
-        visitor.handleName(getName());
-        elements().forEach(visitor::handleTriple);
+        visitor.handleElementName(getName());
+        nodes().forEach(visitor::handleNode);
+        edges().forEach(visitor::handleEdge);
         visitor.endGraph();
     }
 
@@ -172,10 +183,6 @@ public interface Graph extends Element, StateSpace<Name, Triple>, Signature {
         return this.danglingEdges().count() == 0 && this.duplicateNames().count() == 0;
     }
 
-
-    default FrameworkElement elementType() {
-        return FrameworkElement.GRAPH;
-    }
 
     // from state space
 
@@ -192,6 +199,19 @@ public interface Graph extends Element, StateSpace<Name, Triple>, Signature {
         return Optional.empty();
     }
 
+
+    // From Formula
+
+    @Override
+    default boolean isSatisfied(Model<Graph> model) {
+        if (model instanceof GraphMorphism) {
+            GraphMorphism m = (GraphMorphism) model;
+            if (m.codomain().equals(this)) {
+                return m.verify(); // Every well-defined graph morphism that has this graph as codomain is a model of it.
+            }
+        }
+        return false;
+    }
 
     // Constructions
 
@@ -297,8 +317,8 @@ public interface Graph extends Element, StateSpace<Name, Triple>, Signature {
      * Computes the cartesian product of the two graphs.
      */
     default Graph cartesianProduct(Graph other) {
-        Set<Name> nodes = StreamExtensions.cartesianProduct(this::nodes, other::nodes, Name::pair).collect(Collectors.toSet());
-        Set<Triple> edges = StreamExtensions.cartesianProduct(this::edges, other::edges, (a, b) -> a.combineMap(b, Name::pair))
+        Set<Name> nodes = StreamExt.cartesianProduct(this::nodes, other::nodes, Name::pair).collect(Collectors.toSet());
+        Set<Triple> edges = StreamExt.cartesianProduct(this::edges, other::edges, (a, b) -> a.combineMap(b, Name::pair))
                 .filter(t -> nodes.contains(t.getSource()) && nodes.contains(t.getTarget()))
                 .collect(Collectors.toSet());
 

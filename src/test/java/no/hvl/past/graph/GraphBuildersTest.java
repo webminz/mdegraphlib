@@ -1,10 +1,9 @@
 package no.hvl.past.graph;
 
 import com.google.common.collect.Sets;
-import javafx.scene.control.Slider;
-import no.hvl.past.graph.builtin.predicates.Acyclicity;
-import no.hvl.past.graph.builtin.predicates.SourceMultiplicity;
-import no.hvl.past.graph.builtin.predicates.TargetMultiplicity;
+import no.hvl.past.graph.predicates.Acyclicity;
+import no.hvl.past.graph.predicates.SourceMultiplicity;
+import no.hvl.past.graph.predicates.TargetMultiplicity;
 import no.hvl.past.graph.elements.Triple;
 import org.junit.Test;
 
@@ -15,7 +14,7 @@ import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class GraphBuildersTest extends AbstractTest {
+public class GraphBuildersTest extends AbstractGraphTest {
 
     private final Universe universe = new UniverseImpl(UniverseImpl.EMPTY);
     private final GraphBuilders standardBuilder = new GraphBuilders(universe, true, true);
@@ -301,8 +300,6 @@ public class GraphBuildersTest extends AbstractTest {
     }
 
 
-
-
     @Test
     public void testCreateSketch() throws GraphError {
         try {
@@ -344,7 +341,10 @@ public class GraphBuildersTest extends AbstractTest {
         standardBuilder.map(id("01"), id("extends"));
         standardBuilder.map(id("1"), id("Class"));
         standardBuilder.morphism(id("d1").absolute());
-        Diagram d1 = diag(id("d1"), TargetMultiplicity.getInstance(0, 1), standardBuilder.getResult(GraphMorphism.class));
+        Diagram d1 = new DiagramImpl(
+                id("d1"),
+                TargetMultiplicity.getInstance(0, 1),
+                standardBuilder.getResult(GraphMorphism.class));
 
         standardBuilder.domain(Universe.ARROW);
         standardBuilder.codomain(sketch.carrier());
@@ -352,7 +352,10 @@ public class GraphBuildersTest extends AbstractTest {
         standardBuilder.map(id("01"), id("contains"));
         standardBuilder.map(id("1"), id("Class"));
         standardBuilder.morphism(id("d2").absolute());
-        Diagram d2 = diag(id("d2"), SourceMultiplicity.getInstance(0, 1), standardBuilder.getResult(GraphMorphism.class));
+        Diagram d2 = new DiagramImpl(
+                id("d2"),
+                SourceMultiplicity.getInstance(0, 1),
+                standardBuilder.getResult(GraphMorphism.class));
 
 
         standardBuilder.domain(Universe.LOOP);
@@ -360,14 +363,20 @@ public class GraphBuildersTest extends AbstractTest {
         standardBuilder.map(id("0"), id("Class"));
         standardBuilder.map(id("00"), id("extends"));
         standardBuilder.morphism(id("d3").absolute());
-        Diagram d3 = diag(id("d3"), Acyclicity.getInstance(), standardBuilder.getResult(GraphMorphism.class));
+        Diagram d3 = new DiagramImpl(
+                id("d3"),
+                Acyclicity.getInstance(),
+                standardBuilder.getResult(GraphMorphism.class));
 
         standardBuilder.domain(Universe.LOOP);
         standardBuilder.codomain(sketch.carrier());
         standardBuilder.map(id("0"), id("Class"));
         standardBuilder.map(id("00"), id("contains"));
         standardBuilder.morphism(id("d4").absolute());
-        Diagram d4 = diag(id("d4"), Acyclicity.getInstance(), standardBuilder.getResult(GraphMorphism.class));
+        Diagram d4 = new DiagramImpl(
+                id("d4"),
+                Acyclicity.getInstance(),
+                standardBuilder.getResult(GraphMorphism.class));
 
         standardBuilder.edge("Class", "extends", "Class");
         standardBuilder.edge("Class", "ref", "Class");

@@ -1,8 +1,5 @@
 package no.hvl.past.graph;
 
-import com.google.common.collect.Sets;
-import jdk.nashorn.internal.objects.AccessorPropertyDescriptor;
-import no.hvl.past.attributes.StringValue;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.names.Name;
@@ -43,9 +40,10 @@ public class GraphBuilders {
     private final List<GraphMorphism> morphismAggregator = new ArrayList<>();
     private final List<Diagram> diagramAggregator = new ArrayList<>();
     private final List<Sketch> sketchAggregator = new ArrayList<>();
-    private final Stack<GraphLabelTheory> labelStack = new Stack<>();
-
+    private final Stack<GraphTheory> labelStack = new Stack<>();
     private final Stack<Class<? extends Element>> resultTypeStack = new Stack<>();
+
+    private boolean registerResults = true;
 
     public GraphBuilders(Universe universe, boolean createContext, boolean ignoreErrors) {
         this.universe = universe;
@@ -129,7 +127,11 @@ public class GraphBuilders {
 
         this.graphAggregator.add(constructed);
         this.resultTypeStack.push(Graph.class);
-        this.universe.register(constructed);
+
+        if (isRegisterResults()) {
+            this.universe.register(constructed);
+        }
+
         return this;
     }
 
@@ -223,11 +225,14 @@ public class GraphBuilders {
 
         if (!ignoreErrors && ! constructed.verify()) {
            constructed.mappedToUndefined().map(t -> new Pair<>(t.getLabel(), GraphError.ERROR_TYPE.UNKNOWN_MEMBER)).forEach(this.errors::add);
-           constructed.mappedToUndefined().map(t -> new Pair<>(t.getLabel(), GraphError.ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION)).forEach(this.errors::add);
+           constructed.homPropViolations().map(t -> new Pair<>(t.getLabel(), GraphError.ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION)).forEach(this.errors::add);
             return this;
         }
 
-        this.universe.register(constructed);
+        if (isRegisterResults()) {
+            this.universe.register(constructed);
+        }
+
         this.morphismAggregator.add(constructed);
         this.resultTypeStack.add(GraphMorphism.class);
         return this;
@@ -238,7 +243,7 @@ public class GraphBuilders {
     }
 
 
-    public GraphBuilders startDiagram(GraphLabelTheory label) {
+    public GraphBuilders startDiagram(GraphTheory label) {
         this.graphAggregator.add(0, label.arity());
         this.labelStack.push(label);
         return this;
@@ -246,18 +251,33 @@ public class GraphBuilders {
 
 
     public GraphBuilders endDiagram(Name diagramName) {
-        if (labelStack.isEmpty()) {
-            this.errors.add(new Pair<>(diagramName, GraphError.ERROR_TYPE.ILL_FORMED));
+        Graph carrier = this.graphAggregator.get(1);
+        this.morphism(diagramName.absolute());
+        if (this.morphismAggregator.size() == 0) {
+            this.errors.add(new Pair<>(diagramName, GraphError.ERROR_TYPE.NOT_CONSTRUCTED));
+            this.labelStack.pop();
+            this.graphAggregator.add(0, carrier);
             return this;
         }
-        Graph target = this.graphAggregator.get(1);
-        this.morphism(diagramName.absolute());
         this.resultTypeStack.pop();
-        Diagram diagram = new DiagramImpl(diagramName, this.labelStack.pop(), this.morphismAggregator.get(this.morphismAggregator.size() - 1));
-        this.diagramAggregator.add(diagram);
-        this.graphAggregator.add(0, target);
+        GraphMorphism binding = this.morphismAggregator.get(this.morphismAggregator.size() - 1);
         this.morphismAggregator.remove(this.morphismAggregator.size() - 1);
+
+        if (this.labelStack.isEmpty()) {
+            this.errors.add(new Pair<>(diagramName, GraphError.ERROR_TYPE.LABEL_MISSING));
+            this.graphAggregator.add(0, carrier);
+            return this;
+        }
+
+        Diagram diagram = new DiagramImpl(
+                diagramName,
+                this.labelStack.pop(),
+                binding);
+
+        this.diagramAggregator.add(diagram);
         this.resultTypeStack.push(Diagram.class);
+        this.graphAggregator.add(0, carrier);
+
         return this;
     }
 
@@ -271,15 +291,19 @@ public class GraphBuilders {
         }
         List<Diagram> diagrams = new ArrayList<>(this.diagramAggregator);
         Sketch constructed = new DiagrammaticGraph(name, this.graphAggregator.get(0), diagrams);
+
         this.sketchAggregator.add(constructed);
         this.diagramAggregator.clear();
         this.graphAggregator.remove(0);
-        while (this.resultTypeStack.peek().equals(FrameworkElement.DIAGRAM)) {
+
+        while (Diagram.class.isAssignableFrom(this.resultTypeStack.peek())) {
             this.resultTypeStack.pop();
         }
-        if (this.resultTypeStack.peek().equals(FrameworkElement.GRAPH)) {
+
+        if (Graph.class.isAssignableFrom(this.resultTypeStack.peek())) {
             this.resultTypeStack.pop();
         }
+
         this.resultTypeStack.push(Sketch.class);
         return this;
     }
@@ -287,6 +311,14 @@ public class GraphBuilders {
     public GraphBuilders importGraph(Graph domain) {
         this.nodeAggregator.addAll(domain.nodes().collect(Collectors.toSet()));
         this.edgeAggregator.addAll(domain.edges().collect(Collectors.toSet()));
+        return this;
+    }
+
+    public GraphBuilders importMorphism(GraphMorphism morphism) {
+        this.importGraph(morphism.domain());
+        morphism.mappings().forEach(tuple -> {
+            this.bindingAggregator.put(tuple.getDomain(), tuple.getCodomain());
+        });
         return this;
     }
 
@@ -367,5 +399,26 @@ public class GraphBuilders {
         } catch (ClassCastException e) {
             throw new GraphError(Collections.singletonList(new Pair<>(result.getName(), GraphError.ERROR_TYPE.ILL_FORMED)));
         }
+    }
+
+    public GraphBuilders undoEdge(Triple triple) {
+        this.edgeAggregator.remove(triple);
+        this.bindingAggregator.remove(triple.getLabel());
+        return this;
+    }
+
+    public GraphBuilders undoNode(Name name) {
+        this.bindingAggregator.remove(name);
+        this.nodeAggregator.remove(name);
+        return this;
+    }
+
+    public boolean isRegisterResults() {
+        return registerResults;
+    }
+
+    public GraphBuilders setRegisterResults(boolean registerResults) {
+        this.registerResults = registerResults;
+        return this;
     }
 }

@@ -1,11 +1,12 @@
 package no.hvl.past.graph;
 
+import com.google.common.collect.Sets;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.logic.Model;
 import no.hvl.past.names.Name;
 import no.hvl.past.util.Pair;
-import no.hvl.past.util.StreamExtensions;
+import no.hvl.past.util.PartitionAlgorithm;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,7 +22,6 @@ import java.util.stream.Stream;
  * etc.
  */
 public interface GraphMorphism extends Element, Model<Graph> {
-
 
     /**
      * The domain of the morphism, e.g. an instance.
@@ -39,19 +39,11 @@ public interface GraphMorphism extends Element, Model<Graph> {
     Optional<Name> map(Name name);
 
 
-    /**
-     * The type of this element (=Graph Morphism)
-     */
-    default FrameworkElement elementType() {
-        return FrameworkElement.GRAPH_MORPHISM;
-    }
-
-
     @Override
     default void accept(Visitor visitor) {
         visitor.beginMorphism();
-        visitor.handleName(this.getName());
-        this.mappings().forEach(visitor::handleTuple);
+        visitor.handleElementName(this.getName());
+        this.mappings().forEach(visitor::handleMapping);
         domain().accept(visitor);
         codomain().accept(visitor);
         visitor.endMorphism();
@@ -132,38 +124,37 @@ public interface GraphMorphism extends Element, Model<Graph> {
         return domain().elements().map(this::apply).filter(Optional::isPresent).map(Optional::get);
     }
 
-
-    /**
-     * Interprets this morphism as a typing such that one can perform
-     * a type based traversal outgoing at a selected node in the domain.
-     * Given the name of the start node, all (possible composed) edges
-     * are retrieved that admit to typing over the given path.
-     * This can be compared to common feature in object oriented programming
-     * where properties of an object are traversed, e.g.
-     * "Person p1 = new Person(...); p1.address.city.name = ...".
-     *
-     */
-    default Stream<Triple> selectViaTypePath(Name startNode, Name... typePath) {
-        Set<Triple> result = new HashSet<>();
-        List<Name> parameter = new ArrayList<>(Arrays.asList(typePath));
-        return StreamExtensions.variablePipleline(
-                parameter,
-                Stream.of(Triple.node(startNode)),
-                (triple, typeName) -> selectByLabel(typeName).map(triple::compose).filter(Optional::isPresent).map(Optional::get));
-    }
+    // OCL like query methods
 
     default Stream<Triple> allInstances(Triple type) {
-        return this.preimage(type).map(t -> t.mapName(Name::firstPart));
-    }
-
-    default Stream<Triple> queryEdge(Name src, Name label, Name trg) {
-        return this.allInstances(Triple.edge(src, label, trg));
+        return this.preimage(type);//this.preimage(type).map(t -> t.mapName(Name::firstPart))l
     }
 
     default Stream<Triple> allInstances(Name type) {
-        return this.preimage(Triple.node(type)).map(t -> t.mapName(Name::firstPart));
+        return this.preimage(Triple.node(type)); //.map(t -> t.mapName(Name::firstPart));
     }
 
+    default Stream<Name> allNodeInstances(Name type) {
+        return allInstances(type).filter(Triple::isNode).map(Triple::getLabel);
+    }
+
+    default Stream<Triple> allOutgoingInstances(Triple type, Name src) {
+        return allInstances(type).filter(edge -> edge.getSource().equals(src));
+    }
+
+    default Stream<Triple> allIncomingInstances(Triple type, Name trg) {
+        return allInstances(type).filter(edge -> edge.getTarget().equals(trg));
+    }
+
+    default Stream<Pair<Triple, Triple>> allSrcCoincidentInstances(Triple leftType, Triple rightType) {
+        return allInstances(leftType)
+                .flatMap(left -> allOutgoingInstances(rightType, left.getSource()).map(right -> new Pair<>(left, right)));
+    }
+
+    default Stream<Pair<Triple, Triple>> allTrgCoincidentInstances(Triple leftType, Triple rightType) {
+        return allInstances(leftType)
+                .flatMap(left -> allIncomingInstances(rightType, left.getTarget()).map(right -> new Pair<>(left, right)));
+    }
 
     // PROPERTIES
 
@@ -216,19 +207,25 @@ public interface GraphMorphism extends Element, Model<Graph> {
     /**
      * Checks whether this morphism is injective, i.e. basically an embedding modulo renaming.
      */
-    default boolean isInjective() {
+    default boolean isMonic() {
         return codomain().elements().map(this::preimage).allMatch(set -> set.count() <= 1);
     }
 
     /**
      * Checks whether this morphis is surjective, i.e. every element in the codomain has a preimage.
      */
-    default boolean isSurjective() {
+    default boolean isEpic() {
         return codomain().elements().map(this::preimage).allMatch(set -> set.count() >= 1);
     }
 
+    /**
+     * Returns true if this morphism extremally injective, i.e. those that cannot be further decomposed into
+     * a proper (= not injective) surjective morphism.
+     * Usually in graphs all injective morphisms are also extremal, however there might be special types of graphs, e.g.
+     * those with inheritance where this is not true.
+     */
     default boolean isExtremalMonic() {
-        return isInjective();
+        return isMonic();
     }
 
 
@@ -245,41 +242,216 @@ public interface GraphMorphism extends Element, Model<Graph> {
 
 
     /**
-     * Calculates the pullback of this morphism (left) and the given right morphism.
-     * A pullback can be seen as category theoretic generalization of a query.
-     * The result is a pair comprising two morphisms.
-     *
+     * Calculates the pullback of the cospan given by _this_ morphism (left) and the given _right_ morphism.
+     * The result is a pair representing a span two morphisms, the left argument is the morphism whose codomain coincides
+     * with the domain of _this_ morphism.
+     * A pullback can be seen as a generalized intersection when thinking of objects as sets and morphisms
+     * as inclusions.
      */
     default Pair<GraphMorphism, GraphMorphism> pullback(
-            GraphMorphism right,
-            Name apexName) {
+            GraphMorphism right) throws GraphError {
+        GraphMorphism left = this;
         if (!this.codomain().equals(right.codomain())) {
-            throw new Error("invalid input");
+            // input does not have the same codomain
+            throw new GraphError(GraphError.ERROR_TYPE.CODOMAIN_MISMATCH, Sets.newHashSet(
+                    Triple.edge(left.domain().getName(), left.getName(), left.codomain().getName()),
+                    Triple.edge(right.domain().getName(), right.getName(), right.codomain().getName())
+            ));
         }
+        if (left.isMonic()) {
+            // Calculate preimage
+            Name resultObjectName = right.getName().preimage(left.domain().getName());
+            Map<Name, Name> invertedMonicMapping = new HashMap<>();
+            left.domain().elements().map(Triple::getLabel).filter(left::definedAt).forEach(l -> invertedMonicMapping.put(left.map(l).get(),l));
+            Set<Name> deleted = right.domain().elements()
+                    .map(Triple::getLabel)
+                    .filter(n -> {
+                        Optional<Name> mapped = right.map(n);
+                        if (mapped.isPresent()) {
+                            Name target = mapped.get();
+                            return !left.selectByLabel(target).anyMatch(t -> true);
+                        }
+                        return true;
+                    }).collect(Collectors.toSet());
+            Subobject inclusion = new Subobject(resultObjectName.subTypeOf(right.domain().getName()), right.domain(), resultObjectName) {
+                @Override
+                public boolean deletes(Name name) {
+                    return deleted.contains(name);
+                }
+            };
+            GraphMorphism restriction = new GraphMorphism() {
+                @Override
+                public Graph domain() {
+                    return inclusion.domain();
+                }
 
-        Set<Triple> elements = codomain().elements()
-                .flatMap(target -> this.preimage(target)
-                        .flatMap(pre1 -> right.preimage(target).map(pre2 ->
-                             pre1.combineMap(pre2, Name::pair)
-                        )))
-                .collect(Collectors.toSet());
+                @Override
+                public Graph codomain() {
+                    return left.domain();
+                }
 
-        GraphImpl result = new GraphImpl(apexName, elements);
-        GraphMorphism leftResultMorphism = new EpicMorphism(this.getName().query(right.getName()), result, this.domain()) {
-            @Override
-            public Triple assign(Triple element) {
-                return element.mapName(Name::firstPart);
-            }
-        };
-        GraphMorphism rightResultMorphism = new EpicMorphism(right.getName().query(this.getName()), result, right.domain()) {
-            @Override
-            public Triple assign(Triple element) {
-                return element.mapName(Name::secondPart);
-            }
-        };
-        return new Pair<>(leftResultMorphism, rightResultMorphism);
+                @Override
+                public Optional<Name> map(Name name) {
+                    return right.map(name).map(invertedMonicMapping::get);
+                }
+
+                @Override
+                public Name getName() {
+                    return right.getName().downTypeAlong(left.getName());
+                }
+            };
+            return new Pair<>(restriction, inclusion);
+        } else if (right.isMonic()) {
+            // Calculate preimage the other way
+            Name resultObjectName = left.getName().preimage(right.domain().getName());
+            Set<Name> deleted = left.domain().elements()
+                    .map(Triple::getLabel)
+                    .filter(n -> {
+                        Optional<Name> mapped = left.map(n);
+                        if (mapped.isPresent()) {
+                            Name target = mapped.get();
+                            return !right.selectByLabel(target).anyMatch(t -> true);
+                        }
+                        return true;
+                    }).collect(Collectors.toSet());
+            Subobject inclusion = new Subobject(resultObjectName.subTypeOf(left.domain().getName()), left.domain(), resultObjectName) {
+                @Override
+                public boolean deletes(Name name) {
+                    return deleted.contains(name);
+                }
+            };
+            GraphMorphism restriction = new GraphMorphism() {
+                @Override
+                public Graph domain() {
+                    return inclusion.domain();
+                }
+
+                @Override
+                public Graph codomain() {
+                    return right.domain();
+                }
+
+                @Override
+                public Optional<Name> map(Name name) {
+                    return left.map(name);
+                }
+
+                @Override
+                public Name getName() {
+                    return left.getName().downTypeAlong(right.getName());
+                }
+            };
+            return new Pair<>(inclusion, restriction);
+        } else {
+            // default
+            Set<Triple> elements = codomain().elements()
+                    .flatMap(target -> left.preimage(target)
+                            .flatMap(pre1 -> right.preimage(target).map(pre2 ->
+                                    pre1.combineMap(pre2, Name::pair)
+                            )))
+                    .collect(Collectors.toSet());
+
+            GraphImpl result = new GraphImpl(Name.identifier("P.B.").appliedTo(left.domain().getName().pair(right.domain().getName())), elements);
+            GraphMorphism leftResultMorphism = new GraphMorphism() {
+                @Override
+                public Name getName() {
+                    return right.getName().addSuffix(left.getName());
+                }
+
+                @Override
+                public Graph domain() {
+                    return result;
+                }
+
+                @Override
+                public Graph codomain() {
+                    return left.domain();
+                }
+
+                @Override
+                public Optional<Name> map(Name name) {
+                    if (result.mentions(name)) {
+                        return Optional.of(name.firstPart());
+                    }
+                    return Optional.empty();
+                }
+            };
+            GraphMorphism rightResultMorphism = new GraphMorphism() {
+                @Override
+                public Graph domain() {
+                    return result;
+                }
+
+                @Override
+                public Graph codomain() {
+                    return right.domain();
+                }
+
+                @Override
+                public Optional<Name> map(Name name) {
+                    if (result.mentions(name)) {
+                        return Optional.of(name.secondPart());
+                    }
+                    return Optional.empty();
+                }
+
+                @Override
+                public Name getName() {
+                    return left.getName().addSuffix(right.getName());
+                }
+            };
+            return new Pair<>(leftResultMorphism, rightResultMorphism);
+        }
     }
 
+
+    /**
+     * Calculates the pushout the span given by this (left) morphism and the given right morphis.
+     * The result is pair representing the resulting co-span, where left argument is coincident with
+     * _this_.
+     * A pushout can be seen as gluing of two graphs at given interface.
+     */
+    default Pair<GraphMorphism, GraphMorphism> pushout(GraphMorphism right) throws GraphError {
+        GraphMorphism left = this;
+        if (!left.domain().equals(right.domain())) {
+            throw new GraphError(GraphError.ERROR_TYPE.DOMAIN_MISMATCH, Sets.newHashSet(
+                    Triple.edge(left.domain().getName(), left.getName(), left.codomain().getName()),
+                    Triple.edge(right.domain().getName(), right.getName(), right.codomain().getName())
+            ));
+        }
+        if (!left.isTotal() || !right.isTotal()) {
+            throw new Error("Not implemented yet !!!"); // TODO pushouts of partial maps...
+        }
+        if (right.isMonic()) {
+            return glue(right, left).revert();
+        } else if (left.isMonic()) {
+            return glue(left, right);
+        } else {
+            GraphUnion union = new GraphUnion(Arrays.asList(left.domain(), left.codomain(), right.codomain()), left.domain().getName().mergeWith(left.codomain().getName(), right.codomain().getName()));
+            PartitionAlgorithm<Name> partition = new PartitionAlgorithm<>(union.elements().map(Triple::getLabel).collect(Collectors.toSet()));
+            left.domain()
+                    .elements()
+                    .map(Triple::getLabel)
+                    .forEach(n -> {
+                        Name l = left.map(n).get().prefixWith(left.codomain().getName());
+                        Name r = right.map(n).get().prefixWith(right.codomain().getName());
+                        partition.relate(n.prefixWith(left.domain().getName()), l);
+                        partition.relate(n.prefixWith(right.domain().getName()), r);
+                    });
+            EpicMorphism congruence = EpicMorphism.fromPartition(
+                    Name.identifier("CONGRUENCE").appliedTo(union.getName()),
+                    Name.identifier("P.O").appliedTo(left.codomain().getName().pair(right.codomain().getName())),
+                    union,
+                    partition
+            );
+            GraphMorphism leftResult = union.inclusionOf(left.codomain()).get().compose(congruence);
+            GraphMorphism rightResult = union.inclusionOf(left.codomain()).get().compose(congruence);
+
+            // regular
+            return new Pair<>(leftResult, rightResult);
+        }
+
+    }
 
     // TODO pushout
 
@@ -372,6 +544,66 @@ public interface GraphMorphism extends Element, Model<Graph> {
         };
     }
 
+
+    static Pair<GraphMorphism, GraphMorphism> glue(GraphMorphism monic, GraphMorphism other) {
+        Name resultGraphName = other.codomain().getName().extendedBy(monic.codomain().getName());
+        Set<Triple> inserts = new HashSet<>();
+        monic.codomain().nodes().filter(n -> monic.allNodeInstances(n).noneMatch(x -> true)).map(n -> n.prefixWith(monic.codomain().getName())).map(Triple::node).forEach(inserts::add);
+        monic.codomain()
+                .edges()
+                .filter(t -> monic.selectByLabel(t.getLabel()).noneMatch(x -> true))
+                .map(t -> {
+                    Optional<Triple> oldSrc = monic.selectByLabel(t.getSource()).findFirst();
+                    Optional<Triple> oldTrg = monic.selectByLabel(t.getTarget()).findFirst();
+                    Name newSrc;
+                    Name newTrg;
+                    if (oldSrc.isPresent()) {
+                        newSrc = other.map(oldSrc.get().getLabel()).get();
+                    } else {
+                        newSrc = t.getSource().prefixWith(monic.codomain().getName());
+                    }
+                    if (oldTrg.isPresent()) {
+                        newTrg = other.map(oldTrg.get().getLabel()).get();
+                    } else {
+                        newTrg = t.getTarget().prefixWith(monic.codomain().getName());
+                    }
+                    return Triple.edge(newSrc, t.getLabel().prefixWith(monic.codomain().getName()), newTrg);
+                })
+                .forEach(inserts::add);
+
+        Superobject result = new Superobject(other.codomain().getName().subTypeOf(resultGraphName), other.codomain(), resultGraphName) {
+
+            @Override
+            protected Stream<Triple> inserts() {
+                return inserts.stream();
+            }
+        };
+        GraphMorphism extended = new GraphMorphism() {
+            @Override
+            public Graph domain() {
+                return monic.codomain();
+            }
+
+            @Override
+            public Graph codomain() {
+                return result.codomain();
+            }
+
+            @Override
+            public Optional<Name> map(Name name) {
+                if (monic.domain().mentions(name)) {
+                    return other.map(name);
+                }
+                return Optional.of(name);
+            }
+
+            @Override
+            public Name getName() {
+                return other.getName().extendedBy(monic.codomain().getName());
+            }
+        };
+        return new Pair<>(extended, result);
+    }
 
 
 }

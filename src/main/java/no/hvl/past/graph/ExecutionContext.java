@@ -39,4 +39,9 @@ public interface ExecutionContext {
      * A key-value map with string-only entries to encode some arbitrary meta-information.
      */
     Properties metaInformation();
+
+    /**
+     * The universe of things around.
+     */
+    Universe universe();
 }

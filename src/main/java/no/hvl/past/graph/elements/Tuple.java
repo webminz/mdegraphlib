@@ -3,6 +3,7 @@ package no.hvl.past.graph.elements;
 import no.hvl.past.names.Name;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Constituents of a mapping, e.g. a graph homorphism.
@@ -63,6 +64,26 @@ public class Tuple {
 
 
     public static Set<Tuple> transitiveClosure(Set<Tuple> inheritanceEdges) {
-        return inheritanceEdges; // TODO
+        boolean converged = false;
+        Set<Tuple> result = new HashSet<>(inheritanceEdges);
+        while (!converged) {
+            converged = true;
+            Set<Tuple> addedThisRound = new HashSet<>();
+            for (Tuple lhs : result) {
+                for (Tuple rhs : inheritanceEdges) {
+                    if (lhs.getCodomain().equals(rhs.getDomain())) {
+                        Tuple toAdd = new Tuple(lhs.getDomain(), rhs.getCodomain());
+                        if (!result.contains(toAdd)) {
+                            converged = false;
+                            addedThisRound.add(toAdd);
+                        }
+                    }
+                }
+            }
+            result.addAll(addedThisRound);
+        }
+        return result;
     }
+
+
 }

@@ -1,8 +1,8 @@
 package no.hvl.past.graph;
 
 import no.hvl.past.graph.elements.Triple;
-import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.names.Name;
+import no.hvl.past.searching.StateSpace;
 import no.hvl.past.util.*;
 
 import java.util.*;
@@ -20,7 +20,7 @@ public class GraphImpl implements StateSpace<Name, Triple>, Graph, Iterable<Trip
     private final Name name;
     private final Set<Triple> elements;
 
-    GraphImpl(Name name, Set<Triple> elements) {
+    public GraphImpl(Name name, Set<Triple> elements) {
         this.name = name;
         this.elements = elements;
     }

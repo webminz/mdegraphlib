@@ -21,12 +21,12 @@ public abstract class Isomorphism extends AbstractModification {
     }
 
     @Override
-    public boolean isInjective() {
+    public boolean isMonic() {
         return true;
     }
 
     @Override
-    public boolean isSurjective() {
+    public boolean isEpic() {
         return true;
     }
 

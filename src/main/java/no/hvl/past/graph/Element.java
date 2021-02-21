@@ -26,8 +26,4 @@ public interface Element {
      */
     boolean verify();
 
-    /**
-     * Returns the type of this framework element, e.g. graph, morphism, diagram etc.
-     */
-    FrameworkElement elementType();
 }

@@ -18,7 +18,7 @@ import java.util.stream.Stream;
  * But using a trick, they also serve as nodes as well, i.e. a special edge that is a loop and has the name
  * of the node as its label.
  */
-public class Triple implements ProperComparator<Triple> {
+public class Triple implements ProperComparator<Triple>, Comparable<Triple> {
 
     private final Name source;
     private final Name label;
@@ -166,6 +166,9 @@ public class Triple implements ProperComparator<Triple> {
 
     @Override
     public String toString() {
+        if (isNode()) {
+            return "(" + label + ")";
+        }
         return "" +
                 '(' + source + ')' +
                 "-[" + label + "]->" +
@@ -180,6 +183,9 @@ public class Triple implements ProperComparator<Triple> {
 
 
     public static Triple edge(Name source, Name label, Name target) {
+        if (source == null || label == null || label == target) {
+            throw new RuntimeException("Arrrgh NULL!" + source + " " + label + " " + target);
+        }
         return new Triple(source, label, target);
     }
 
@@ -272,5 +278,20 @@ public class Triple implements ProperComparator<Triple> {
 
     public boolean contains(Name name) {
         return this.getSource().equals(name) || this.getLabel().equals(name) || this.getTarget().equals(name);
+    }
+
+    @Override
+    public int compareTo(Triple o) {
+        switch (this.cmp(this, o)) {
+            case EQUAL:
+                return 0;
+            case LESS_THAN:
+                return 1;
+            case BIGGER_THAN:
+                return -1;
+            case INCOMPARABLE:
+            default:
+                return 1;
+        }
     }
 }

@@ -1,12 +1,9 @@
 package no.hvl.past.graph;
 
 import no.hvl.past.logic.Model;
-import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
-import no.hvl.past.util.StreamExtensions;
 
 import java.util.*;
-import java.util.stream.Stream;
 
 public interface TypedGraph extends GraphMorphism, Model<Graph> {
 

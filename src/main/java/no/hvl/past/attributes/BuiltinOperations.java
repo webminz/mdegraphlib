@@ -471,7 +471,7 @@ public class BuiltinOperations {
 
         @Override
         public String name() {
-            return "xor";
+            return "_xor_";
         }
 
         @Override
@@ -599,7 +599,7 @@ public class BuiltinOperations {
 
         @Override
         public String name() {
-            return "concat";
+            return "_++_";
         }
 
         @Override
@@ -636,7 +636,7 @@ public class BuiltinOperations {
 
         @Override
         public String name() {
-            return "length";
+            return "length(_)";
         }
 
         @Override
@@ -671,7 +671,7 @@ public class BuiltinOperations {
 
         @Override
         public String name() {
-            return "substring";
+            return "substring(_,_,_)";
         }
 
         @Override
@@ -714,7 +714,7 @@ public class BuiltinOperations {
 
         @Override
         public String name() {
-            return "firstIndexOf";
+            return "firstIndexOf(_,_)";
         }
 
         @Override
@@ -751,7 +751,7 @@ public class BuiltinOperations {
 
         @Override
         public String name() {
-            return "reverse";
+            return "reverse(_)";
         }
 
         @Override
@@ -787,7 +787,7 @@ public class BuiltinOperations {
 
         @Override
         public String name() {
-            return "toString";
+            return "toString(_)";
         }
 
         @Override
@@ -832,7 +832,7 @@ public class BuiltinOperations {
 
         @Override
         public String name() {
-            return "parseInt";
+            return "parseInt(_)";
         }
 
         @Override
@@ -865,7 +865,7 @@ public class BuiltinOperations {
 
         @Override
         public String name() {
-            return "parseFloat";
+            return "parseFloat(_)";
         }
 
         @Override
@@ -898,7 +898,7 @@ public class BuiltinOperations {
 
         @Override
         public String name() {
-            return "parseBool";
+            return "parseBool(_)";
         }
 
         @Override

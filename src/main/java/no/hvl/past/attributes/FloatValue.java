@@ -9,6 +9,8 @@ import java.nio.ByteBuffer;
 
 public final class FloatValue extends Value {
 
+    private static final FloatValue DEFAULT_EPSILON = Name.value(0.000000001);
+
     private final double value;
 
     public FloatValue(double value) {
@@ -83,7 +85,18 @@ public final class FloatValue extends Value {
     public CompareResult compareWith(Name other) {
         if (other instanceof FloatValue) {
             FloatValue fVal = (FloatValue) other;
-            if (this.value == fVal.value) {
+            if (this.equals(fVal, DEFAULT_EPSILON)) {
+                return CompareResult.EQUAL;
+            }
+            if (this.value < fVal.value) {
+                return CompareResult.LESS_THAN;
+            } else {
+                return CompareResult.BIGGER_THAN;
+            }
+        }
+        if (other instanceof IntegerValue) {
+            FloatValue fVal = ((IntegerValue) other).toFloat();
+            if (this.equals(fVal, DEFAULT_EPSILON)) {
                 return CompareResult.EQUAL;
             }
             if (this.value < fVal.value) {
@@ -93,5 +106,13 @@ public final class FloatValue extends Value {
             }
         }
         return super.compareWith(other);
+    }
+
+    @Override
+    public boolean inATotalOrderWith(Name other) {
+        if (other instanceof FloatValue || other instanceof IntegerValue) {
+            return true;
+        }
+        return super.inATotalOrderWith(other);
     }
 }

@@ -90,7 +90,19 @@ public final class BoolValue extends Value {
         return super.compareWith(other);
     }
 
+    @Override
+    public boolean inATotalOrderWith(Name other) {
+        if (other instanceof BoolValue) {
+            return true;
+        }
+        return super.inATotalOrderWith(other);
+    }
+
     public boolean isTrue() {
         return this.value;
+    }
+
+    public boolean isFalse() {
+        return !isTrue();
     }
 }

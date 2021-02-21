@@ -1,6 +1,6 @@
 package no.hvl.past.attributes;
 
-import no.hvl.past.ExtensionPoint;
+import no.hvl.past.plugin.ExtensionPoint;
 import no.hvl.past.names.Value;
 
 /**

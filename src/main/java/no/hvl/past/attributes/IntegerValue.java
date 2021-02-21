@@ -117,4 +117,12 @@ public final class IntegerValue extends Value {
         }
         return super.compareWith(other);
     }
+
+    @Override
+    public boolean inATotalOrderWith(Name other) {
+        if (other instanceof IntegerValue || other instanceof FloatValue) {
+            return true;
+        }
+        return super.inATotalOrderWith(other);
+    }
 }

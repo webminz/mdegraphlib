@@ -1,7 +1,7 @@
 package no.hvl.past.util;
 
 /**
- * Provides some convenience functions for working with bytearrays as if they where proper lists.
+ * Provides some convenience functions for working with byte arrays as if they where proper lists.
  */
 public class ByteUtils {
 

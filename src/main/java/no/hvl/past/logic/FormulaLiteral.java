@@ -2,21 +2,13 @@ package no.hvl.past.logic;
 
 public abstract class FormulaLiteral<Sig extends Signature> implements Formula<Sig> {
 
-    public static  <S extends Signature> Formula<S> bot() {
-        return new Bottom<>();
-    }
-
-    public static  <S extends Signature> Formula<S> top() {
-        return new Top<>();
-    }
-
 
     /**
      * Never satisfied.
      */
     public static class Bottom<Sig extends Signature> extends FormulaLiteral<Sig> {
 
-        private Bottom() {
+        Bottom() {
         }
 
         @Override
@@ -41,7 +33,7 @@ public abstract class FormulaLiteral<Sig extends Signature> implements Formula<S
      */
     public static class Top<Sig extends Signature> extends FormulaLiteral<Sig> {
 
-        private Top() {
+        Top() {
         }
 
         @Override

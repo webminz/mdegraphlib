@@ -8,7 +8,7 @@ import java.util.Optional;
 
 import static junit.framework.TestCase.*;
 
-public class TripleTest extends AbstractTest {
+public class TripleTest extends AbstractGraphTest {
 
     @Test
     public void testRenaming() {

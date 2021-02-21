@@ -105,7 +105,41 @@ public final class BinaryCombinator extends Combinator {
                 return strategy.downType(first, second);
             }
 
+        }, PROJECTION {
+            @Override
+            public String print(PrintingStrategy strategy, String first, String second) {
+                return strategy.projection(first, second);
+            }
+        }, INJECTION {
+            @Override
+            public String print(PrintingStrategy strategy, String first, String second) {
+                return strategy.injection(first, second);
+            }
+        }, PREIMAGE {
+            @Override
+            public String print(PrintingStrategy strategy, String first, String second) {
+                return strategy.preimage(first,second);
+            }
+        },
+
+        AUGMENTED_WITH {
+            @Override
+            public String print(PrintingStrategy strategy, String first, String second) {
+                return strategy.augmentedWith(first, second);
+            }
+
+        }, CHILD_OF {
+            @Override
+            public String print(PrintingStrategy strategy, String child, String parent) {
+                return strategy.childOf(child, parent);
+            }
+        }, SUBSTITUTION {
+            @Override
+            public String print(PrintingStrategy strategy, String first, String second) {
+                return strategy.substituted(first,second);
+            }
         };
+
 
         public abstract String print(PrintingStrategy strategy, String first, String second);
 

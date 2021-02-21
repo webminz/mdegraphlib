@@ -117,4 +117,16 @@ public class GraphMorphismImpl implements GraphMorphism, Iterable<Tuple> {
     public int hashCode() {
         return Objects.hash(domain, codomain, mapping);
     }
+
+
+    public static GraphMorphism materialize(GraphMorphism morphism) {
+        Map<Name, Name> binding = new HashMap<>();
+        morphism.domain().elements()
+                .filter(morphism::definedAt)
+                .map(Triple::getLabel)
+                .forEach(s -> {
+                    binding.put(s, morphism.map(s).get());
+                });
+        return new GraphMorphismImpl(morphism.getName(), morphism.domain(), morphism.codomain(), binding);
+    }
 }

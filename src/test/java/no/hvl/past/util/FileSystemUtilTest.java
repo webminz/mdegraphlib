@@ -1,17 +1,22 @@
 package no.hvl.past.util;
 
+import no.hvl.past.TestBase;
 import org.junit.Test;
+import org.springframework.core.io.ClassPathResource;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
 
-public class FileSystemUtilTest {
+public class FileSystemUtilTest extends TestBase {
 
     @Test
     public void testOS() {
+        requiresSpecificInstalledComponents();
         String osName = System.getProperty("os.name");
-        System.out.println(osName);
         try {
             Enumeration<NetworkInterface> networks = NetworkInterface.getNetworkInterfaces();
             NetworkInterface inter;

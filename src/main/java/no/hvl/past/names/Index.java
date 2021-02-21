@@ -1,8 +1,12 @@
 package no.hvl.past.names;
 
+import no.hvl.past.util.ByteUtils;
+
 /**
  * Represents an indexing for a given name, which
  * can be used to impose an order on given names.
+ *
+ * Note that indexing
  */
 public class Index extends Name {
 
@@ -16,7 +20,7 @@ public class Index extends Name {
 
     @Override
     public byte[] getValue() {
-        return new byte[0];
+        return ByteUtils.concat(wrapped.getValue(), ByteUtils.longToByteArray(index, false));
     }
 
     @Override
@@ -51,12 +55,12 @@ public class Index extends Name {
 
     @Override
     public Name firstPart() {
-        return null;
+        return this;
     }
 
     @Override
     public Name secondPart() {
-        return null;
+        return this;
     }
 
     @Override
@@ -66,7 +70,7 @@ public class Index extends Name {
 
     @Override
     public Name part(int i) {
-        return null;
+        return this;
     }
 
     @Override
@@ -95,5 +99,18 @@ public class Index extends Name {
             }
         }
         return super.compareWith(other);
+    }
+
+    @Override
+    public boolean inATotalOrderWith(Name other) {
+        if (other instanceof Index) {
+            return true;
+        }
+        return super.inATotalOrderWith(other);
+    }
+
+    @Override
+    public String toString() {
+        return print(PrintingStrategy.DETAILED);
     }
 }

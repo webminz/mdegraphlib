@@ -26,20 +26,6 @@ public class DiagrammaticGraph implements Sketch {
     }
 
     @Override
-    public void accept(Visitor visitor) {
-        visitor.beginSketch();
-        visitor.handleName(name);
-        carrier.accept(visitor);
-        diagrams().forEach(diagram -> diagram.accept(visitor));
-        visitor.endSketch();
-    }
-
-    @Override
-    public boolean verify() {
-        return diagrams().allMatch(Diagram::verify);
-    }
-
-    @Override
     public Graph carrier() {
         return carrier;
     }

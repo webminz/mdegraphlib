@@ -82,4 +82,12 @@ public final class StringValue extends Value {
         }
         return super.compareWith(other);
     }
+
+    @Override
+    public boolean inATotalOrderWith(Name other) {
+        if (other instanceof StringValue) {
+            return true;
+        }
+        return super.inATotalOrderWith(other);
+    }
 }

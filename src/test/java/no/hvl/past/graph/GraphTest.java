@@ -11,7 +11,7 @@ import java.util.function.Function;
 
 import static org.junit.Assert.*;
 
-public class GraphTest extends AbstractTest {
+public class GraphTest extends AbstractGraphTest {
 
 
     Graph GRAPH_BASE = buildGraphBase();
@@ -69,8 +69,8 @@ public class GraphTest extends AbstractTest {
     public void testIdentity() {
         GraphMorphism identity = GRAPH_BASE.identity();
         assertTrue(identity.isTotal());
-        assertTrue(identity.isInjective());
-        assertTrue(identity.isSurjective());
+        assertTrue(identity.isMonic());
+        assertTrue(identity.isEpic());
         assertEquals(Optional.of(new Triple(Name.identifier("E"), Name.identifier("src"), Name.identifier("V"))), identity.apply(new Triple(Name.identifier("E"), Name.identifier("src"), Name.identifier("V"))));
         assertEquals(Optional.empty(), identity.apply(new Triple(Name.identifier("V"), Name.identifier("src"), Name.identifier("E"))));
         addExpectedTriple(new Triple(Name.identifier("E"), Name.identifier("src"), Name.identifier("V")));

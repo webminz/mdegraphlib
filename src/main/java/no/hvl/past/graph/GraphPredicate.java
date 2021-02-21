@@ -1,10 +1,10 @@
 package no.hvl.past.graph;
 
 
-import no.hvl.past.ExtensionPoint;
+import no.hvl.past.plugin.ExtensionPoint;
 import no.hvl.past.logic.Model;
 
-public interface GraphPredicate extends GraphLabelTheory, ExtensionPoint {
+public interface GraphPredicate extends GraphTheory, ExtensionPoint {
 
     /**
      * Verifies whether an instance typed over the inputArity graph fulfills this predicate.
@@ -17,7 +17,7 @@ public interface GraphPredicate extends GraphLabelTheory, ExtensionPoint {
         if (model instanceof GraphMorphism) {
             GraphMorphism instance = (GraphMorphism) model;
             if (instance.codomain().equals(arity())) {
-                check(instance);
+                return check(instance);
             }
         }
         return false;

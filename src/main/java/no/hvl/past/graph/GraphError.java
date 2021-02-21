@@ -62,13 +62,17 @@ public class GraphError extends Exception {
         buffer.append("\n");
         if (this.errors.containsKey(ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION)) {
             buffer.append("The following elements violate the homomorphism property (node-edge incidence):\n");
-            for (Name n : this.errors.get(ERROR_TYPE.UNKNOWN_MEMBER)) {
+            for (Name n : this.errors.get(ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION)) {
                 buffer.append(n.print(PrintingStrategy.DETAILED));
                 buffer.append("\n");
             }
         }
         // TODO treat the other errors as well.
         return buffer.toString();
+    }
+
+    public Collection<Name> getDetailsForErrorType(GraphError.ERROR_TYPE type) {
+        return this.errors.get(type);
     }
 
     public Collection<Name> getDangling() {
@@ -96,6 +100,12 @@ public class GraphError extends Exception {
     }
 
 
+    public boolean isNotConstructed() {
+        return this.errors.containsKey(ERROR_TYPE.NOT_CONSTRUCTED);
+    }
+
+
+
     public enum ERROR_TYPE {
         DUPLICATE_NAME,
         DANGLING_EDGE,
@@ -105,7 +115,8 @@ public class GraphError extends Exception {
         CODOMAIN_MISMATCH,
         ILL_FORMED,
         AMBIGUOS_MAPPING,
-        NOT_CONSTRUCTED;
+        NOT_CONSTRUCTED,
+        LABEL_MISSING;
     }
 
 

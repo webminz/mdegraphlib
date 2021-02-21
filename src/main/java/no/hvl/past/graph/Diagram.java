@@ -1,6 +1,7 @@
 package no.hvl.past.graph;
 
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.logic.Formula;
 import no.hvl.past.names.Name;
 
 import java.util.Optional;
@@ -16,20 +17,14 @@ import java.util.stream.Stream;
 public interface Diagram extends Element {
 
     /**
-     *
-     * Returns the optional (!) label of this diagram.
+     * Returns the label of this diagram.
      */
-    Optional<Label> label();
+    Formula<Graph> label();
 
     /**
      * The binding of the shape into elements in a concrete graph.
      */
     GraphMorphism binding();
-
-    @Override
-    default FrameworkElement elementType() {
-        return FrameworkElement.DIAGRAM;
-    }
 
     /**
      * The shape of the diagram (= a graph).
@@ -38,43 +33,63 @@ public interface Diagram extends Element {
         return binding().domain();
     }
 
+    default Stream<Triple> generatedElements() {
+        if (label() instanceof GraphOperation) {
+            GraphOperation op = (GraphOperation) label();
+            return op.outputArity()
+                    .elements()
+                    .map(t -> t.map(binding()::map))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .filter(t -> op.inputArity()
+                            .elements()
+                            .map(binding()::apply)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .noneMatch(t::equals));
 
-
-    /**
-     * Given an element in the arity, it provides the element it is bound to.
-     */
-    default Optional<Triple> image(Triple of) {
-        return binding().apply(of);
+        }
+        return Stream.empty();
     }
 
-    /**
-     * Provides all the elements in the image of the diagram.
-     */
-    default Stream<Triple> scope() {
-        return this.binding().image();
+    @Override
+    default void accept(Visitor visitor) {
+        visitor.beginDiagram();
+        visitor.handleElementName(getName());
+        visitor.handleFormula(label());
+        binding().accept(visitor);
+        visitor.endDiagram();
     }
 
-    default boolean isInScope(Triple element) {
-        return this.scope().anyMatch(element::equals);
+    @Override
+    default  boolean verify() {
+        return binding().verify() && binding().isTotal();
     }
 
-    /**
-     * Calculates the colimit of this diagram, i.e. a one object (= graph) summary
-     * that is the smallest comprehensive object above the elements in this diagram (least upper bound).
-     */
-    Graph colimit();
+    default boolean directlyDependsOn(Diagram diagram) {
+        return this.arity().elements()
+                .filter(this.binding()::definedAt)
+                .map(this.binding()::apply)
+                .map(Optional::get)
+                .anyMatch(required -> diagram.generatedElements().anyMatch(provided -> required.equals(provided)));
+    }
 
-    /**
-     * Calculates the limit of this diagram, i.e. a one object (=graph) summary
-     * that is the biggest common object below the elements in this diagram (greatest lower bound).
-     */
-    Graph limit();
+    default Diagram substitue(GraphMorphism morphism) {
+        return new Diagram() {
+            @Override
+            public Formula<Graph> label() {
+                return Diagram.this.label();
+            }
 
-    /**
-     * Calculates a one object representation of this diagram by "internalizing" the
-     * additional structure.
-     */
-    Graph flatten();
+            @Override
+            public GraphMorphism binding() {
+                return Diagram.this.binding().compose(morphism);
+            }
 
-
+            @Override
+            public Name getName() {
+                return Diagram.this.getName().substitution(morphism.getName());
+            }
+        };
+    }
 }
