@@ -6,31 +6,52 @@ import no.hvl.past.logic.Model;
 import no.hvl.past.logic.Signature;
 import no.hvl.past.names.Name;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public interface Tree extends Graph {
 
-    static final Name ROOT = Name.identifier("/");
+    class Impl implements Tree {
+        private final Node root;
+        private final Name name;
+        private Set<Triple> cachedGraphRepresentation;
+
+        public Impl(Node root, Name name) {
+            this.root = root;
+            this.name = name;
+        }
+
+        @Override
+        public Node root() {
+            return root;
+        }
+
+        @Override
+        public Name getName() {
+            return name;
+        }
+
+        @Override
+        public Stream<Triple> elements() {
+            if (cachedGraphRepresentation == null) {
+                this.cachedGraphRepresentation = new HashSet<>();
+                root.aggregateSubtree(this.cachedGraphRepresentation);
+            }
+            return cachedGraphRepresentation.stream();
+        }
+
+        @Override
+        public boolean isInfinite() {
+            return false;
+        }
+    }
 
     Node root();
 
-    default Tree query(QueryTree query) {
-        return new Tree() {
-            @Override
-            public Node root() {
-                return Tree.this.root().query(query.root());
-            }
-
-            @Override
-            public Name getName() {
-                return Name.identifier(query.textualRepresentation()).appliedTo(getName());
-            }
-
-            @Override
-            public boolean isInfinite() {
-                return false;
-            }
-        };
+    @Override
+    default Stream<Triple> outgoing(Name fromNode) {
+        return root().findByName(fromNode).map(Node::outgoing).orElse(Stream.empty());
     }
 
     @Override
@@ -38,8 +59,5 @@ public interface Tree extends Graph {
         return root().subTree();
     }
 
-    @Override
-    default boolean isInfinite() {
-        return false;
-    }
+
 }

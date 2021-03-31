@@ -48,7 +48,7 @@ public class InheritanceGraphTest extends AbstractGraphTest {
                     .inheritanceGraph("test")
                     .getResult(InheritanceGraph.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(getClass(), "buildExample", error);
+            throw new ShouldNotHappenException(getClass(), error.getMessage());
         }
     }
 

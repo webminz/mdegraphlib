@@ -13,8 +13,9 @@ public interface QueryHandler extends GenericIOHandler {
     }
 
     default void resolve(QueryTree queryTree, OutputStream outputStream) throws IOException {
-        InputStream inputStream = serialize(queryTree);
-        handle(inputStream, outputStream);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        serialize(queryTree, bos);
+        handle(new ByteArrayInputStream(bos.toByteArray()), outputStream);
     }
 
     default InputStream resolveAsStream(QueryTree queryTree) throws IOException {
@@ -23,9 +24,7 @@ public interface QueryHandler extends GenericIOHandler {
         return new ByteArrayInputStream(bos.toByteArray());
     }
 
-    InputStream serialize(QueryTree queryTree) throws IOException;
-
-    QueryTree parse(InputStream inputStream) throws IOException;
+    void serialize(TypedTree queryTree, OutputStream outputStream) throws IOException;
 
     Tree deserialize(InputStream inputStream) throws IOException;
 }

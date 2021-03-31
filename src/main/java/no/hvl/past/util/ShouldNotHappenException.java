@@ -2,8 +2,14 @@ package no.hvl.past.util;
 
 public class ShouldNotHappenException extends RuntimeException {
 
-    public ShouldNotHappenException(Class<?> clazz, String method, Throwable cause) {
-        super(createMessage(clazz, method, cause.getMessage()), cause);
+    private Throwable underlying;
+
+    public ShouldNotHappenException(Class<?> clazz, Throwable t) {
+        super(createMessage(clazz, Thread.currentThread().getStackTrace()[1].getMethodName(), t.getMessage()), t);
+    }
+
+    public ShouldNotHappenException(Class<?> clazz, String message) {
+        super(createMessage(clazz, Thread.currentThread().getStackTrace()[1].getMethodName(), message));
     }
 
     private static String createMessage(Class<?> clazz, String method, String message) {

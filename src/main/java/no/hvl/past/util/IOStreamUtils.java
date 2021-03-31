@@ -12,7 +12,6 @@ public class IOStreamUtils {
 
     }
 
-
     public static String readInputStreamAsString(InputStream i) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(i));
         StringBuilder builder = new StringBuilder();
@@ -48,5 +47,32 @@ public class IOStreamUtils {
         writer.flush();
         writer.close();
         o.close();
+    }
+
+
+
+    public static class Wiretap extends OutputStream {
+        private StringBuilder recorder;
+        private OutputStream realTarget;
+
+        public Wiretap(OutputStream realTarget) {
+            this.realTarget = realTarget;
+            this.recorder = new StringBuilder();
+        }
+
+        public String getRecorded() {
+            return recorder.toString();
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            recorder.append((char) b);
+            realTarget.write(b);
+        }
+
+        @Override
+        public void close() throws IOException {
+            realTarget.close();
+        }
     }
 }

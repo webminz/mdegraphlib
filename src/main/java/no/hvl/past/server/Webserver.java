@@ -57,7 +57,10 @@ public class Webserver {
     }
 
     public static Webserver start(int port) {
-        Javalin javalin = Javalin.create().start(port);
+        Javalin javalin = Javalin.create(config -> {
+
+            config.enableCorsForAllOrigins();
+        }).start(port);
         return new Webserver(javalin);
     }
 }

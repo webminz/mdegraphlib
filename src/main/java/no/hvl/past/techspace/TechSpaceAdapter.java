@@ -2,12 +2,13 @@ package no.hvl.past.techspace;
 
 import no.hvl.past.graph.GraphMorphism;
 import no.hvl.past.graph.Sketch;
-import no.hvl.past.graph.Star;
 import no.hvl.past.graph.trees.QueryHandler;
 import no.hvl.past.names.Name;
 import no.hvl.past.plugin.UnsupportedFeatureException;
 import no.hvl.past.server.WebserviceRequestHandler;
+import no.hvl.past.systems.Sys;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 
@@ -25,14 +26,17 @@ import java.util.List;
  */
 public interface TechSpaceAdapter<X extends TechSpace> {
 
-    Sketch parseSchema(Name schemaName, String schemaLocationURI) throws TechSpaceException, UnsupportedFeatureException;
-
     TechSpaceDirective directives();
 
-    void writeSchema(Sketch formalSchemaRepresentation, OutputStream outputStream) throws TechSpaceException, UnsupportedFeatureException;
+    Sys parseSchema(Name name, String locationURI) throws TechSpaceException, UnsupportedFeatureException;
 
-    QueryHandler queryHandler(String locationURI, String schemaLocationURI) throws TechSpaceException, UnsupportedFeatureException;
+    void writeSchema(Sys sys, OutputStream outputStream) throws TechSpaceException, UnsupportedFeatureException;
 
-    WebserviceRequestHandler federationQueryHandler(Sketch comprehensiveSchema, List<GraphMorphism> embeddings, List<QueryHandler> localQueryHandlers) throws TechSpaceException, UnsupportedFeatureException;
+    QueryHandler queryHandler(Sys system) throws TechSpaceException, UnsupportedFeatureException;
+
+    GraphMorphism readInstance(Sys system, InputStream inputStream) throws TechSpaceException, UnsupportedFeatureException;
+
+    void writeInstance(Sys system, GraphMorphism instance, OutputStream outputStream) throws TechSpaceException, UnsupportedFeatureException;
+
 
 }

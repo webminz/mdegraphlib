@@ -85,20 +85,20 @@ public class GraphMorphismImpl implements GraphMorphism, Iterable<Tuple> {
     /**
      * Checks if the homomorphism property holds.
      */
-    private static Set<Triple> findIllFormed(Map<Name, Name> mapping, GraphImpl domain, GraphImpl codomain) {
-        return domain.getEdges().stream()
+    private static Set<Triple> findIllFormed(Map<Name, Name> mapping, Graph domain, Graph codomain) {
+        return domain.edges()
                 .filter(e -> mapping.containsKey(e.getSource()) && mapping.containsKey(e.getLabel()) && mapping.containsKey(e.getTarget()))
                 .map(e -> new Triple(mapping.get(e.getSource()), mapping.get(e.getLabel()), mapping.get(e.getTarget())))
                 .filter(edge -> !codomain.contains(edge))
                 .collect(Collectors.toSet());
     }
 
-    public static GraphMorphismImpl create(Name morphismName, GraphImpl domain, GraphImpl codomain, Set<Tuple> mapping) throws GraphError {
+    public static GraphMorphismImpl create(Name morphismName, Graph domain, Graph codomain, Set<Tuple> mapping) throws GraphError {
         GraphMorphismImpl result = new GraphMorphismImpl(morphismName, domain, codomain, mapping);
         Set<Triple> illFormed = findIllFormed(result.mapping, domain, codomain);
-        if (!illFormed.isEmpty()) {
-            throw new GraphError(GraphError.ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION, illFormed);
-        }
+      //  if (!illFormed.isEmpty()) {
+       //     throw new GraphError(GraphError.ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION, illFormed);
+       // }
         return result;
     }
 

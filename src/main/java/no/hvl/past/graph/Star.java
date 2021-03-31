@@ -188,17 +188,18 @@ public interface Star extends Element {
         };
 
 
+        Graph result = GraphImpl.materialize(rename.getResult());
         List<GraphMorphism> embeddings = new ArrayList<>();
-        embeddings.add(union.inclusionOf(apex().carrier()).get().compose(superobject).compose(congruence).compose(rename));
+        embeddings.add(GraphMorphismImpl.materialize(union.inclusionOf(apex().carrier()).get().compose(superobject).compose(congruence).compose(rename)));
         components().forEach(component -> {
             GraphMorphism morphism = union.inclusionOf(component.carrier()).get();
-            embeddings.add(morphism.compose(superobject).compose(congruence).compose(rename));
+            embeddings.add(GraphMorphismImpl.materialize(morphism.compose(superobject).compose(congruence).compose(rename)));
         });
 
         return new Pair<>(new Sketch() {
             @Override
             public Graph carrier() {
-                return rename.getResult();
+                return result;
             }
 
             @Override

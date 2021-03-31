@@ -24,7 +24,7 @@ public class GraphTest extends AbstractGraphTest {
                     .graph("G")
                     .getResult(Graph.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(GraphTest.class, "buildGraphBase", error);
+            throw new ShouldNotHappenException(GraphTest.class, error.getMessage());
         }
 
     }
@@ -49,7 +49,7 @@ public class GraphTest extends AbstractGraphTest {
                     .graph("Example")
                     .getResult(Graph.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(GraphTest.class, "buildBiggerExample", error);
+            throw new ShouldNotHappenException(GraphTest.class, error.getMessage());
         }
 
     }

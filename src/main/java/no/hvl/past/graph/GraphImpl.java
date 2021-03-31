@@ -18,11 +18,22 @@ import java.util.stream.Stream;
 public class GraphImpl implements StateSpace<Name, Triple>, Graph, Iterable<Triple> {
 
     private final Name name;
-    private final Set<Triple> elements;
+    private final Map<Name, Triple> elements;
 
     public GraphImpl(Name name, Set<Triple> elements) {
         this.name = name;
-        this.elements = elements;
+        this.elements = new HashMap<>();
+        for (Triple t : elements) {
+            this.elements.put(t.getLabel(), t);
+        }
+    }
+
+    @Override
+    public Optional<Triple> get(Name label) {
+        if (!elements.containsKey(label)) {
+            return Optional.empty();
+        }
+        return Optional.of(this.elements.get(label));
     }
 
     @Override
@@ -32,34 +43,39 @@ public class GraphImpl implements StateSpace<Name, Triple>, Graph, Iterable<Trip
 
     @Override
     public Stream<Triple> elements() {
-        return this.elements.stream();
+        return this.elements.values().stream();
+    }
+
+    @Override
+    public boolean mentions(Name name) {
+        return this.elements.containsKey(name);
     }
 
     @Override
     public boolean contains(Triple triple) {
-        return this.elements.contains(triple);
+        return this.elements.containsValue(triple);
     }
 
     @Override
     public Iterator<Triple> iterator() {
-        return elements.iterator();
+        return elements.values().iterator();
     }
 
     @Override
     public Spliterator<Triple> spliterator() {
-        return this.elements.spliterator();
+        return this.elements.values().spliterator();
     }
 
     public Set<Triple> getElements() {
-        return elements;
+        return elements().collect(Collectors.toSet());
     }
 
     public Set<Triple> getEdges() {
-        return elements.stream().filter(Triple::isEddge).collect(Collectors.toSet());
+        return edges().collect(Collectors.toSet());
     }
 
     public Set<Name> getNodes() {
-        return elements.stream().filter(Triple::isNode).map(Triple::getLabel).collect(Collectors.toSet());
+        return nodes().collect(Collectors.toSet());
     }
 
 
@@ -68,12 +84,12 @@ public class GraphImpl implements StateSpace<Name, Triple>, Graph, Iterable<Trip
 
     @Override
     public GraphImpl unprefix() {
-        return new GraphImpl(name, elements.stream().map(t -> t.unprefix(getName())).collect(Collectors.toSet()));
+        return new GraphImpl(name, elements().map(t -> t.unprefix(getName())).collect(Collectors.toSet()));
     }
 
     @Override
     public GraphImpl prefix() {
-        return new GraphImpl(name, elements.stream().map(t -> t.prefix(getName())).collect(Collectors.toSet()));
+        return new GraphImpl(name, elements().map(t -> t.prefix(getName())).collect(Collectors.toSet()));
     }
 
     @Override
@@ -81,8 +97,8 @@ public class GraphImpl implements StateSpace<Name, Triple>, Graph, Iterable<Trip
         if (other instanceof GraphImpl) {
             GraphImpl otherGraph = (GraphImpl) other;
             Set<Triple> elements = new HashSet<>();
-            elements.addAll(this.prefix().elements);
-            elements.addAll(otherGraph.prefix().elements);
+            elements.addAll(this.prefix().elements.values());
+            elements.addAll(otherGraph.prefix().elements.values());
             return new GraphImpl(this.name.sum(otherGraph.name), elements);
         }
         return new GraphUnion(Arrays.asList(this, other), this.getName().sum(other.getName()));
@@ -92,10 +108,10 @@ public class GraphImpl implements StateSpace<Name, Triple>, Graph, Iterable<Trip
     public Graph multiSum(List<Graph> others) {
         if (others.stream().allMatch(g -> g instanceof GraphImpl)) {
             Set<Triple> elements = new HashSet<>();
-            elements.addAll(this.prefix().elements);
+            elements.addAll(this.prefix().elements.values());
             for (Graph g : others) {
                 GraphImpl graph = (GraphImpl) g;
-                elements.addAll(graph.prefix().elements);
+                elements.addAll(graph.prefix().elements.values());
             }
             return new GraphImpl(this.name.mergeWith(others.stream().map(Graph::getName).collect(Collectors.toList())), elements);
         }
@@ -172,11 +188,11 @@ public class GraphImpl implements StateSpace<Name, Triple>, Graph, Iterable<Trip
         return hasseDiagrammInternal(graphName, elements, (e1, e2) -> comparator.cmp(e1, e2).equals(ProperComparator.CompareResult.LESS_THAN), nameGiver, withTransitive);
     }
 
-    public static GraphImpl materialize(Graph graph) throws GraphError {
+    public static GraphImpl materialize(Graph graph) {
         Name name = graph.getName();
         Set<Triple> elements = new HashSet<>();
         graph.elements().forEach(elements::add);
-        return create(name, elements);
+        return new GraphImpl(name, elements);
     }
 
 }

@@ -13,6 +13,10 @@ public final class FloatValue extends Value {
 
     private final double value;
 
+    public double getFloatValue() {
+        return value;
+    }
+
     public FloatValue(double value) {
         this.value = value;
     }

@@ -4,34 +4,35 @@ import com.fasterxml.jackson.databind.JsonNode;
 import no.hvl.past.graph.Graph;
 import no.hvl.past.graph.GraphMorphism;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.graph.trees.ChildrenRelation;
 import no.hvl.past.graph.trees.Node;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.PrintingStrategy;
 import org.w3c.dom.Element;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class AttributeBasedKey implements Key {
 
     private final Graph carrier;
     private final Triple attributeEdge;
+    private final Name targetType;
 
-    public AttributeBasedKey(Graph carrier, Triple attributeEdge) {
+    public AttributeBasedKey(Graph carrier, Triple attributeEdge, Name targetType) {
         this.carrier = carrier;
         this.attributeEdge = attributeEdge;
+        this.targetType = targetType;
     }
 
     @Override
-    public Graph targetGraph() {
+    public Graph container() {
         return carrier;
     }
 
+
     @Override
-    public Name definedOnType() {
-        return attributeEdge.getSource();
+    public Name targetType() {
+        return targetType;
     }
 
     @Override
@@ -55,7 +56,8 @@ public class AttributeBasedKey implements Key {
         }
 
         if (element instanceof Node) {
-            Optional<Name> attribute = ((Node) element).attribute(attributeEdge.getLabel());
+
+            Optional<Name> attribute = ((Node) element).childrenByKey(attributeEdge.getLabel()).findFirst().map(c -> c.child().elementName());
             if (attribute.isPresent()) {
                 return attribute.get();
             }
@@ -113,6 +115,21 @@ public class AttributeBasedKey implements Key {
 
     @Override
     public Name getName() {
-        return attributeEdge.getLabel().prefixWith(definedOnType());
+        return attributeEdge.getLabel().prefixWith(attributeEdge.getSource());
+    }
+
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(targetType, attributeEdge);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof AttributeBasedKey) {
+            AttributeBasedKey k = (AttributeBasedKey) obj;
+            return this.targetType.equals(k.targetType) && this.attributeEdge.equals(k.attributeEdge);
+        }
+        return false;
     }
 }

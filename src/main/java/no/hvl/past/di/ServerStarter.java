@@ -19,9 +19,9 @@ public class ServerStarter {
         return isRunning;
     }
 
-    public synchronized Webserver getWebserverStartIfNecessary() {
+    public synchronized Webserver getWebserverStartIfNecessary(int port) {
         if (!isRunning) {
-            this.webserver = Webserver.start(propertyHolder.getServerPort());
+            this.webserver = Webserver.start(port);
             this.isRunning = true;
         }
         return this.webserver;

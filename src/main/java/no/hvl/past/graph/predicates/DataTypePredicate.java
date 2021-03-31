@@ -1,9 +1,6 @@
 package no.hvl.past.graph.predicates;
 
-import no.hvl.past.graph.GraphImpl;
-import no.hvl.past.graph.GraphMorphism;
-import no.hvl.past.graph.GraphPredicate;
-import no.hvl.past.graph.Universe;
+import no.hvl.past.graph.*;
 
 /**
  * Marks the given node as a simple value domain (base data type).
@@ -34,6 +31,12 @@ public class DataTypePredicate implements GraphPredicate {
                 .allMatch(t -> t.getLabel().isValue());
     }
 
+    @Override
+    public boolean diagramIsOfType(Diagram diagram) {
+        return getClass().isAssignableFrom(diagram.label().getClass()) || StringDT.class.isAssignableFrom(diagram.label().getClass()) ||
+                IntDT.class.isAssignableFrom(diagram.label().getClass()) || FloatDT.class.isAssignableFrom(diagram.label().getClass()) ||
+                BoolDT.class.isAssignableFrom(diagram.label().getClass());
+    }
 
     public static DataTypePredicate getInstance() {
         if (instance == null) {

@@ -1,6 +1,7 @@
 package no.hvl.past.graph.plotting;
 
 import com.google.common.collect.Sets;
+import no.hvl.past.graph.Diagram;
 import no.hvl.past.graph.Graph;
 import no.hvl.past.graph.Universe;
 import no.hvl.past.graph.Visitor;
@@ -168,6 +169,10 @@ public class Plotter extends AbstractPlotter implements Visitor {
     }
 
     @Override
+    public void handleDiagram(Diagram diagram) {
+
+    }
+
     public void handleFormula(Formula<Graph> graphFormula) {
         this.currentMapping = new HashMap<>();
 
@@ -254,12 +259,10 @@ public class Plotter extends AbstractPlotter implements Visitor {
         }
     }
 
-    @Override
     public void beginDiagram() {
         this.state.push(State.STARTIN_DIAGRAM);
     }
 
-    @Override
     public void endDiagram() {
         if (this.state.peek().equals(State.STARTED_DIAGRAM)) {
             this.state.pop();

@@ -3,6 +3,7 @@ package no.hvl.past.di;
 import no.hvl.past.graph.Universe;
 import no.hvl.past.graph.UniverseImpl;
 import no.hvl.past.plugin.MetaRegistry;
+import no.hvl.past.util.FileSystemUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -38,5 +39,12 @@ public class DIConfiguration {
         return new ServerStarter();
     }
 
+
+    @Bean
+    @Scope("singleton")
+    @Lazy
+    public FileSystemUtils fileSystemUtils() {
+        return new FileSystemUtils(propertyHolder().getBaseDir().getAbsolutePath(), FileSystemUtils.osType());
+    }
 
 }

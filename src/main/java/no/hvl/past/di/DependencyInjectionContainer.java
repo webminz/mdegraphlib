@@ -2,6 +2,7 @@ package no.hvl.past.di;
 
 import no.hvl.past.graph.Universe;
 import no.hvl.past.plugin.MetaRegistry;
+import no.hvl.past.util.FileSystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Appender;
@@ -25,6 +26,14 @@ public class DependencyInjectionContainer {
 
     private DependencyInjectionContainer(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
+    }
+
+    public <B> B getBean(Class<B> type) {
+        return this.applicationContext.getBean(type);
+    }
+
+    public <B> B getBean(String beanName, Class<B> returnType) {
+        return this.applicationContext.getBean(beanName, returnType);
     }
 
     public MetaRegistry getPluginRegistry() {
@@ -68,6 +77,10 @@ public class DependencyInjectionContainer {
     public static DependencyInjectionContainer create(String basePath) throws IOException {
         File file = new File(basePath, "corrlang.conf");
         return create(file);
+    }
+
+    public FileSystemUtils getFSUtils() {
+        return applicationContext.getBean(FileSystemUtils.class);
     }
 
     public static DependencyInjectionContainer create(File configFilePath) throws IOException {

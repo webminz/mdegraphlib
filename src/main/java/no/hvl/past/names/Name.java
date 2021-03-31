@@ -372,4 +372,12 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
     public Name substitution(Name name) {
         return new BinaryCombinator(this, name, BinaryCombinator.Operation.SUBSTITUTION);
     }
+
+    public Name source() {
+        return new UnaryCombinator(this, UnaryCombinator.Operation.SOURCE);
+    }
+
+    public Name target() {
+        return new UnaryCombinator(this, UnaryCombinator.Operation.TARGET);
+    }
 }

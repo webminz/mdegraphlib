@@ -1,11 +1,10 @@
 package no.hvl.past.graph;
 
 import com.google.common.collect.Sets;
-import com.google.common.graph.GraphBuilder;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
 
-import javax.jws.Oneway;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;

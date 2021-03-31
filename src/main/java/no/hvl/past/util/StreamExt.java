@@ -62,6 +62,10 @@ public class StreamExt<X> implements Stream<X>{
         return new StreamExt<>(result.stream());
     }
 
+    public String fuse(String separator, Function<X, String> toString) {
+        return StringUtils.fuseList(this, toString, separator);
+    }
+
 
 
     public static boolean isUnique(Stream<?> stream) {

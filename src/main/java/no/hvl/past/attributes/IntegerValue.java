@@ -12,6 +12,10 @@ public final class IntegerValue extends Value {
     public static IntegerValue ZERO = new IntegerValue(BigInteger.ZERO);
     private final BigInteger value;
 
+    public BigInteger getIntegerValue() {
+        return value;
+    }
+
     public IntegerValue(BigInteger value) {
         this.value = value;
     }

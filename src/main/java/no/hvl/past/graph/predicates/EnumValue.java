@@ -6,6 +6,7 @@ import no.hvl.past.names.Name;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -43,5 +44,9 @@ public class EnumValue implements GraphPredicate {
 
     public static EnumValue getInstance(Name... literals) {
         return new EnumValue(new HashSet<>(Arrays.asList(literals)));
+    }
+
+    public static EnumValue getInstance(List<Name> literals) {
+        return new EnumValue(new HashSet<>(literals));
     }
 }

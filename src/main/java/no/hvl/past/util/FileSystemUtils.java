@@ -1,7 +1,11 @@
 package no.hvl.past.util;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.UrlResource;
+
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.time.LocalDateTime;
 import java.util.Scanner;
 
@@ -13,7 +17,7 @@ public class FileSystemUtils {
     private final OperatingSystemType os;
 
 
-    private FileSystemUtils(String baseDir, OperatingSystemType os) {
+    public FileSystemUtils(String baseDir, OperatingSystemType os) {
         this.baseDir = baseDir;
         this.os = os;
     }
@@ -39,7 +43,7 @@ public class FileSystemUtils {
         UNKNOWN
     }
 
-    private static OperatingSystemType osType() {
+    public static OperatingSystemType osType() {
         String osName = System.getProperty("os.name");
         if (osName == null || osName.isEmpty()) {
             return OperatingSystemType.UNKNOWN;
@@ -67,8 +71,14 @@ public class FileSystemUtils {
     /**
      * Retrieves the {@link File} object for the given location.
      */
-    public File file(String location) {
+    public File file(String location) throws IOException {
         // TODO check for URL schemes as well
+        if (location.startsWith("file:") || location.startsWith("http")) {
+            return new UrlResource(location).getFile();
+        }
+        if (location.startsWith("classpath:")) {
+            return new ClassPathResource(location).getFile();
+        }
         if (location.startsWith("/")) {
             return new File(location);
         } else {
@@ -76,7 +86,7 @@ public class FileSystemUtils {
         }
     }
 
-    public File fileOverwrite(String location) {
+    public File fileOverwrite(String location) throws IOException {
         File file = file(location);
         if (file.exists()) {
             file.delete();
@@ -84,7 +94,7 @@ public class FileSystemUtils {
         return file;
     }
 
-    public File fileCreateIfNecessary(String location) {
+    public File fileCreateIfNecessary(String location) throws IOException {
         File file = file(location);
         file.mkdirs();
         return file;

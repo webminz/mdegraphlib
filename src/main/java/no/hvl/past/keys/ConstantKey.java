@@ -7,6 +7,7 @@ import no.hvl.past.names.Name;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A key that always evaluates to the same value.
@@ -19,19 +20,20 @@ public class ConstantKey implements Key {
     private final Name value;
     private final Name definedOn;
 
-    public ConstantKey(Graph carrierGraph, Name keyName, Name value, Name definedOn) {
+    public ConstantKey(Graph carrierGraph, Name value, Name definedOn) {
         this.carrierGraph = carrierGraph;
         this.value = value;
         this.definedOn = definedOn;
     }
 
     @Override
-    public Graph targetGraph() {
+    public Graph container() {
         return carrierGraph;
     }
 
+
     @Override
-    public Name definedOnType() {
+    public Name targetType() {
         return definedOn;
     }
 
@@ -53,5 +55,19 @@ public class ConstantKey implements Key {
     @Override
     public Name getName() {
         return value;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(targetType(), value);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ConstantKey) {
+            ConstantKey k = (ConstantKey) obj;
+            return this.definedOn.equals(k.definedOn) && this.value.equals(k.value);
+        }
+        return false;
     }
 }

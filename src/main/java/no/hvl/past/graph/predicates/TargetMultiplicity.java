@@ -52,6 +52,10 @@ public class TargetMultiplicity implements GraphPredicate {
         }
     }
 
+    @Override
+    public boolean diagramIsOfType(Diagram diagram) {
+        return diagram.label().getClass().isAssignableFrom(this.getClass()) && ((TargetMultiplicity)diagram.label()).getLowerBound() == lowerBound && ((TargetMultiplicity)diagram.label()).getUpperBound() == upperBound;
+    }
 
     public static GraphPredicate getInstance(int lowerBound, int upperBound) {
         return new TargetMultiplicity(lowerBound, upperBound);

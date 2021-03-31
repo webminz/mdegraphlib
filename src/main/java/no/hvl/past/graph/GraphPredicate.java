@@ -4,6 +4,8 @@ package no.hvl.past.graph;
 import no.hvl.past.plugin.ExtensionPoint;
 import no.hvl.past.logic.Model;
 
+import java.util.stream.Stream;
+
 public interface GraphPredicate extends GraphTheory, ExtensionPoint {
 
     /**
@@ -31,5 +33,13 @@ public interface GraphPredicate extends GraphTheory, ExtensionPoint {
     @Override
     default boolean isOperation() {
         return false;
+    }
+
+    default boolean diagramIsOfType(Diagram diagram) {
+        return diagram.label().getClass().isAssignableFrom(getClass());
+    }
+
+    default Stream<Diagram> diagramsWithType(Sketch sketch) {
+        return sketch.diagrams().filter(this::diagramIsOfType);
     }
 }

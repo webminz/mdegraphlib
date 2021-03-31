@@ -85,7 +85,7 @@ public class ExampleGraphs extends AbstractGraphTest {
                     .graph("ACCOUNTING")
                     .getResult(Graph.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(ExampleGraphs.class, "buildAccountingGraph", error);
+            throw new ShouldNotHappenException(ExampleGraphs.class, error.getMessage());
         }
     }
 
@@ -139,7 +139,7 @@ public class ExampleGraphs extends AbstractGraphTest {
                     .morphism(Name.identifier(ACCOUNTING_INSTANCE).typeBy(ACCOUNTING_GRAPH.getName()))
                     .getResult(GraphMorphism.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(ExampleGraphs.class, "buildAccountingGraphInstance", error);
+            throw new ShouldNotHappenException(ExampleGraphs.class, error.getMessage());
         }
     }
 
@@ -158,7 +158,7 @@ public class ExampleGraphs extends AbstractGraphTest {
                     .graph("patients")
                     .getResult(Graph.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(ExampleGraphs.class, "buildPatientsModelGraph", error);
+            throw new ShouldNotHappenException(ExampleGraphs.class, error.getMessage());
         }
     }
 
@@ -179,7 +179,7 @@ public class ExampleGraphs extends AbstractGraphTest {
                     .graph("appointments")
                     .getResult(Graph.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(ExampleGraphs.class, "buildAppointmentsModelGraph", error);
+            throw new ShouldNotHappenException(ExampleGraphs.class, error.getMessage());
         }
     }
 
@@ -201,7 +201,7 @@ public class ExampleGraphs extends AbstractGraphTest {
                     .graph("bloodtests")
                     .getResult(Graph.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(ExampleGraphs.class, "buildBloodTestModelGraph", error);
+            throw new ShouldNotHappenException(ExampleGraphs.class, error.getMessage());
         }
     }
 
@@ -215,7 +215,7 @@ public class ExampleGraphs extends AbstractGraphTest {
                     .graph("commonalities")
                     .getResult(Graph.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(ExampleGraphs.class, "buildCommonalitiesGraph", error);
+            throw new ShouldNotHappenException(ExampleGraphs.class, error.getMessage());
         }
     }
 
@@ -238,7 +238,7 @@ public class ExampleGraphs extends AbstractGraphTest {
                     .morphism("m1")
                     .getResult(GraphMorphism.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(ExampleGraphs.class, "buildPatientProjectionMorphism", error);
+            throw new ShouldNotHappenException(ExampleGraphs.class, error.getMessage());
         }
     }
 
@@ -257,7 +257,7 @@ public class ExampleGraphs extends AbstractGraphTest {
                     .morphism("m2")
                     .getResult(GraphMorphism.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(ExampleGraphs.class, "buildAppointmentsProjectionMorphism", error);
+            throw new ShouldNotHappenException(ExampleGraphs.class, error.getMessage());
         }
     }
 
@@ -278,7 +278,7 @@ public class ExampleGraphs extends AbstractGraphTest {
                     .morphism("m3")
                     .getResult(GraphMorphism.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(ExampleGraphs.class, "buildBloodtestProjectionMorphism", error);
+            throw new ShouldNotHappenException(ExampleGraphs.class, error.getMessage());
         }
     }
 
@@ -336,7 +336,7 @@ public class ExampleGraphs extends AbstractGraphTest {
                     .sketch(OOK_NAME)
                     .getResult(Sketch.class);
         } catch (GraphError error) {
-            throw new ShouldNotHappenException(SketchTest.class, "buildOOKernel", error);
+            throw new ShouldNotHappenException(ExampleGraphs.class, error.getMessage());
         }
 
     }

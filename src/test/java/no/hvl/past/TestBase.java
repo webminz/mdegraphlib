@@ -38,7 +38,7 @@ public class TestBase {
             return InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
             logger.throwing(TestBase.class.getName(), "getHostname", e);
-            throw new ShouldNotHappenException(TestBase.class, "getHostname", e);
+            throw new ShouldNotHappenException(TestBase.class, e.getMessage());
         }
     }
 
@@ -47,7 +47,7 @@ public class TestBase {
             return new ClassPathResource(path).getFile();
         } catch (IOException e) {
             logger.throwing(TestBase.class.getName(), "getHostname", e);
-            throw new ShouldNotHappenException(TestBase.class, "getResourceFolderItem", e);
+            throw new ShouldNotHappenException(TestBase.class, e.getMessage());
         }
     }
 

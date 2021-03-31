@@ -21,15 +21,16 @@ public interface Key extends Diagram {
      * The carrier graph where is defined on.
      *
      */
-    Graph targetGraph();
+    Graph container();
+
 
     /**
-     * The name of the type upon which the key is defined.
+     * The name of the global (merged) type the key is defined on.
      */
-    Name definedOnType();
+    Name targetType();
 
     /**
-     * The type of the elements that are required to evaluate the key.
+     * The type of the (local) elements that are required to evaluate the key.
      */
     List<Triple> requiredProperties();
 
@@ -52,7 +53,7 @@ public interface Key extends Diagram {
                 if (model instanceof GraphMorphism) {
                     // if it is a type graph, we can check if we can actually evaluate it
                     GraphMorphism morphism = (GraphMorphism) model;
-                    return morphism.codomain().mentions(definedOnType()) && requiredProperties().stream().allMatch(t -> morphism.codomain().contains(t));
+                    return requiredProperties().stream().allMatch(t -> morphism.codomain().contains(t));
                 }
                 return false;
             }
@@ -63,34 +64,22 @@ public interface Key extends Diagram {
     @Override
     default GraphMorphism binding() {
         int arity = requiredProperties().size();
-        Graph graph = Universe.multiSpan(arity);
         return new GraphMorphism() {
             @Override
             public Graph domain() {
-                return graph;
+                return Universe.ONE_NODE;
             }
 
             @Override
             public Graph codomain() {
-                return targetGraph();
+                return container();
             }
 
             @Override
             public Optional<Name> map(Name name) {
                 if (Universe.ONE_NODE_THE_NODE.equals(name)) {
-                    return Optional.of(definedOnType());
+                    return Optional.of(targetType());
                 }
-                if (graph.mentions(name)) {
-                    for (int i = 1; i <= arity; i++) {
-                        Triple edge = Universe.multiSpanEdge(i);
-                        if (edge.getLabel().equals(name)) {
-                            return Optional.of(requiredProperties().get(i).getLabel());
-                        } else if (edge.getTarget().equals(name)) {
-                            return Optional.of(requiredProperties().get(i).getTarget());
-                        }
-                    }
-                }
-
                 return Optional.empty();
             }
 

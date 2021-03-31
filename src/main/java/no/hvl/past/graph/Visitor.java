@@ -17,7 +17,7 @@ public interface Visitor {
 
     void handleMapping(Tuple tuple);
 
-    void handleFormula(Formula<Graph> graphFormula);
+    void handleDiagram(Diagram diagram);
 
     void beginGraph();
 
@@ -28,10 +28,6 @@ public interface Visitor {
     void endMorphism();
 
     void beginSketch();
-
-    void beginDiagram();
-
-    void endDiagram();
 
     void endSketch();
 

@@ -19,13 +19,16 @@ public interface PrintingStrategy {
 
     public class DefaultPrintingStrategy implements PrintingStrategy {
 
+
+        private String TREE_CHILD = "/";
+        private String PROJECTION_SYMBOL = "p_";
         private final boolean ignorePrefix;
         private final boolean putParanthesis;
         private final boolean ignoreDecorators;
-        private String prefixDelimiter = "/"; // like unix paths
-        private String sequentialCompositionSymbol = "."; // like OO notation
+        private String prefixDelimiter = "."; // like OO notation
+        private String sequentialCompositionSymbol = ";";
         private String coproductSymbol = "⊔"; // default
-        private String typedBySymbol = "::"; // like in haskell
+        private String typedBySymbol = ":";
         private String emptySymbol = ""; // like "nothing to show"
         private String inverseSymbol = "^-1"; // default
         private String iteratedSymbol = "*"; // default
@@ -182,6 +185,16 @@ public interface PrintingStrategy {
             return first + "|" + second;
         }
 
+        @Override
+        public String source(String nested) {
+            return "src(" + nested + ")";
+        }
+
+        @Override
+        public String target(String nested) {
+            return "trg(" + nested + ")";
+        }
+
         public String extens(String firstTransformed, String secondTransformed) {
             return firstTransformed + extendsSymbol + secondTransformed;
         }
@@ -201,7 +214,7 @@ public interface PrintingStrategy {
 
         @Override
         public String projection(String first, String second) {
-            return "p_" + second + "(" + first + ")";
+            return PROJECTION_SYMBOL + second + pairLeftParan + first +pairRightParan;
         }
 
         public String injection(String first, String second) {
@@ -223,7 +236,7 @@ public interface PrintingStrategy {
         }
 
         public String childOf(String child, String parent) {
-            return parent + "|_" + child;
+            return parent + TREE_CHILD + child;
         }
 
 
@@ -478,5 +491,8 @@ public interface PrintingStrategy {
 
     String substituted(String first, String second);
 
+    String source(String nested);
+
+    String target(String nested);
 
 }

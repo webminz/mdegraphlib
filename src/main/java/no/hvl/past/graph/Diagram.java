@@ -3,6 +3,8 @@ package no.hvl.past.graph;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.logic.Formula;
 import no.hvl.past.names.Name;
+import org.checkerframework.checker.nullness.Opt;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -54,11 +56,7 @@ public interface Diagram extends Element {
 
     @Override
     default void accept(Visitor visitor) {
-        visitor.beginDiagram();
-        visitor.handleElementName(getName());
-        visitor.handleFormula(label());
-        binding().accept(visitor);
-        visitor.endDiagram();
+        visitor.handleDiagram(this);
     }
 
     @Override
@@ -91,5 +89,26 @@ public interface Diagram extends Element {
                 return Diagram.this.getName().substitution(morphism.getName());
             }
         };
+    }
+
+    default Optional<Name> nodeBinding() {
+        if (binding().domain().equals(Universe.ONE_NODE)) {
+            return binding().map(Universe.ONE_NODE_THE_NODE);
+        }
+        return Optional.empty();
+    }
+
+    default Optional<Triple> edgeBinding() {
+        if (binding().domain().equals(Universe.ARROW)) {
+            return edgeBinding(Universe.ARROW_THE_ARROW);
+        }
+        return Optional.empty();
+    }
+
+    default Optional<Triple> edgeBinding(Triple edge) {
+        return binding().map(edge.getSource())
+                .flatMap(src -> binding().map(edge.getLabel())
+                        .flatMap(lbl -> binding().map(edge.getTarget())
+                                .map(trg -> Triple.edge(src, lbl, trg))));
     }
 }

@@ -1,10 +1,13 @@
 package no.hvl.past.graph;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.graph.predicates.DataTypePredicate;
 import no.hvl.past.logic.Formula;
 import no.hvl.past.logic.Model;
 import no.hvl.past.logic.Signature;
@@ -48,6 +51,26 @@ public interface Sketch extends Element, Formula<Graph> {
                 .elements()
                 .filter(t -> diagrams().anyMatch(diag -> diag.generatedElements().anyMatch(t::equals)));
     }
+
+    default Sketch restrict(Collection<Diagram> extraDiagrams) {
+        return new Sketch() {
+            @Override
+            public Graph carrier() {
+                return Sketch.this.carrier();
+            }
+
+            @Override
+            public Stream<Diagram> diagrams() {
+                return Streams.concat(Sketch.this.diagrams(), extraDiagrams.stream());
+            }
+
+            @Override
+            public Name getName() {
+                return getName();
+            }
+        };
+    }
+
 
 
     default GraphMorphism extend(Name name, GraphMorphism instance, ExecutionContext executionContext) throws GraphError {
