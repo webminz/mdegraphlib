@@ -172,6 +172,17 @@ public class NamesTest {
 
     }
 
+    @Test
+    public void testOrder() {
+        Name parent1 = Name.identifier("root");
+        Name paren2 = Name.identifier("container");
+        Name elem1 = Name.identifier("field").index(0);
+        Name elem2 = Name.identifier("field").index(1);
+
+        assertTrue(elem1.inATotalOrderWith(elem2));
+        assertTrue(elem1.childOf(parent1).childOf(paren2).inATotalOrderWith(elem2.childOf(parent1).childOf(paren2)));
+    }
+
 
 
 

@@ -66,7 +66,7 @@ public interface Sketch extends Element, Formula<Graph> {
 
             @Override
             public Name getName() {
-                return getName();
+                return Sketch.this.getName();
             }
         };
     }

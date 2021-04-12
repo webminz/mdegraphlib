@@ -14,36 +14,107 @@ import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.Characters;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.Stack;
 
 public class XmlParser {
 
-    public Tree parse(String source, Name resultName) {
+    public static final String XML_TEXT_CONTENT_FIELD_NAME = "text";
+    private final XMLInputFactory factory;
+
+    public XmlParser() {
+        this.factory = XMLInputFactory.newFactory();
+    }
+
+    public Tree parse(File source, Name resultName) throws XMLStreamException, IOException {
+        XMLEventReader reader = factory.createXMLEventReader(new FileInputStream(source));
+        return parse(reader, new TreeBuildStrategy(resultName));
+    }
+
+    public Tree parse(String source, Name resultName) throws XMLStreamException, IOException {
+        XMLEventReader reader = factory.createXMLEventReader(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
+        return parse(reader, new TreeBuildStrategy(resultName));
+    }
+
+    public Tree parse(InputStream source, Name resultName) throws XMLStreamException, IOException {
+        XMLEventReader reader = factory.createXMLEventReader(source);
+        return parse(reader, new TreeBuildStrategy(resultName));
+    }
+
+
+
+    public Tree parse(Document rootNode, Name resultName) {
         return null; // TODO
     }
 
-    public Tree parse(InputStream source, Name resultName) {
-        return null; // TODO
+    public TypedTree parse(File source, TreeBuildStrategy buildStrategy) throws IOException, XMLStreamException {
+        XMLEventReader reader = factory.createXMLEventReader(new FileInputStream(source));
+        return (TypedTree) parse(reader, buildStrategy);
     }
 
-    public Tree parse(Document rootNode) {
-        return null; // TODO
+
+    public TypedTree parse(String source, TreeBuildStrategy buildStrategy) throws XMLStreamException, IOException {
+        XMLEventReader reader = factory.createXMLEventReader(new ByteArrayInputStream(source.getBytes(StandardCharsets.UTF_8)));
+        return (TypedTree) parse(reader, buildStrategy);
     }
 
-    public TypedTree parseTyped(String source, Name resultName, Sketch schema, Name rootType) {
-        return null; // TODO
-    }
-
-    public TypedTree parseTyped(InputStream source, Name resultName, Sketch schema, Name rootType) {
-        return null; // TODO
+    public TypedTree parse(InputStream source, TreeBuildStrategy buildStrategy) throws XMLStreamException, IOException {
+        XMLEventReader reader = factory.createXMLEventReader(source);
+        return (TypedTree) parse(reader, buildStrategy); // TODO
     }
 
     public TypedTree parseTyped(Document source, Name resultName, Sketch schema, Name rootType) {
         return null; // TODO
+    }
+
+
+    private static Tree parse(XMLEventReader xmlReader, TreeBuildStrategy buildStrategy) throws XMLStreamException, IOException {
+        Stack<Node.Builder> builderStack = new Stack<>();
+        XMLEvent xmlEvent = xmlReader.nextEvent();
+
+        if (xmlEvent.getEventType() == XMLStreamConstants.START_DOCUMENT) {
+            Node.Builder root = buildStrategy.root();
+            builderStack.push(root);
+            while (xmlReader.hasNext()) {
+                xmlEvent = xmlReader.nextEvent();
+                switch (xmlEvent.getEventType()) {
+                    case XMLStreamConstants.START_ELEMENT:
+                        StartElement startElement = xmlEvent.asStartElement();
+
+                        builderStack.push(buildStrategy.objectChild(builderStack.peek(), startElement.getName().getLocalPart()));
+
+                        Iterator attributeIt = startElement.getAttributes();
+                        while (attributeIt.hasNext()) {
+                            Attribute att = (Attribute) attributeIt.next();
+                            if (att.getName().getNamespaceURI() != null && !att.getName().getNamespaceURI().isEmpty()) {
+                                buildStrategy.simpleChild(builderStack.peek(),att.getName().getNamespaceURI() ,att.getName().getLocalPart(),att.getValue());
+                            } else {
+                                buildStrategy.simpleChild(builderStack.peek(),att.getName().getLocalPart(),att.getValue());
+                            }
+                        }
+
+                        break;
+                    case XMLStreamConstants.CHARACTERS:
+                        Characters characters = xmlEvent.asCharacters();
+                        if (!characters.getData().trim().isEmpty()) {
+                            buildStrategy.simpleChild(builderStack.peek(), XML_TEXT_CONTENT_FIELD_NAME, characters.getData());
+                        }
+                        break;
+                    case XMLStreamConstants.END_ELEMENT:
+                        builderStack.pop();
+                        break;
+                    case XMLStreamConstants.END_DOCUMENT:
+                        break;
+                        // Everything else is just skipped
+                    default:
+
+                }
+            }
+            return buildStrategy.tree(root.build());
+        }
+        throw new IOException("Is not well-formed XML");
     }
 
 

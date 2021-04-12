@@ -55,6 +55,14 @@ public interface Node {
             this.children = new ArrayList<>();
         }
 
+        public Name getElementName() {
+            return elementName;
+        }
+
+        public void changeElementName(Name elementName) {
+            this.elementName = elementName;
+        }
+
         public Node.Builder beginChild(Name key, Node childNode) {
             handleIndexing(key);
             Builder childBuilder = new Builder(childNode);
@@ -74,6 +82,16 @@ public interface Node {
         void addChild(ChildrenRelation.Builder rel) {
             lastAdded = rel;
             this.children.add(rel);
+        }
+
+        public int peekNextIndex(Name key) {
+            if (lastAdded == null) {
+                return 0;
+            }
+            if (lastAdded.getKey().equals(key)) {
+                return currentIdx + 1;
+            }
+            return 0;
         }
 
         void handleIndexing(Name key) {

@@ -108,7 +108,7 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
      * a total order.
      */
     public boolean inATotalOrderWith(Name other) {
-        return false;
+        return this.equals(other);
     }
 
     /**
@@ -379,5 +379,9 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
 
     public Name target() {
         return new UnaryCombinator(this, UnaryCombinator.Operation.TARGET);
+    }
+
+    public String printRaw() {
+        return this.print(PrintingStrategy.IGNORE_PREFIX);
     }
 }

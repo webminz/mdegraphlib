@@ -150,19 +150,11 @@ public interface ChildrenRelation {
     }
 
     default Triple edgeRepresentation() {
-        if (!isAttribute()) {
-            if (isCollection()) {
-                return Triple.edge(parent().elementName(), key().index(index()).childOf(parent().elementName()), child().elementName());
-            } else {
-                return Triple.edge(parent().elementName(), key().childOf(parent().elementName()), child().elementName());
-            }
-        } else {
             if (isCollection()) {
                 return Triple.edge(parent().elementName(), key().prefixWith(parent().elementName()).index(index()), child().elementName());
             } else {
                 return Triple.edge(parent().elementName(), key().prefixWith(parent().elementName()), child().elementName());
             }
-        }
     }
 
 }

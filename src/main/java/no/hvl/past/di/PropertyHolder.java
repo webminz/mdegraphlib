@@ -21,6 +21,7 @@ public class PropertyHolder {
     public static final String LOG_LOCATION = "log.location";
     public static final String LOG_LEVEL = "log.level";
     public static final String ENABLE_DRAWING_DOT = "enable.drawing.dot";
+    private static final String SSL_ALLOW_ALL = "ssl.acceptAll";
 
     private Properties properties;
 
@@ -183,6 +184,15 @@ public class PropertyHolder {
         } else {
             this.properties.setProperty(SERVER_HOSTNAME, "127.0.0.1");
             return "127.0.0.1";
+        }
+    }
+
+    public boolean isSSLAllowAll() {
+        if (properties.containsKey(SSL_ALLOW_ALL)) {
+            return Boolean.parseBoolean(properties.getProperty(SSL_ALLOW_ALL));
+        } else {
+            this.properties.setProperty(SSL_ALLOW_ALL, "false");
+            return false;
         }
     }
 }

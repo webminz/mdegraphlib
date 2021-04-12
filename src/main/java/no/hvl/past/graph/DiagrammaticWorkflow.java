@@ -29,7 +29,7 @@ public class DiagrammaticWorkflow implements GraphMorphism {
     }
 
 
-    private static class DiagramActivityNode {
+    public static class DiagramActivityNode {
         private final Diagram type;
         private boolean valid;
 

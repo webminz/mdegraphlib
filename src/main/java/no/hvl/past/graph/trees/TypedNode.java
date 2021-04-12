@@ -13,6 +13,8 @@ import java.util.stream.Stream;
 
 public interface TypedNode extends Node {
 
+    static final Name BUNDLE_TYPE = Name.identifier("$BUNDLE");
+
     class Builder extends Node.Builder {
 
         private Name type;
@@ -27,8 +29,13 @@ public interface TypedNode extends Node {
             this.type = type;
         }
 
-        Name getType() {
+        public Name getType() {
             return type;
+        }
+
+        public Builder chandeTyping(Name newType) {
+            this.type = newType;
+            return this;
         }
 
         public Builder beginChild(Name key, Name elementName, Triple childRelationType) {
@@ -83,7 +90,7 @@ public interface TypedNode extends Node {
         }
 
         public Stream<TypedChildrenRelation> children() {
-            return getChildren().stream().map(c -> (TypedChildrenRelation)c);
+            return getChildren().stream().filter(c -> c instanceof TypedChildrenRelation).map(c -> (TypedChildrenRelation)c);
         }
     }
 

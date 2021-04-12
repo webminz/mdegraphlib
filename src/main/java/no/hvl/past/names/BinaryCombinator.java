@@ -263,4 +263,12 @@ public final class BinaryCombinator extends Combinator {
         return this.print(PrintingStrategy.IGNORE_PREFIX);
     }
 
+    @Override
+    public boolean inATotalOrderWith(Name other) {
+        if (other instanceof BinaryCombinator) {
+            BinaryCombinator bOther = (BinaryCombinator) other;
+            return this.first.inATotalOrderWith(bOther.first) && this.second.inATotalOrderWith(bOther.second);
+        }
+        return false;
+    }
 }

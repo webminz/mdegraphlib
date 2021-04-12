@@ -29,7 +29,7 @@ public class Ordered implements GraphPredicate {
                                     },
                                     (acc1, acc2) -> new Pair<>(acc2.getFirst(), acc1.getSecond() && acc2.getSecond())
                             ).getSecond();
-                });
+                }) || instance.allNodeInstances(Universe.ARROW_SRC_NAME).count() <= 1 ;
     }
 
     @Override

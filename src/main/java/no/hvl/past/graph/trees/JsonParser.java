@@ -6,153 +6,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import no.hvl.past.attributes.ErrorValue;
 import no.hvl.past.graph.Sketch;
 import no.hvl.past.graph.elements.Triple;
-import no.hvl.past.graph.predicates.BoolDT;
-import no.hvl.past.graph.predicates.FloatDT;
-import no.hvl.past.graph.predicates.IntDT;
-import no.hvl.past.graph.predicates.StringDT;
-import no.hvl.past.names.Identifier;
 import no.hvl.past.names.Name;
-import no.hvl.past.names.Value;
-import org.checkerframework.checker.nullness.Opt;
 
 import java.io.*;
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
 public class JsonParser {
-
-    // TODO make better namings
-    private interface BuildStrategy {
-
-        Tree tree(Node root);
-
-        Node.Builder root();
-
-        Node.Builder objectChild(Node.Builder parent, String fieldName);
-
-        void stringChild(Node.Builder parent, String fieldName, String content);
-
-        void valueChild(Node.Builder parent, String fieldName, Value value);
-    }
-
-    private static class TypedStrategy implements BuildStrategy {
-
-        private Map<String, Long> counterMap = new HashMap<>();
-        private final Name resultName;
-        private final Sketch schema;
-        private final BiFunction<Name, String, Optional<Triple>> lookup;
-        private Name currentType;
-
-        public long getCounterFor(String key) {
-            if (!this.counterMap.containsKey(key)) {
-                this.counterMap.put(key, 0L);
-            }
-            long result = this.counterMap.get(key);
-            this.counterMap.put(key, result + 1);
-            return result;
-        }
-
-        public TypedStrategy(Name resultName, Sketch schema, BiFunction<Name, String, Optional<Triple>> lookup, Name root) {
-            this.resultName = resultName;
-            this.schema = schema;
-            this.lookup = lookup;
-            this.currentType = root;
-        }
-
-        @Override
-        public Tree tree(Node root) {
-            return new TypedTree.Impl((TypedNode) root, resultName, schema.carrier());
-        }
-
-        @Override
-        public Node.Builder root() {
-            return new TypedNode.Builder(resultName, currentType);
-        }
-
-        @Override
-        public Node.Builder objectChild(Node.Builder parent, String fieldName) {
-                TypedNode.Builder parentBuilder = (TypedNode.Builder) parent;
-                Name type = parentBuilder.getType();
-                Optional<Triple> typeTriple = lookup.apply(type, fieldName);
-                if (typeTriple.isPresent()) {
-                    return parentBuilder.beginChild(Name.identifier(fieldName), Name.identifier(fieldName).index(getCounterFor(fieldName)).childOf(parentBuilder.elementName), typeTriple.get());
-                } else {
-                    return parentBuilder.beginChild(Name.identifier(fieldName),Name.identifier(fieldName).index(getCounterFor(fieldName)).childOf(parentBuilder.elementName), null);
-                }
-        }
-
-        @Override
-        public void stringChild(Node.Builder parent, String fieldName, String content) {
-                TypedNode.Builder parentBuilder = (TypedNode.Builder) parent;
-                Name type = parentBuilder.getType();
-                Optional<Triple> typeTriple = lookup.apply(type, fieldName);
-                if (typeTriple.isPresent()) {
-                    if (schema.diagramsOn(Triple.node(typeTriple.get().getTarget())).anyMatch(d -> d.label() instanceof IntDT)) {
-                        parentBuilder.attribute(Name.identifier(fieldName), Name.value(new BigInteger(content)), typeTriple.get());
-                    } else if (schema.diagramsOn(Triple.node(typeTriple.get().getTarget())).anyMatch(d -> d.label() instanceof FloatDT)) {
-                        parentBuilder.attribute(Name.identifier(fieldName), Name.value(Double.parseDouble(content)), typeTriple.get());
-                    } else if (schema.diagramsOn(Triple.node(typeTriple.get().getTarget())).anyMatch(d -> d.label() instanceof BoolDT)) {
-                        parentBuilder.attribute(Name.identifier(fieldName), Boolean.parseBoolean(content) ? Name.trueValue() : Name.falseValue(), typeTriple.get());
-                    } else if (schema.diagramsOn(Triple.node(typeTriple.get().getTarget())).anyMatch(d -> d.label() instanceof StringDT)) {
-                        parentBuilder.attribute(Name.identifier(fieldName), Name.value(content), typeTriple.get());
-                    } else {
-                        parentBuilder.attribute(Name.identifier(fieldName), Name.identifier(content), typeTriple.get());
-                    }
-                } else {
-                    parentBuilder.attribute(Name.identifier(fieldName), Name.identifier(content), null);
-                }
-        }
-
-        @Override
-        public void valueChild(Node.Builder parent, String fieldName, Value value) {
-                TypedNode.Builder parentBuilder = (TypedNode.Builder) parent;
-                Name type = parentBuilder.getType();
-                Optional<Triple> typeTriple = lookup.apply(type, fieldName);
-                if (typeTriple.isPresent()) {
-                    parentBuilder.attribute(Name.identifier(fieldName), value, typeTriple.get());
-                } else {
-                    parentBuilder.attribute(Name.identifier(fieldName), value, null);
-                }
-        }
-    }
-
-
-    private static class UntypedStrategy implements BuildStrategy {
-
-        private final Name resultName;
-
-        public UntypedStrategy(Name resultName) {
-            this.resultName = resultName;
-        }
-
-        @Override
-        public Tree tree(Node root) {
-            return new Tree.Impl(root, resultName);
-        }
-
-        @Override
-        public Node.Builder root() {
-            return new Node.Builder();
-        }
-
-        @Override
-        public Node.Builder objectChild(Node.Builder parent, String fieldName) {
-            return parent.beginChild(Name.identifier(fieldName), Name.anonymousIdentifier());
-        }
-
-        @Override
-        public void stringChild(Node.Builder parent, String fieldName, String content) {
-            parent.attribute(Name.identifier(fieldName), Name.identifier(content));
-        }
-
-        @Override
-        public void valueChild(Node.Builder parent, String fieldName, Value value) {
-            parent.attribute(Name.identifier(fieldName), value);
-        }
-    }
 
     private final JsonFactory jsonFactory;
 
@@ -162,38 +22,35 @@ public class JsonParser {
 
     public Tree parse(File source, Name resultName) throws IOException {
         com.fasterxml.jackson.core.JsonParser parser = jsonFactory.createParser(source);
-        return parse(parser, new UntypedStrategy(resultName));
+        return parse(parser, new TreeBuildStrategy(resultName));
     }
 
     public Tree parse(String source, Name resultName) throws IOException {
         com.fasterxml.jackson.core.JsonParser parser = jsonFactory.createParser(source);
-        return parse(parser, new UntypedStrategy(resultName));
+        return parse(parser, new TreeBuildStrategy(resultName));
     }
 
     public Tree parse(InputStream source, Name resultName) throws IOException {
         com.fasterxml.jackson.core.JsonParser parser = jsonFactory.createParser(source);
-        return parse(parser, new UntypedStrategy(resultName));
+        return parse(parser, new TreeBuildStrategy(resultName));
     }
 
     public Tree parse(JsonNode rootNode, Name resultName) {
         return null; // TODO
     }
 
-    public TypedTree parseTyped(String source, Name resultName, Sketch schema, Name rootType, BiFunction<Name, String, Optional<Triple>> nameLookup) throws IOException {
+    public TypedTree parse(String source, TreeBuildStrategy strategy) throws IOException {
         com.fasterxml.jackson.core.JsonParser parser = jsonFactory.createParser(source);
-        BuildStrategy strategy = new TypedStrategy(resultName, schema, nameLookup, rootType);
         return (TypedTree) parse(parser, strategy);
     }
 
-    public TypedTree parseTyped(InputStream source, Name resultName, Sketch schema, Name rootType, BiFunction<Name, String, Optional<Triple>> nameLookup) throws IOException {
+    public TypedTree parse(InputStream source,  TreeBuildStrategy strategy) throws IOException {
         com.fasterxml.jackson.core.JsonParser parser = jsonFactory.createParser(source);
-        BuildStrategy strategy = new TypedStrategy(resultName, schema, nameLookup, rootType);
         return (TypedTree) parse(parser, strategy);
     }
 
-    public TypedTree parseTyped(File source, Name resultName, Sketch schema, Name rootType, BiFunction<Name, String, Optional<Triple>> nameLookup) throws IOException {
+    public TypedTree parse(File source, TreeBuildStrategy strategy) throws IOException {
         com.fasterxml.jackson.core.JsonParser parser = jsonFactory.createParser(source);
-        BuildStrategy strategy = new TypedStrategy(resultName, schema, nameLookup, rootType);
         return (TypedTree) parse(parser, strategy);
     }
 
@@ -203,7 +60,7 @@ public class JsonParser {
         return null; // TODO
     }
 
-    private static Tree parse(com.fasterxml.jackson.core.JsonParser parser, BuildStrategy strategy) throws IOException {
+    private static Tree parse(com.fasterxml.jackson.core.JsonParser parser, TreeBuildStrategy strategy) throws IOException {
         JsonToken jsonToken = parser.nextToken();
         Node.Builder b = strategy.root();
         if (jsonToken == JsonToken.START_OBJECT) {
@@ -221,7 +78,7 @@ public class JsonParser {
         }
     }
 
-    private static void processObjectContent(com.fasterxml.jackson.core.JsonParser parser, Node.Builder b, BuildStrategy strategy) throws IOException {
+    private static void processObjectContent(com.fasterxml.jackson.core.JsonParser parser, Node.Builder b, TreeBuildStrategy strategy) throws IOException {
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             String fieldName = parser.currentName();
             JsonToken value = parser.nextToken();
@@ -236,23 +93,23 @@ public class JsonParser {
         }
     }
 
-    private static void processBaseType(com.fasterxml.jackson.core.JsonParser parser, Node.Builder b, String field, JsonToken value, BuildStrategy strategy) throws IOException {
+    private static void processBaseType(com.fasterxml.jackson.core.JsonParser parser, Node.Builder b, String field, JsonToken value, TreeBuildStrategy strategy) throws IOException {
         if (value == JsonToken.VALUE_STRING) {
-            strategy.stringChild(b, field, parser.getValueAsString()); // only with typing we can be more intelligent
+            strategy.simpleChild(b, field, parser.getValueAsString()); // only with typing we can be more intelligent
         } else if (value == JsonToken.VALUE_NUMBER_INT) {
-            strategy.valueChild(b, field, Name.value(parser.getLongValue())); // or big int???
+            strategy.simpleChild(b, field, parser.getLongValue()); // or big int???
         } else if (value == JsonToken.VALUE_TRUE) {
-            strategy.valueChild(b, field, Name.trueValue());
+            strategy.simpleChild(b, field, true);
         } else if (value == JsonToken.VALUE_FALSE) {
-            strategy.valueChild(b, field, Name.falseValue());
+            strategy.simpleChild(b, field, false);
         } else if (value == JsonToken.VALUE_NUMBER_FLOAT) {
-            strategy.valueChild(b, field, Name.value(parser.getDoubleValue()));
+            strategy.simpleChild(b, field, parser.getDoubleValue());
         } else if (value == JsonToken.VALUE_NULL) {
-            strategy.valueChild(b, field, ErrorValue.INSTANCE);
+            strategy.simpleChildNullValue(b, field);
         }
     }
 
-    private static void processListEntries(String field, com.fasterxml.jackson.core.JsonParser parser, Node.Builder b, BuildStrategy strategy) throws IOException {
+    private static void processListEntries(String field, com.fasterxml.jackson.core.JsonParser parser, Node.Builder b, TreeBuildStrategy strategy) throws IOException {
         JsonToken currentToken;
         while ((currentToken = parser.nextToken()) != JsonToken.END_ARRAY) {
             if (currentToken == JsonToken.START_ARRAY) {

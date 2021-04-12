@@ -59,18 +59,10 @@ public class JsonTreeTest extends GraphTest {
                 .sketch("FHIR_PATIENT")
                 .getResult(Sketch.class);
         JsonParser jsonParser = new JsonParser(new JsonFactory());
-        TypedTree typed = jsonParser.parseTyped(new File("src/test/resources/trees/fhir_patient.json"), Name.identifier("fhir.json"), schema, Name.identifier("Bundle"), (n, s) -> {
-            if (n == null) {
-                return Optional.empty();
-            }
-            if (s.equals("id") && !n.equals(Name.identifier("PatientResource"))) {
-                return Optional.empty();
-            }
-            if (schema.carrier().mentions(n)) {
-                return schema.carrier().get(Name.identifier(s));
-            }
-            return Optional.empty();
-        });
+        TypedTree typed = jsonParser.parse(
+                new File("src/test/resources/trees/fhir_patient.json"),
+                new Sys.Builder("test",schema).build().treeBuildStrategy()
+        );
         Optional<Node> firstEntry = typed.root().childNodesByKey(Name.identifier("entry")).findFirst();
         assertTrue(firstEntry.isPresent());
         Optional<Node> resource = firstEntry.get().childNodesByKey(Name.identifier("resource")).findFirst();
