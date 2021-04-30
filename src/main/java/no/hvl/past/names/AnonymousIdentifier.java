@@ -25,4 +25,10 @@ public class AnonymousIdentifier extends Identifier {
         int originalHashCode = System.identityHashCode(this);
         return ByteUtils.intToByteArray(originalHashCode, true);
     }
+
+
+    @Override
+    public String toString() {
+        return "";
+    }
 }

@@ -1,15 +1,11 @@
 package no.hvl.past.graph.trees;
 
-import no.hvl.past.attributes.VariableAssignment;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.Value;
-import no.hvl.past.util.StreamExt;
-import org.checkerframework.checker.nullness.Opt;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -19,19 +15,14 @@ import java.util.stream.Stream;
  */
 public interface Node {
 
-    static final Name ROOT_NAME = Name.identifier("/");
-
-    @NotNull
-    default Stream<Node> childNodesByKey(Name key) {
-        return childrenByKey(key).map(ChildrenRelation::child);
-    }
+    Name ROOT_NAME = Name.identifier("/");
 
     class Builder {
 
         Builder parentBuilder;
         Name elementName;
-        private List<ChildrenRelation.Builder> children;
-        private ChildrenRelation.Builder lastAdded;
+        private List<Branch.Builder> children;
+        private Branch.Builder lastAdded;
         private int currentIdx = 0;
         private Node result;
 
@@ -63,28 +54,28 @@ public interface Node {
             this.elementName = elementName;
         }
 
-        public Node.Builder beginChild(Name key, Node childNode) {
+        public Node.Builder beginChild(String key, Node childNode) {
             handleIndexing(key);
             Builder childBuilder = new Builder(childNode);
-            ChildrenRelation.Builder rel = new ChildrenRelation.Builder(key, childBuilder);
+            Branch.Builder rel = new Branch.Builder(key, childBuilder);
             addChild(rel);
             return childBuilder;
         }
 
-        public Node.Builder beginChild(Name key, Name elementName) {
+        public Node.Builder beginChild(String key, Name elementName) {
             handleIndexing(key);
             Builder childBuilder = new Builder(this, elementName);
-            ChildrenRelation.Builder rel = new ChildrenRelation.Builder(key, childBuilder);
+            Branch.Builder rel = new Branch.Builder(key, childBuilder);
             addChild(rel);
             return childBuilder;
         }
 
-        void addChild(ChildrenRelation.Builder rel) {
+        void addChild(Branch.Builder rel) {
             lastAdded = rel;
             this.children.add(rel);
         }
 
-        public int peekNextIndex(Name key) {
+        public int peekNextIndex(String key) {
             if (lastAdded == null) {
                 return 0;
             }
@@ -94,19 +85,21 @@ public interface Node {
             return 0;
         }
 
-        void handleIndexing(Name key) {
+        void handleIndexing(String key) {
             if (lastAdded != null && lastAdded.getKey().equals(key)) {
                 lastAdded.addIndex(currentIdx);
                 currentIdx++;
             } else if (lastAdded != null && !lastAdded.getKey().equals(key)){
-                lastAdded.addIndex(currentIdx);
+                if (currentIdx != 0) {
+                    lastAdded.addIndex(currentIdx);
+                }
                 currentIdx = 0;
             }
         }
 
-        public Node.Builder attribute(Name key, Name value) {
+        public Node.Builder attribute(String key, Name value) {
             handleIndexing(key);
-            ChildrenRelation.Builder c = new ChildrenRelation.Builder(key, value);
+            Branch.Builder c = new Branch.Builder(key, value);
             addChild(c);
             return this;
         }
@@ -123,7 +116,10 @@ public interface Node {
             return build(null);
         }
 
-        Node build(ChildrenRelation parent) {
+        Node build(Branch parent) {
+            if (lastAdded != null && currentIdx != 0) {
+                lastAdded.addIndex(currentIdx);
+            }
             if (result != null) {
                 if (result instanceof Impl) {
                     Impl result = (Impl) this.result;
@@ -136,7 +132,7 @@ public interface Node {
                 result.setParent(parent);
             }
             result.setParent(parent);
-            for (ChildrenRelation.Builder b : this.children) {
+            for (Branch.Builder b : this.children) {
                 result.addChild(b.build(result));
             }
             return result;
@@ -150,14 +146,14 @@ public interface Node {
 
     class Impl implements Node {
         private final Name elementName;
-        private ChildrenRelation parentRelation;
-        private final List<ChildrenRelation> children;
+        private Branch parentRelation;
+        private final List<Branch> children;
 
-        private void addChild(ChildrenRelation rel) {
+        private void addChild(Branch rel) {
             this.children.add(rel);
         }
 
-        private void setParent(ChildrenRelation rel) {
+        private void setParent(Branch rel) {
             this.parentRelation = rel;
         }
 
@@ -166,13 +162,13 @@ public interface Node {
             this.children = new ArrayList<>();
         }
 
-        public Impl(Name elementName, ChildrenRelation parentRelation, List<? extends ChildrenRelation> children) {
+        public Impl(Name elementName, Branch parentRelation, List<? extends Branch> children) {
             this.elementName = elementName;
             this.parentRelation = parentRelation;
             this.children = new ArrayList<>(children);
         }
 
-        List<ChildrenRelation> getChildren() {
+        List<Branch> getChildren() {
             return children;
         }
 
@@ -182,32 +178,53 @@ public interface Node {
         }
 
         @Override
-        public Optional<ChildrenRelation> parentRelation() {
+        public Optional<Branch> parentRelation() {
             return Optional.ofNullable(parentRelation);
         }
 
         @Override
-        public Stream<? extends ChildrenRelation> children() {
+        public Stream<Branch> children() {
             return children.stream();
         }
     }
 
     Name elementName();
 
-    Optional<ChildrenRelation> parentRelation();
+    Optional<Branch> parentRelation();
+
+    Stream<Branch> children();
 
     default Optional<Name> parentName() {
-        return parentRelation().map(ChildrenRelation::parent).map(Node::elementName);
+        return parentRelation().map(Branch::parent).map(Node::elementName);
     }
 
-    Stream<? extends ChildrenRelation> children();
+    default boolean isCycleFree() {
+        return this.hasCycle(new HashSet<>());
+    }
 
-    default Stream<? extends ChildrenRelation> childrenByKey(Name key) {
-        return children().filter(child -> child.key().equals(key));
+    default boolean hasCycle(Set<Name> visitedNodeNames) {
+        if (elementName() instanceof Value) {
+            return false;
+        }
+        if (visitedNodeNames.contains(elementName())) {
+            return true;
+        }
+        visitedNodeNames.add(elementName());
+        return children().reduce(false, (agg,branch) -> agg || branch.child().hasCycle(visitedNodeNames), (l,r) -> l || r);
+    }
+
+    @NotNull
+    default Stream<Node> childNodesByKey(String key) {
+        return childrenByKey(key).map(Branch::child);
+    }
+
+
+    default Stream<Branch> childrenByKey(String key) {
+        return children().filter(child -> child.label().equals(key));
     }
 
     default Stream<Triple> outgoing() {
-        return children().map(ChildrenRelation::edgeRepresentation);
+        return children().map(Branch::asEdge);
     }
 
     default boolean isLeaf() {
@@ -219,11 +236,11 @@ public interface Node {
     }
 
     default Stream<Node> childNodes() {
-        return children().map(ChildrenRelation::child);
+        return children().map(Branch::child);
     }
 
     default Optional<Node> parent() {
-        return parentRelation().map(ChildrenRelation::parent);
+        return parentRelation().map(Branch::parent);
     }
 
 
@@ -248,14 +265,14 @@ public interface Node {
         if (isLeaf()) {
             return false;
         }
-        return children().map(ChildrenRelation::child).anyMatch(n -> n.contains(nodeName));
+        return children().map(Branch::child).anyMatch(n -> n.contains(nodeName));
     }
 
 
     default void aggregateSubtree(Set<Triple> result) {
         result.add(Triple.node(elementName()));
         children().forEach(child -> {
-            result.add(child.edgeRepresentation());
+            result.add(child.asEdge());
             child.child().aggregateSubtree(result);
         });
     }

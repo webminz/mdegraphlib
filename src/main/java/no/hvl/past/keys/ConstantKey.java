@@ -3,11 +3,16 @@ package no.hvl.past.keys;
 import no.hvl.past.graph.Graph;
 import no.hvl.past.graph.GraphMorphism;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.graph.trees.Node;
+import no.hvl.past.graph.trees.TypedTree;
 import no.hvl.past.names.Name;
+import no.hvl.past.systems.Sys;
+import org.checkerframework.checker.nullness.Opt;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A key that always evaluates to the same value.
@@ -16,25 +21,40 @@ import java.util.Objects;
  */
 public class ConstantKey implements Key {
 
-    private final Graph carrierGraph;
+    private Sys originalSystem;
+    private Name sourceElement;
     private final Name value;
     private final Name definedOn;
 
-    public ConstantKey(Graph carrierGraph, Name value, Name definedOn) {
-        this.carrierGraph = carrierGraph;
+    public ConstantKey(Name value, Name definedOn) {
         this.value = value;
         this.definedOn = definedOn;
     }
 
     @Override
-    public Graph container() {
-        return carrierGraph;
-    }
-
-
-    @Override
     public Name targetType() {
         return definedOn;
+    }
+
+    @Override
+    public Name sourceType() {
+        if (sourceElement == null) {
+            return definedOn;
+        }
+        return sourceElement;
+    }
+
+    public void setOriginalSystem(Sys originalSystem) {
+        this.originalSystem = originalSystem;
+    }
+
+    public void setSourceElement(Name sourceElement) {
+        this.sourceElement = sourceElement;
+    }
+
+    @Override
+    public Sys sourceSystem() {
+        return originalSystem;
     }
 
     @Override
@@ -43,8 +63,13 @@ public class ConstantKey implements Key {
     }
 
     @Override
-    public Name evaluate(Name element, GraphMorphism typedContainer) {
-        return value;
+    public Optional<Name> evaluate(Name element, GraphMorphism typedContainer) {
+        return Optional.of(value);
+    }
+
+    @Override
+    public Optional<Name> evaluate(Node element, TypedTree typedTree) {
+        return Optional.of(value);
     }
 
     @Override

@@ -13,13 +13,17 @@ public class FileSystemUtils {
 
     private static FileSystemUtils instance;
 
-    private final String baseDir;
+    private  String baseDir;
     private final OperatingSystemType os;
 
 
     public FileSystemUtils(String baseDir, OperatingSystemType os) {
         this.baseDir = baseDir;
         this.os = os;
+    }
+
+    public void setBaseDir(File baseDir) {
+       this.baseDir = baseDir.getAbsolutePath();
     }
 
     public enum OperatingSystemType {

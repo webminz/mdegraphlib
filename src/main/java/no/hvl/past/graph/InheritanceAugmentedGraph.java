@@ -11,10 +11,12 @@ public class InheritanceAugmentedGraph implements InheritanceGraph {
 
     private final Graph graph;
     private final Set<Tuple> inheritanceEdges;
+    private final Set<Tuple> directInheritanceEdges;
 
 
     public InheritanceAugmentedGraph(Graph graph, Set<Tuple> inheritanceEdges) {
         this.graph = graph;
+        this.directInheritanceEdges = inheritanceEdges;
         this.inheritanceEdges = Tuple.transitiveClosure(inheritanceEdges);
     }
 
@@ -26,6 +28,12 @@ public class InheritanceAugmentedGraph implements InheritanceGraph {
         }
         return inheritanceEdges.stream().anyMatch(t -> t.getDomain().equals(subnode) && t.getCodomain().equals(supernode));
     }
+
+    @Override
+    public Stream<Tuple> directInheritances() {
+        return inheritanceEdges.stream();
+    }
+
 
     @Override
     public Stream<Triple> elements() {

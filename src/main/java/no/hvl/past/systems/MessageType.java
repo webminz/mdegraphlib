@@ -23,7 +23,7 @@ public interface MessageType extends Diagram {
         Builder(Graph carrier, Name type, Sys.Builder parentBuilder) {
             this.arguments = new ArrayList<>();
             this.result = new Impl(carrier, type, arguments);
-            this.parentBuilder = null;
+            this.parentBuilder = parentBuilder;
         }
 
         public Builder(Graph carrier, Name type) {
@@ -46,7 +46,7 @@ public interface MessageType extends Diagram {
             if (!triple.isPresent()) {
                 throw new GraphError(Collections.singletonList(new Pair<>(edge, GraphError.ERROR_TYPE.UNKNOWN_MEMBER)));
             }
-            this.arguments.add(new MessageArgument(result, edge, triple.get().getTarget(), inArgCounter++, false));
+            this.arguments.add(new MessageArgument(result, edge, triple.get().getTarget(), inArgCounter++, true));
             return this;
         }
 
@@ -147,11 +147,11 @@ public interface MessageType extends Diagram {
 
 
     @Override
-    default Diagram substitue(GraphMorphism morphism) {
+    default MessageType substitue(GraphMorphism morphism) {
         return new MessageType() {
             @Override
             public Stream<MessageArgument> arguments() {
-                return arguments().map(arg -> (MessageArgument) arg.substitue(morphism));
+                return MessageType.this.arguments().map(arg -> (MessageArgument) arg.substitue(morphism, this));
             }
 
             @Override

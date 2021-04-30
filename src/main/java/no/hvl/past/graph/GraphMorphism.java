@@ -5,6 +5,7 @@ import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.logic.Model;
 import no.hvl.past.names.Name;
+import no.hvl.past.names.NameSet;
 import no.hvl.past.util.Pair;
 import no.hvl.past.util.PartitionAlgorithm;
 
@@ -188,6 +189,7 @@ public interface GraphMorphism extends Element, Model<Graph> {
         return this.domain()
                 .edges()
                 .filter(this::definedAt)
+                .filter(e -> codomain().get(this.map(e.getLabel()).get()).isPresent())
                 .filter(edge -> {
                     Triple mappedEdge = codomain().get(this.map(edge.getLabel()).get()).get();
                     return !this.map(edge.getSource()).get().equals(mappedEdge.getSource()) || // incidence source
@@ -442,10 +444,11 @@ public interface GraphMorphism extends Element, Model<Graph> {
                     Name.identifier("CONGRUENCE").appliedTo(union.getName()),
                     Name.identifier("P.O").appliedTo(left.codomain().getName().pair(right.codomain().getName())),
                     union,
-                    partition
+                    partition,
+                    NameSet.DEFAULT_NAME_MERGING_STRATEGY
             );
-            GraphMorphism leftResult = union.inclusionOf(left.codomain()).get().compose(congruence);
-            GraphMorphism rightResult = union.inclusionOf(left.codomain()).get().compose(congruence);
+            GraphMorphism leftResult = union.inclusionOf(left.codomain().getName()).get().compose(congruence);
+            GraphMorphism rightResult = union.inclusionOf(left.codomain().getName()).get().compose(congruence);
 
             // regular
             return new Pair<>(leftResult, rightResult);

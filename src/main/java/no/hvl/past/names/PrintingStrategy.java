@@ -21,7 +21,7 @@ public interface PrintingStrategy {
 
 
         private String TREE_CHILD = "/";
-        private String PROJECTION_SYMBOL = "p_";
+        private String PROJECTION_SYMBOL = "π_";
         private final boolean ignorePrefix;
         private final boolean putParanthesis;
         private final boolean ignoreDecorators;

@@ -4,6 +4,7 @@ import no.hvl.past.graph.*;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.names.Name;
+import no.hvl.past.util.Pair;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -11,7 +12,8 @@ import java.util.stream.Stream;
 
 public interface TypedTree extends Tree, GraphMorphism {
 
-    static final Name BUNDLE = Name.identifier("Bundle");
+    Name BUNDLE = Name.identifier("Bundle");
+
 
     class Impl implements TypedTree {
 
@@ -79,19 +81,20 @@ public interface TypedTree extends Tree, GraphMorphism {
             root().findNodeByType(to.getLabel(), preResult);
             return preResult.stream().map(TypedNode::elementName).map(Triple::node);
         } else {
-            Set<TypedChildrenRelation> preResult = new LinkedHashSet<>();
+            Set<TypedBranch> preResult = new LinkedHashSet<>();
             root().findChildRelationByType(to, preResult);
-            return preResult.stream().map(TypedChildrenRelation::edgeRepresentation);
+            return preResult.stream().map(TypedBranch::asEdge);
         }
     }
 
     @Override
     default Stream<Triple> allOutgoingInstances(Triple type, Name src) {
         return root().findByName(src)
+                .filter(n -> n instanceof TypedNode)
                 .map(n -> (TypedNode) n)
-                .map(tn -> tn.children()
+                .map(tn -> tn.typedChildren()
                         .filter(c -> c.matches(type))
-                        .map(TypedChildrenRelation::edgeRepresentation))
+                        .map(TypedBranch::asEdge))
                 .orElse(Stream.empty());
     }
 
@@ -119,10 +122,10 @@ public interface TypedTree extends Tree, GraphMorphism {
 
 
     static TypedTree fuseAsForrestAsBundle(List<TypedTree> trees, Name resultName, Sketch schema) {
-        List<TypedChildrenRelation> children = new ArrayList<>();
+        List<TypedBranch> children = new ArrayList<>();
         TypedNode newRoot = new TypedNode.Impl(Node.ROOT_NAME, null, children, BUNDLE);
         for (TypedTree tree : trees) {
-            children.add(new TypedChildrenRelation.Impl(newRoot, tree.getName(), tree.root(), null));
+            children.add(new TypedBranch.Impl(newRoot, tree.getName().printRaw(), tree.root(), null));
         }
         return new TypedTree.Impl(newRoot,resultName , schema.carrier());
     }

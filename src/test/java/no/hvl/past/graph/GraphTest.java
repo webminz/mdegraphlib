@@ -233,31 +233,7 @@ public class GraphTest extends AbstractGraphTest {
 
     }
 
-    @Test
-    public void testDuplicateNames() throws GraphError {
-        GraphBuilders builder = getErrorIgnoringBuilder();
-        builder.node("A");
-        builder.node("B");
-        builder.edge("A", "C", "B");
-        builder.edge("B", "C", "A");
-        builder.graph("Duplicated");
-        Graph invalid1 = builder.getResult(Graph.class);
 
-        assertFalse(invalid1.verify());
-        addExpectedTriple(Triple.edge(Name.identifier("A"), Name.identifier("C"), Name.identifier("B")));
-        addExpectedTriple(Triple.edge(Name.identifier("B"), Name.identifier("C"), Name.identifier("A")));
-        assertStreamEquals(expected().map(Triple::getLabel), invalid1.duplicateNames());
-
-        builder.clear();
-        builder.node("A");
-        builder.node("B");
-        builder.edge("A", "A", "B");
-        builder.graph("Duplicated");
-        Graph invalid2 = builder.getResult(Graph.class);
-
-        assertFalse(invalid2.verify());
-        assertTrue(invalid2.duplicateNames().count() > 0);
-    }
 
 
 }

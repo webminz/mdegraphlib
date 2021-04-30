@@ -49,7 +49,7 @@ public abstract class Identifier extends Name {
     }
 
     @Override
-    public final String print(PrintingStrategy strategy) {
+    public String print(PrintingStrategy strategy) {
         return strategy.identifier(this);
     }
 

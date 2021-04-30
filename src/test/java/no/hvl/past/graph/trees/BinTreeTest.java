@@ -1,10 +1,7 @@
 package no.hvl.past.graph.trees;
 
-import no.hvl.past.attributes.TypedVariables;
 import no.hvl.past.graph.elements.Triple;
-import no.hvl.past.logic.Formula;
 import no.hvl.past.names.Name;
-import no.hvl.past.names.PrintingStrategy;
 import org.junit.Test;
 
 import java.util.*;
@@ -15,10 +12,10 @@ import static org.junit.Assert.assertEquals;
 
 public class BinTreeTest {
 
-    private static final Name LEFT = Name.identifier("LEFT");
-    private static final Name RIGHT = Name.identifier("RIGHT");
+    private static final String LEFT = "LEFT";
+    private static final String RIGHT = "RIGHT";
 
-    private static class Branch implements Node {
+    private static class BTBranch implements Node {
 
         private Node parent;
         private boolean isLeft;
@@ -26,7 +23,7 @@ public class BinTreeTest {
         private final Node right;
         private final Name name;
 
-        public Branch(Node left, Node right, Name name) {
+        public BTBranch(Node left, Node right, Name name) {
             this.left = left;
             this.right = right;
             this.name = name;
@@ -43,9 +40,9 @@ public class BinTreeTest {
         }
 
         @Override
-        public Optional<ChildrenRelation> parentRelation() {
+        public Optional<no.hvl.past.graph.trees.Branch> parentRelation() {
             if (parent != null) {
-                return Optional.of(new ChildrenRelation.Impl(parent, isLeft ? LEFT : RIGHT, this));
+                return Optional.of(new no.hvl.past.graph.trees.Branch.Impl(parent, isLeft ? LEFT : RIGHT, this));
             }
             return Optional.empty();
         }
@@ -56,8 +53,10 @@ public class BinTreeTest {
         }
 
         @Override
-        public Stream<? extends ChildrenRelation> children() {
-            return Stream.of(new ChildrenRelation.Impl(this, LEFT, left), new ChildrenRelation.Impl(this, RIGHT, right));
+        public Stream<Branch> children() {
+            return Stream.of(
+                     new Branch.Impl(this, LEFT, left),
+                     new Branch.Impl(this, RIGHT, right));
         }
 
 
@@ -83,15 +82,15 @@ public class BinTreeTest {
         }
 
         @Override
-        public Optional<ChildrenRelation> parentRelation() {
+        public Optional<no.hvl.past.graph.trees.Branch> parentRelation() {
             if (parent != null) {
-                return Optional.of(new ChildrenRelation.Impl(parent, isLeft ? LEFT : RIGHT, this));
+                return Optional.of(new no.hvl.past.graph.trees.Branch.Impl(parent, isLeft ? LEFT : RIGHT, this));
             }
             return Optional.empty();
         }
 
         @Override
-        public Stream<? extends ChildrenRelation> children() {
+        public Stream<Branch> children() {
             return Stream.empty();
         }
 
@@ -144,8 +143,8 @@ public class BinTreeTest {
         Leaf l1 = new Leaf(Name.identifier("1"));
         Leaf l2 = new Leaf(Name.identifier("3"));
         Leaf l3 = new Leaf(Name.identifier("8"));
-        Branch leftBranch = new Branch(l1, l2, Name.identifier("2"));
-        Branch root = new Branch(leftBranch, l3, Name.identifier("5"));
+        BTBranch leftBranch = new BTBranch(l1, l2, Name.identifier("2"));
+        BTBranch root = new BTBranch(leftBranch, l3, Name.identifier("5"));
         l1.setParent(leftBranch, true);
         l2.setParent(leftBranch, false);
 
@@ -164,22 +163,22 @@ public class BinTreeTest {
         Set<Triple> expectedEdges = new HashSet<>();
         expectedEdges.add(Triple.edge(
                 Name.identifier("2"),
-                LEFT.childOf( Name.identifier("2")),
+                Name.identifier(LEFT).prefixWith( Name.identifier("2")),
                 Name.identifier("1")
         ));
         expectedEdges.add(Triple.edge(
                 Name.identifier("2"),
-                RIGHT.childOf( Name.identifier("2")),
+                Name.identifier(RIGHT).prefixWith( Name.identifier("2")),
                 Name.identifier("3")
         ));
         expectedEdges.add(Triple.edge(
                 Name.identifier("5"),
-                LEFT.childOf( Name.identifier("5")),
+                Name.identifier(LEFT).prefixWith( Name.identifier("5")),
                 Name.identifier("2")
         ));
         expectedEdges.add(Triple.edge(
                 Name.identifier("5"),
-                RIGHT.childOf( Name.identifier("5")),
+                Name.identifier(RIGHT).prefixWith( Name.identifier("5")),
                 Name.identifier("8")
         ));
         assertEquals(expectedEdges, t.edges().collect(Collectors.toSet()));

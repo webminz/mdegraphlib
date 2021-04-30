@@ -54,20 +54,20 @@ public class JsonSerializer {
             }
         } else {
             generator.writeStartObject();
-            Name currentKey = Name.anonymousIdentifier();
+            String currentKey = null;
             boolean startList = false;
-            for (ChildrenRelation child : node.children().collect(Collectors.toList())) {
-                if (!child.key().equals(currentKey)) {
+            for (Branch child : node.children().collect(Collectors.toList())) {
+                if (!child.label().equals(currentKey)) {
                     if (startList) {
                         generator.writeEndArray();
                         startList = false;
                     }
-                    generator.writeFieldName(displaynames.apply(child.key()));
+                    generator.writeFieldName(child.label());
                     if (child.isCollection()) {
                         generator.writeStartArray();
                         startList = true;
                     }
-                    currentKey = child.key();
+                    currentKey = child.label();
                     serialize(generator, child.child(), displaynames);
                 }
             }

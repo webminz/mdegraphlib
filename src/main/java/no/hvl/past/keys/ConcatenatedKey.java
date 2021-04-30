@@ -1,39 +1,54 @@
 package no.hvl.past.keys;
 
+import no.hvl.past.attributes.BoolValue;
+import no.hvl.past.attributes.FloatValue;
+import no.hvl.past.attributes.IntegerValue;
 import no.hvl.past.attributes.StringValue;
 import no.hvl.past.graph.Element;
 import no.hvl.past.graph.Graph;
 import no.hvl.past.graph.GraphMorphism;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.graph.trees.Node;
+import no.hvl.past.graph.trees.TypedTree;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.Value;
+import no.hvl.past.systems.Sys;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ConcatenatedKey implements Key {
 
-    private final Graph carrier;
+    private final Sys originalSystem;
+    private final Name sourceType;
     private final Name targetType;
     private final List<Key> childKeys;
 
-    public ConcatenatedKey(Graph carrier, Name targetType, List<Key> childKeys) {
-        this.carrier = carrier;
+    public ConcatenatedKey(Name targetType, Name sourceType, Sys originalSystem, List<Key> childKeys) {
         this.childKeys = childKeys;
         this.targetType = targetType;
-    }
-
-    @Override
-    public Graph container() {
-        return carrier;
+        this.originalSystem = originalSystem;
+        this.sourceType = sourceType;
     }
 
 
     @Override
     public Name targetType() {
         return targetType;
+    }
+
+    @Override
+    public Name sourceType() {
+        return sourceType;
+    }
+
+    @Override
+    public Sys sourceSystem() {
+        return originalSystem;
     }
 
     @Override
@@ -46,12 +61,50 @@ public class ConcatenatedKey implements Key {
     }
 
     @Override
-    public Name evaluate(Name element, GraphMorphism typedContainer) throws KeyNotEvaluated {
+    public Optional<Name> evaluate(Name element, GraphMorphism typedContainer) {
         List<Name> childEvals = new ArrayList<>();
         for (Key child : childKeys) {
-            childEvals.add(child.evaluate(element, typedContainer));
+            Optional<Name> evaluate = child.evaluate(element, typedContainer);
+            if (evaluate.isPresent()) {
+                childEvals.add(evaluate.get());
+            } else {
+                return Optional.empty();
+            }
         }
-        return Name.concat(childEvals);
+        return Optional.of(concatenation(childEvals));
+    }
+
+    // TODO refactor
+    @Override
+    public Optional<Name> evaluate(Node element, TypedTree typedTree) {
+        List<Name> childEvals = new ArrayList<>();
+        for (Key child : childKeys) {
+            Optional<Name> evaluate = child.evaluate(element, typedTree);
+            if (evaluate.isPresent()) {
+                childEvals.add(evaluate.get());
+            } else {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(concatenation(childEvals));
+    }
+
+    private Name concatenation(List<Name> evaluatedKeys) {
+        StringBuilder builder = new StringBuilder();
+        for (Name evaluated : evaluatedKeys) {
+            if (evaluated instanceof StringValue) {
+                builder.append(((StringValue) evaluated).getStringValue());
+            } else if (evaluated instanceof IntegerValue) {
+                builder.append(((IntegerValue) evaluated).getIntegerValue().toString());
+            } else if (evaluated instanceof FloatValue) {
+                builder.append(Double.toString(((FloatValue) evaluated).getFloatValue()));
+            } else if (evaluated instanceof BoolValue) {
+                builder.append(Boolean.toString(((BoolValue) evaluated).isTrue()));
+            } else {
+                builder.append(evaluated.printRaw());
+            }
+        }
+        return Name.value(builder.toString());
     }
 
     @Override
@@ -74,7 +127,7 @@ public class ConcatenatedKey implements Key {
 
     @Override
     public Name getName() {
-        return Name.concat(childKeys.stream().map(Element::getName).collect(Collectors.toList()));
+        return Name.concat(childKeys.stream().map(Key::getName).collect(Collectors.toList()));
     }
 
     @Override

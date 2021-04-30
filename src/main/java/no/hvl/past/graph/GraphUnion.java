@@ -130,42 +130,42 @@ public class GraphUnion implements Graph {
     }
 
 
-    public Optional<GraphMorphism> inclusionOf(Graph member) {
-        if (members.contains(member)) {
-            return Optional.of(new GraphMorphism() {
-                @Override
-                public Graph domain() {
-                    return member;
-                }
+    public Optional<GraphMorphism> inclusionOf(Name graph) {
+        return this.members.stream()
+                .filter(g -> g.getName().equals(graph))
+                .findFirst()
+                .map(member -> new GraphMorphism() {
+                        @Override
+                        public Graph domain() {
+                            return member;
+                        }
 
-                @Override
-                public Graph codomain() {
-                    return GraphUnion.this;
-                }
+                        @Override
+                        public Graph codomain() {
+                            return GraphUnion.this;
+                        }
 
-                @Override
-                public Optional<Name> map(Name name) {
-                    return Optional.of(name.prefixWith(member.getName()));
-                }
+                        @Override
+                        public Optional<Name> map(Name name) {
+                            return Optional.of(name.prefixWith(member.getName()));
+                        }
 
-                @Override
-                public Optional<Triple> apply(Triple from) {
-                    return Optional.of(
-                            Triple.edge(
-                                    from.getSource().prefixWith(member.getName()),
-                                    from.getLabel().prefixWith(member.getName()),
-                                    from.getTarget().prefixWith(member.getName())
-                            )
-                    );
-                }
+                        @Override
+                        public Optional<Triple> apply(Triple from) {
+                            return Optional.of(
+                                    Triple.edge(
+                                            from.getSource().prefixWith(member.getName()),
+                                            from.getLabel().prefixWith(member.getName()),
+                                            from.getTarget().prefixWith(member.getName())
+                                    )
+                            );
+                        }
 
-                @Override
-                public Name getName() {
-                    return member.getName().subTypeOf(GraphUnion.this.name);
-                }
-            });
-        }
-        return Optional.empty();
+                        @Override
+                        public Name getName() {
+                            return member.getName().subTypeOf(GraphUnion.this.name);
+                        }
+                    });
     }
 
 //    @Override

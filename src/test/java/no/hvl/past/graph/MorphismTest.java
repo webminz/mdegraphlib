@@ -980,16 +980,16 @@ public class MorphismTest extends AbstractGraphTest {
         Pair<GraphMorphism, GraphMorphism> pushout = f.pushout(g);
         addExpectedTriple(Triple.node(Name.identifier("4").prefixWith(Name.identifier("G_2"))));
         addExpectedTriple(Triple.node(Name.identifier("D").prefixWith(Name.identifier("G_1"))));
-        addExpectedTriple(Triple.node(Name.identifier("A").prefixWith(Name.identifier("G_1")).mergeWith(
-                Name.identifier("z").prefixWith(Name.identifier("G_0")),
+        addExpectedTriple(Triple.node(Name.identifier("z").prefixWith(Name.identifier("G_0")).mergeWith(
+                Name.identifier("A").prefixWith(Name.identifier("G_1")),
                 Name.identifier("1").prefixWith(Name.identifier("G_2")))));
-        addExpectedTriple(Triple.node(Name.identifier("3").prefixWith(Name.identifier("G_2")).mergeWith(
-                Name.identifier("2").prefixWith(Name.identifier("G_2")),
-                Name.identifier("q").prefixWith(Name.identifier("G_0")),
+        addExpectedTriple(Triple.node(Name.identifier("q").prefixWith(Name.identifier("G_0")).mergeWith(
                 Name.identifier("x").prefixWith(Name.identifier("G_0")),
                 Name.identifier("y").prefixWith(Name.identifier("G_0")),
                 Name.identifier("B").prefixWith(Name.identifier("G_1")),
-                Name.identifier("C").prefixWith(Name.identifier("G_1"))
+                Name.identifier("C").prefixWith(Name.identifier("G_1")),
+                Name.identifier("2").prefixWith(Name.identifier("G_2")),
+                Name.identifier("3").prefixWith(Name.identifier("G_2"))
         )));
         assertStreamEquals(expected(), pushout.getLeft().codomain().elements());
     }

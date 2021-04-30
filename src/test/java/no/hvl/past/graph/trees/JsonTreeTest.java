@@ -27,11 +27,11 @@ public class JsonTreeTest extends GraphTest {
     public void testReadFHIRPatients() throws IOException {
         JsonParser jsonParser = new JsonParser(new JsonFactory());
         Tree pAtient = jsonParser.parse(new File("src/test/resources/trees/fhir_patient.json"), Name.identifier("FHIR_PAtient"));
-        Optional<Node> firstEntry = pAtient.root().childNodesByKey(Name.identifier("entry")).findFirst();
+        Optional<Node> firstEntry = pAtient.root().childNodesByKey("entry").findFirst();
         assertTrue(firstEntry.isPresent());
-        Optional<Node> resource = firstEntry.get().childNodesByKey(Name.identifier("resource")).findFirst();
+        Optional<Node> resource = firstEntry.get().childNodesByKey("resource").findFirst();
         assertTrue(resource.isPresent());
-        Optional<Node> id = resource.get().childNodesByKey(Name.identifier("id")).findFirst();
+        Optional<Node> id = resource.get().childNodesByKey("id").findFirst();
         assertTrue(id.isPresent());
         assertEquals(Name.identifier("618761"), id.get().elementName());
     }
@@ -63,11 +63,11 @@ public class JsonTreeTest extends GraphTest {
                 new File("src/test/resources/trees/fhir_patient.json"),
                 new Sys.Builder("test",schema).build().treeBuildStrategy()
         );
-        Optional<Node> firstEntry = typed.root().childNodesByKey(Name.identifier("entry")).findFirst();
+        Optional<Node> firstEntry = typed.root().childNodesByKey("entry").findFirst();
         assertTrue(firstEntry.isPresent());
-        Optional<Node> resource = firstEntry.get().childNodesByKey(Name.identifier("resource")).findFirst();
+        Optional<Node> resource = firstEntry.get().childNodesByKey("resource").findFirst();
         assertTrue(resource.isPresent());
-        Optional<Node> id = resource.get().childNodesByKey(Name.identifier("id")).findFirst();
+        Optional<Node> id = resource.get().childNodesByKey("id").findFirst();
         assertTrue(id.isPresent());
         assertEquals(Name.value(new BigInteger("618761")), id.get().elementName());
 

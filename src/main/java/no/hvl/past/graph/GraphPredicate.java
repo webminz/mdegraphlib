@@ -42,4 +42,6 @@ public interface GraphPredicate extends GraphTheory, ExtensionPoint {
     default Stream<Diagram> diagramsWithType(Sketch sketch) {
         return sketch.diagrams().filter(this::diagramIsOfType);
     }
+
+
 }

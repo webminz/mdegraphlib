@@ -195,4 +195,13 @@ public class PropertyHolder {
             return false;
         }
     }
+
+    public void set(String key, String value) {
+        this.properties.setProperty(key, value);
+    }
+
+    public void persistCurrentConfig() throws IOException {
+        File configFile = this.getConfigFile();
+        this.write(configFile);
+    }
 }

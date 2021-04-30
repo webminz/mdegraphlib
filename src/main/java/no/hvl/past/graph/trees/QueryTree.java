@@ -2,6 +2,7 @@ package no.hvl.past.graph.trees;
 
 
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.names.PrintingStrategy;
 
 import java.util.LinkedHashSet;
 import java.util.Optional;
@@ -28,7 +29,7 @@ public interface QueryTree extends TypedTree {
         if (isMultiRootQuery()) {
             TypedNode.Builder builder = new TypedNode.Builder(getName(), null);
             queryRoots().forEach(q -> {
-                builder.beginChild(q.branchName().prefixWith(getName()), q);
+                builder.beginChild(getName().printRaw() + "." + q.branchName().printRaw(), q);
             });
             return builder.build();
         } else {

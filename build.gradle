@@ -1,4 +1,6 @@
 
+
+
 dependencies {
     implementation 'org.apache.logging.log4j:log4j-api:2.14.0'
     implementation 'org.apache.logging.log4j:log4j-core:2.14.0'
@@ -6,7 +8,13 @@ dependencies {
     implementation 'com.fasterxml.uuid:java-uuid-generator:4.0.1'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.1'
     implementation 'org.springframework:spring-context:5.3.3'
+    implementation 'net.sourceforge.plantuml:plantuml:1.2021.4'
+    implementation 'org.apache.xmlgraphics:batik:1.14'
     compile 'io.javalin:javalin:3.13.0'
 }
 
+
+task corrlangTestSuite(type: Test) {
+    include '**/GraphLibUnitTestSuit.class'
+}
 

@@ -108,6 +108,18 @@ public class GraphBuilders {
      * Constructs an edge.
      * Names are given as Strings and interpreted as simple identifiers.
      */
+    public GraphBuilders edgePrefixWithOwner(String owner, String label, String to) {
+        Name fromName = Name.identifier(owner);
+        Name labelName = Name.identifier(label).prefixWith(fromName);
+        Name toName = Name.identifier(to);
+        return edge(fromName, labelName, toName);
+    }
+
+
+    /**
+     * Constructs an edge.
+     * Names are given as Strings and interpreted as simple identifiers.
+     */
     public GraphBuilders edge(String from, String label, String to) {
         Name fromName = Name.identifier(from);
         Name labelName = Name.identifier(label);
@@ -122,14 +134,18 @@ public class GraphBuilders {
         Set<Triple> elements = new HashSet<>();
         elements.addAll(nodeAggregator.stream().map(Triple::node).collect(Collectors.toSet()));
         elements.addAll(edgeAggregator);
-        Graph constructed = new GraphImpl(name, elements);
+        Graph base = new GraphImpl(name, elements);
+        Graph constructed  = base;
+        if (!this.bindingAggregator.isEmpty()) {
+            constructed = new InheritanceAugmentedGraph(constructed, this.bindingAggregator.entrySet().stream().map(e -> new Tuple(e.getKey(), e.getValue())).collect(Collectors.toSet()));
+        }
 
         this.nodeAggregator.clear();
         this.edgeAggregator.clear();
 
         if (!ignoreErrors && !constructed.verify()) {
             constructed.duplicateNames().map(n -> errors.add(new GraphError.DuplicateName(n)));
-            constructed.danglingEdges().map(t -> errors.add(new GraphError.DanglingEdge(t,!constructed.containsNode(t.getSource()), !constructed.containsNode(t.getTarget()))));
+            constructed.danglingEdges().map(t -> errors.add(new GraphError.DanglingEdge(t,!base.containsNode(t.getSource()), !base.containsNode(t.getTarget()))));
             return this;
         }
 
@@ -226,7 +242,14 @@ public class GraphBuilders {
             return this;
         }
 
-        GraphMorphism constructed = new GraphMorphismImpl(morphismName, this.graphAggregator.get(0), this.graphAggregator.get(1), binding);
+        GraphMorphism constructed;
+        if (graphAggregator.get(1) instanceof InheritanceGraph) {
+            constructed = new InheritanceGraphMorphism.Impl(morphismName, this.graphAggregator.get(0), (InheritanceGraph) this.graphAggregator.get(1), binding);
+        } else {
+            constructed = new GraphMorphismImpl(morphismName, this.graphAggregator.get(0), this.graphAggregator.get(1), binding);
+        }
+
+
         this.graphAggregator.remove(1);
         this.graphAggregator.remove(0);
         this.bindingAggregator.clear();
@@ -357,7 +380,7 @@ public class GraphBuilders {
         return this;
     }
 
-    public void clear() {
+    public GraphBuilders clear() {
         this.errors.clear();
         this.nodeAggregator.clear();
         this.edgeAggregator.clear();
@@ -366,6 +389,7 @@ public class GraphBuilders {
         this.graphAggregator.clear();
         this.morphismAggregator.clear();
         this.sketchAggregator.clear();
+        return this;
     }
 
     public GraphBuilders diag(Function<Graph, Diagram> constructor) {

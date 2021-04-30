@@ -4,21 +4,14 @@ import no.hvl.past.attributes.BoolValue;
 import no.hvl.past.attributes.ErrorValue;
 import no.hvl.past.attributes.FloatValue;
 import no.hvl.past.attributes.IntegerValue;
-import no.hvl.past.graph.Diagram;
 import no.hvl.past.graph.Graph;
-import no.hvl.past.graph.Sketch;
 import no.hvl.past.graph.elements.Triple;
-import no.hvl.past.graph.predicates.*;
-import no.hvl.past.names.AnonymousIdentifier;
 import no.hvl.past.names.Name;
-import no.hvl.past.names.Value;
 import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.util.Optional;
-import java.util.function.BiFunction;
 
-// TODO make better namings
 public class TreeBuildStrategy {
 
     private Name treeName;
@@ -44,7 +37,11 @@ public class TreeBuildStrategy {
     }
 
     public Node.Builder objectChild(Node.Builder parent, String fieldName) {
-        return parent.beginChild(Name.identifier(fieldName), makeOID(parent, fieldName));
+        return parent.beginChild(fieldName, makeOID(parent, fieldName));
+    }
+
+    protected void reportError(Node.Builder parent, String field, String message) {
+        // Per default simply ignored
     }
 
     @NotNull
@@ -53,35 +50,31 @@ public class TreeBuildStrategy {
     }
 
     public void simpleChild(Node.Builder parent, String fieldName, String content) {
-        parent.attribute(Name.identifier(fieldName), Name.value(content));
+        parent.attribute(fieldName, Name.value(content));
     }
 
     public void simpleChild(Node.Builder parent, String fieldName, Long integerContent) {
-        parent.attribute(Name.identifier(fieldName), Name.value(integerContent));
-
+        parent.attribute(fieldName, Name.value(integerContent));
     }
 
     public void simpleChild(Node.Builder parent, String fieldName, boolean boolContent) {
-        parent.attribute(Name.identifier(fieldName), boolContent ? Name.trueValue() : Name.falseValue());
-
+        parent.attribute(fieldName, boolContent ? Name.trueValue() : Name.falseValue());
     }
 
     public void simpleChild(Node.Builder parent, String fieldName, BigInteger bigIntegerContent) {
-        parent.attribute(Name.identifier(fieldName), Name.value(bigIntegerContent));
-
+        parent.attribute(fieldName, Name.value(bigIntegerContent));
     }
 
     public void simpleChild(Node.Builder parent, String fieldName, double floatingPointContent) {
-        parent.attribute(Name.identifier(fieldName), Name.value(floatingPointContent));
-
+        parent.attribute(fieldName, Name.value(floatingPointContent));
     }
 
     public void simpleChildNullValue(Node.Builder parent, String fieldName) {
-        parent.attribute(Name.identifier(fieldName), ErrorValue.INSTANCE);
+        parent.attribute(fieldName, ErrorValue.INSTANCE);
     }
 
     public void simpleChild(Node.Builder parent, String namespace, String name, String value) {
-        parent.attribute(Name.identifier(name).prefixWith(Name.identifier(namespace)), Name.value(value));
+        parent.attribute(namespace + ":" + name, Name.value(value));
     }
 
     public static abstract class TypedStrategy extends TreeBuildStrategy {
@@ -106,12 +99,16 @@ public class TreeBuildStrategy {
 
         public abstract boolean isEnumType(Name typeName);
 
+        public Optional<Triple> inverseOf(Triple edge) {
+            return Optional.empty();
+        }
+
         @Override
         public Tree tree(Node root) {
             if (root.children().count() == 1) {
+                //noinspection OptionalGetWithoutIsPresent
                 return new TypedTree.Impl((TypedNode) root.children().findFirst().get().child(), getTreeName(), getSchemaGraph());
             }
-
             return new TypedTree.Impl((TypedNode) root, getTreeName(), getSchemaGraph());
         }
 
@@ -126,7 +123,7 @@ public class TreeBuildStrategy {
                 Optional<Name> name = rootType(fieldName);
                 if (name.isPresent()) {
                     return ((TypedNode.Builder) parent).beginChild(
-                            Name.identifier(fieldName),
+                            fieldName,
                             makeOID(parent, fieldName),
                             Triple.edge(TypedNode.BUNDLE_TYPE, name.get().prefixWith(TypedNode.BUNDLE_TYPE), name.get()));
                 }
@@ -134,10 +131,20 @@ public class TreeBuildStrategy {
                 Name parentType = ((TypedNode.Builder) parent).getType();
                 Optional<Triple> edgeTyping = lookupType(parentType, fieldName);
                 if (edgeTyping.isPresent()) {
-                    return ((TypedNode.Builder) parent).beginChild(
-                            Name.identifier(fieldName),
-                            makeOID(parent, fieldName),
-                            edgeTyping.get());
+                    Optional<Triple> inverseTriple = inverseOf(edgeTyping.get());
+                    if (inverseTriple.isPresent()) {
+                        return ((TypedNode.Builder) parent).beginChild(
+                                fieldName,
+                                makeOID(parent, fieldName),
+                                edgeTyping.get(),
+                                inverseTriple.get());
+                    } else {
+                        return ((TypedNode.Builder) parent).beginChild(
+                                fieldName,
+                                makeOID(parent, fieldName),
+                                edgeTyping.get());
+                    }
+
                 }
             }
             return super.objectChild(parent, fieldName);
@@ -184,9 +191,14 @@ public class TreeBuildStrategy {
                 value = Name.value(content);
             }
             if (value != null) {
-                parent.attribute(Name.identifier(fieldName), value, edgeTyping);
+                parent.attribute(fieldName, value, edgeTyping);
             }
-            // TODO error handling
+            reportError(parent, fieldName, uninterpretedAttributeMsg(parent, fieldName, content, edgeTyping));
+        }
+
+        @NotNull
+        private String uninterpretedAttributeMsg(TypedNode.Builder parent, String fieldName, String content, Triple edgeTyping) {
+            return "Field at " + parent.elementName + "." + fieldName + " with content '" + content + " could not be interpreted as an instance of " + edgeTyping;
         }
 
         @Override
@@ -203,7 +215,7 @@ public class TreeBuildStrategy {
                         value = Name.value(integerContent);
                     }
                     if (value != null) {
-                        ((TypedNode.Builder) parent).attribute(Name.identifier(fieldName), value, edgeTyping.get());
+                        ((TypedNode.Builder) parent).attribute(fieldName, value, edgeTyping.get());
                         return;
                     }
                 }
@@ -222,7 +234,7 @@ public class TreeBuildStrategy {
                         value = boolContent ? Name.trueValue() : Name.falseValue();
                     }
                     if (value != null) {
-                        ((TypedNode.Builder) parent).attribute(Name.identifier(fieldName), value, edgeTyping.get());
+                        ((TypedNode.Builder) parent).attribute(fieldName, value, edgeTyping.get());
                         return;
                     }
                 }
@@ -244,7 +256,7 @@ public class TreeBuildStrategy {
                         value = Name.value(bigIntegerContent);
                     }
                     if (value != null) {
-                        ((TypedNode.Builder) parent).attribute(Name.identifier(fieldName), value, edgeTyping.get());
+                        ((TypedNode.Builder) parent).attribute(fieldName, value, edgeTyping.get());
                         return;
                     }
                 }
@@ -263,7 +275,7 @@ public class TreeBuildStrategy {
                         value = Name.value(floatingPointContent);
                     }
                     if (value != null) {
-                        ((TypedNode.Builder) parent).attribute(Name.identifier(fieldName), value, edgeTyping.get());
+                        ((TypedNode.Builder) parent).attribute(fieldName, value, edgeTyping.get());
                         return;
                     }
                 }
@@ -277,14 +289,12 @@ public class TreeBuildStrategy {
                 Name parentType = ((TypedNode.Builder) parent).getType();
                 Optional<Triple> edgeTyping = lookupType(parentType, fieldName);
                 if (edgeTyping.isPresent()) {
-                    ((TypedNode.Builder) parent).attribute(Name.identifier(fieldName), ErrorValue.INSTANCE, edgeTyping.get());
+                    ((TypedNode.Builder) parent).attribute(fieldName, ErrorValue.INSTANCE, edgeTyping.get());
                     return;
                 }
             }
             super.simpleChildNullValue(parent,fieldName);
         }
-
-
     }
 
 

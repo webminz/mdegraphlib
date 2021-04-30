@@ -2,8 +2,8 @@ package no.hvl.past.graph.trees;
 
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
-import no.hvl.past.names.Identifier;
 import no.hvl.past.names.Name;
+import no.hvl.past.util.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -14,6 +14,15 @@ import java.util.stream.Stream;
 public interface TypedNode extends Node {
 
     static final Name BUNDLE_TYPE = Name.identifier("$BUNDLE");
+
+    default void nodesWithType(Name type, Set<TypedNode> aggregator) {
+        if (nodeType().equals(type)) {
+            aggregator.add(this);
+        } else {
+            typedChildren().map(TypedBranch::child).forEach(n -> n.nodesWithType(type,aggregator));
+        }
+    }
+
 
     class Builder extends Node.Builder {
 
@@ -38,10 +47,10 @@ public interface TypedNode extends Node {
             return this;
         }
 
-        public Builder beginChild(Name key, Name elementName, Triple childRelationType) {
+        public Builder beginChild(String key, Name elementName, Triple childRelationType) {
             handleIndexing(key);
             Builder childBuilder = new Builder(this, elementName, childRelationType != null ? childRelationType.getTarget() : null);
-            ChildrenRelation.Builder rel = new TypedChildrenRelation.Builder(key, childBuilder, childRelationType != null ? childRelationType.getLabel() : null);
+            Branch.Builder rel = new TypedBranch.Builder(key, childBuilder, childRelationType != null ? childRelationType.getLabel() : null);
             addChild(rel);
             return childBuilder;
         }
@@ -59,14 +68,23 @@ public interface TypedNode extends Node {
         }
 
         @Override
-        TypedNode build(ChildrenRelation parent) {
+        TypedNode build(Branch parent) {
             return (TypedNode) super.build(parent);
         }
 
-        public void attribute(Name key, Name value, Triple triple) {
+        public void attribute(String key, Name value, Triple triple) {
             handleIndexing(key);
-            ChildrenRelation.Builder rel = new TypedChildrenRelation.Builder(key, value,triple != null? triple.getLabel() : null, triple != null ? triple.getTarget() : null);
+            Branch.Builder rel = new TypedBranch.Builder(key, value,triple != null? triple.getLabel() : null, triple != null ? triple.getTarget() : null);
             addChild(rel);
+        }
+
+        public Node.Builder beginChild(String fieldName, Name makeOID, Triple childRelationType, Triple inverseChildRelationType) {
+            handleIndexing(fieldName);
+            Builder childBuilder = new Builder(this, makeOID, childRelationType != null ? childRelationType.getTarget() : null);
+            TypedBranch.Builder rel = new TypedBranch.Builder(fieldName, childBuilder, childRelationType != null ? childRelationType.getLabel() : null);
+            rel.setInverseEdgeType(inverseChildRelationType.getLabel());
+            addChild(rel);
+            return childBuilder;
         }
     }
 
@@ -79,64 +97,84 @@ public interface TypedNode extends Node {
             this.type = type;
         }
 
-        public Impl(Name elementName, ChildrenRelation parentRelation, List<TypedChildrenRelation> children, Name type) {
+        public Impl(Name elementName, Branch parentRelation, List<TypedBranch> children, Name type) {
             super(elementName, parentRelation, children);
             this.type = type;
         }
 
         @Override
-        public Optional<Name> nodeType() {
-            return Optional.ofNullable(type);
+        public Name nodeType() {
+            return type;
         }
 
-        public Stream<TypedChildrenRelation> children() {
-            return getChildren().stream().filter(c -> c instanceof TypedChildrenRelation).map(c -> (TypedChildrenRelation)c);
+        public Stream<Branch> children() {
+            return getChildren().stream();
         }
     }
 
-    Optional<Name> nodeType();
+    Name nodeType();
 
-    Stream<? extends TypedChildrenRelation> children();
+    Stream<Branch> children();
+
+    default Stream<TypedNode> feature(Triple type) {
+        Optional<TypedBranch> result = parentRelation().filter(b -> b instanceof TypedBranch)
+                .map(b -> (TypedBranch) b)
+                .filter(tb -> tb.inverseTypeFeature().map(type::equals).orElse(false));
+        return result.map(TypedBranch::parent).map(Stream::of).orElseGet(() -> typedChildren().filter(tb -> tb.edgeTyping().equals(type.getLabel())).map(TypedBranch::child));
+    }
+
+    default Stream<TypedBranch> typedChildren() {
+        return children().filter(b -> b instanceof TypedBranch).map(b -> (TypedBranch) b);
+    }
+
+    default Stream<TypedBranch> typedChildrenByLabel(String label) {
+        return childrenByKey(label).filter(b -> b instanceof TypedBranch).map(b -> (TypedBranch) b);
+    }
+
+
+    default Stream<TypedNode> typedNodesByLabel(String label) {
+        return typedChildrenByLabel(label).map(TypedBranch::child);
+    }
 
     default void aggregateTypedPart(Set<Triple> elements, Set<Tuple> mappings) {
-        if (nodeType().isPresent()) {
-            elements.add(Triple.node(elementName()));
-            mappings.add(new Tuple(elementName(), nodeType().get()));
-        }
-        children().filter(c -> c.edgeTyping().isPresent() && c.child().nodeType().isPresent()).forEach(rel -> {
-            elements.add(rel.edgeRepresentation());
-            mappings.add(new Tuple(rel.edgeRepresentation().getLabel(), rel.edgeTyping().get()));
+        elements.add(Triple.node(elementName()));
+        mappings.add(new Tuple(elementName(), nodeType()));
+        typedChildren().forEach(rel -> {
+            elements.add(rel.asEdge());
+            mappings.add(new Tuple(rel.asEdge().getLabel(), rel.edgeTyping()));
         });
-        children().map(ChildrenRelation::child).forEach(n -> ((TypedNode) n).aggregateTypedPart(elements, mappings));
+        typedChildren().map(TypedBranch::child).forEach(n -> n.aggregateTypedPart(elements, mappings));
     }
 
     default Optional<Name> lookupTyping(Name name) {
         if (name.equals(elementName())) {
-            return nodeType();
+            return Optional.of(nodeType());
         }
-        Optional<? extends TypedChildrenRelation> edge = children().filter(c -> {
-            return (c.edgeRepresentation().getLabel().equals(name));
+        Optional<? extends TypedBranch> edge = typedChildren().filter(c -> {
+            return (c.asEdge().getLabel().equals(name));
         }).findFirst();
-        if (edge.isPresent()) {
-            return edge.get().edgeTyping();
-        } else {
-            return children().map(c -> c.child().lookupTyping(name)).filter(Optional::isPresent).findFirst().orElse(Optional.empty());
-        }
+        return edge
+                .map(typedBranch -> Optional.of(typedBranch.edgeTyping()))
+                .orElseGet(() -> typedChildren().map(c -> c.child().lookupTyping(name)).filter(Optional::isPresent).findFirst().orElse(Optional.empty()));
     }
 
-    default void findChildRelationByType(Triple edgeType, Set<TypedChildrenRelation> aggregator) {
-        if (nodeType().isPresent() && nodeType().get().equals(edgeType.getSource())) {
-            children().filter(c -> c.matches(edgeType))
+    default void findChildRelationByType(Triple edgeType, Set<TypedBranch> aggregator) {
+        if (nodeType().equals(edgeType.getSource())) {
+            typedChildren().filter(c -> c.matches(edgeType))
                     .forEach(aggregator::add);
         }
-        children().forEach(c -> c.child().findChildRelationByType(edgeType, aggregator));
+        typedChildren().forEach(c -> c.child().findChildRelationByType(edgeType, aggregator));
     }
 
     default void findNodeByType(Name typeName, Set<TypedNode> aggregator) {
-        if (nodeType().isPresent() && nodeType().get().equals(typeName)) {
+        if (nodeType().equals(typeName)) {
             aggregator.add(this);
         }
-        children().forEach(c -> c.child().findNodeByType(typeName, aggregator));
+        typedChildren().forEach(c -> c.child().findNodeByType(typeName, aggregator));
+    }
+
+    default Optional<TypedNode> byName(Name elementName) {
+        return findByName(elementName).filter(n -> n instanceof TypedNode).map(n -> (TypedNode) n);
     }
 
 

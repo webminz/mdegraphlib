@@ -1,27 +1,17 @@
 package no.hvl.past.graph.trees;
 
-import no.hvl.past.graph.elements.Triple;
-import no.hvl.past.names.Name;
+public interface QueryBranch extends TypedBranch {
 
-import java.util.Optional;
-
-public interface QueryNodeChildren extends TypedChildrenRelation {
-
-    Triple feature();
+    QueryNode parent();
 
     @Override
     QueryNode child();
-
-    @Override
-    default Optional<Name> edgeTyping() {
-        return Optional.of(feature().getLabel());
-    }
 
     boolean isProjection();
 
     boolean isSelection();
 
-    interface Projection extends QueryNodeChildren {
+    interface Projection extends QueryBranch {
         @Override
         default boolean isProjection() {
             return true;
@@ -33,7 +23,7 @@ public interface QueryNodeChildren extends TypedChildrenRelation {
         }
     }
 
-    interface Selection extends QueryNodeChildren {
+    interface Selection extends QueryBranch { // TODO generic selection based on GraphDiagrams
         @Override
         default boolean isProjection() {
             return false;

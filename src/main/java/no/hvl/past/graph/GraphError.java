@@ -41,6 +41,13 @@ public class GraphError extends Exception {
             super("The following name is a duplicates: ");
             this.name = name;
         }
+
+        @Override
+        protected void report(StringBuilder stringBuilder) {
+            super.report(stringBuilder);
+            stringBuilder.append(name);
+            stringBuilder.append('\n');
+        }
     }
 
     public static class DanglingEdge extends GraphErrorReportDetails {
@@ -71,6 +78,8 @@ public class GraphError extends Exception {
             } else {
                 stringBuilder.append(edge.getTarget().print(PrintingStrategy.DETAILED));
             }
+            stringBuilder.append('\n');
+
         }
     }
 
@@ -86,9 +95,11 @@ public class GraphError extends Exception {
         protected void report(StringBuilder stringBuilder) {
             super.report(stringBuilder);
             stringBuilder.append(mapping.getDomain().print(PrintingStrategy.DETAILED));
-            stringBuilder.append(" |-> ?! ");
+            stringBuilder.append(" |-> '");
             stringBuilder.append(mapping.getCodomain().print(PrintingStrategy.DETAILED));
-            stringBuilder.append(" !?");
+            stringBuilder.append("' !?");
+            stringBuilder.append('\n');
+
         }
     }
 

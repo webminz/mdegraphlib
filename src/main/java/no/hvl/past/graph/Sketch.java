@@ -52,7 +52,7 @@ public interface Sketch extends Element, Formula<Graph> {
                 .filter(t -> diagrams().anyMatch(diag -> diag.generatedElements().anyMatch(t::equals)));
     }
 
-    default Sketch restrict(Collection<Diagram> extraDiagrams) {
+    default Sketch restrict(Collection<? extends Diagram> extraDiagrams) {
         return new Sketch() {
             @Override
             public Graph carrier() {

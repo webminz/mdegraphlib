@@ -1,17 +1,51 @@
 package no.hvl.past.graph;
 
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.names.Name;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public interface InheritanceGraphMorphism extends GraphMorphism {
 
+    class Impl extends GraphMorphismImpl implements  InheritanceGraphMorphism{
+
+        public Impl(Name name, Graph domain, InheritanceGraph codomain, Map<Name, Name> mapping) {
+            super(name, domain, codomain, mapping);
+        }
+
+        public Impl(Name name, Graph domain, InheritanceGraph codomain, Set<Tuple> tuples) {
+            super(name, domain, codomain, tuples);
+        }
+
+        @Override
+        public InheritanceGraph codomain() {
+            return (InheritanceGraph) super.codomain();
+        }
+    }
+
     @Override
-    InheritanceGraph domain();
+    Graph domain();
 
     @Override
     InheritanceGraph codomain();
+
+    @Override
+    default Stream<Triple> allInstances(Name type) {
+        return domain().nodes().filter(n -> map(n).map(mapped -> codomain().isUnder(mapped, type)).orElse(false)).map(Triple::node);
+    }
+
+    @Override
+    default Stream<Triple> allInstances(Triple type) {
+        if (type.isNode()) {
+            return allInstances(type.getLabel());
+        }
+        return GraphMorphism.super.allInstances(type);
+    }
 
     @Override
     default boolean definedAt(Triple t) {

@@ -384,4 +384,8 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
     public String printRaw() {
         return this.print(PrintingStrategy.IGNORE_PREFIX);
     }
+
+    public boolean isProjection() {
+        return false;
+    }
 }

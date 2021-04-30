@@ -26,9 +26,12 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Properties;
 
 public class DependencyInjectionContainer {
 
+    public static final String SPRING_BEAN_CONFIG_XML = "spring-bean-config.xml";
+    public static final String UPDATE_CONFIG_COMMAND = "updateConfig";
     private final ApplicationContext applicationContext;
 
     private DependencyInjectionContainer(ApplicationContext applicationContext) {
@@ -124,7 +127,7 @@ public class DependencyInjectionContainer {
     }
 
     public static DependencyInjectionContainer create(File configFilePath) throws IOException {
-        ApplicationContext applicationContext = new ClassPathXmlApplicationContext("spring-bean-config.xml");
+        ApplicationContext applicationContext = new ClassPathXmlApplicationContext(SPRING_BEAN_CONFIG_XML);
         DependencyInjectionContainer dependencyInjectionContainer = new DependencyInjectionContainer(applicationContext);
         PropertyHolder propertyHolder = dependencyInjectionContainer.getPropertyHolder();
         if (configFilePath.exists()) {
@@ -132,7 +135,25 @@ public class DependencyInjectionContainer {
         } else {
             propertyHolder.bootstrap(configFilePath);
         }
+        dependencyInjectionContainer.getFSUtils().setBaseDir(propertyHolder.getBaseDir());
         return dependencyInjectionContainer;
     }
 
+    public void load(Properties properties) throws IOException {
+        PropertyHolder propertyHolder = getPropertyHolder();
+        boolean updateProperties = false;
+        for (Object o : properties.keySet()) {
+            String key = o.toString();
+            if (key.equals(UPDATE_CONFIG_COMMAND)) {
+                updateProperties = true;
+            } else if (properties.containsKey(key) && properties.get(key) != null) {
+                propertyHolder.set(key, properties.getProperty(key));
+            }
+        }
+        if (updateProperties) {
+            propertyHolder.persistCurrentConfig();
+        }
+        setUpLogging();
+        setUpHttps();
+    }
 }

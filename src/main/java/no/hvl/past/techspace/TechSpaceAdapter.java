@@ -6,6 +6,7 @@ import no.hvl.past.graph.trees.QueryHandler;
 import no.hvl.past.names.Name;
 import no.hvl.past.plugin.UnsupportedFeatureException;
 import no.hvl.past.server.WebserviceRequestHandler;
+import no.hvl.past.systems.Data;
 import no.hvl.past.systems.Sys;
 
 import java.io.InputStream;
@@ -28,13 +29,13 @@ public interface TechSpaceAdapter<X extends TechSpace> {
 
     TechSpaceDirective directives();
 
-    Sys parseSchema(Name name, String locationURI) throws TechSpaceException, UnsupportedFeatureException;
+    Sys  parseSchema(Name name, String locationURI) throws TechSpaceException, UnsupportedFeatureException;
 
     void writeSchema(Sys sys, OutputStream outputStream) throws TechSpaceException, UnsupportedFeatureException;
 
     QueryHandler queryHandler(Sys system) throws TechSpaceException, UnsupportedFeatureException;
 
-    GraphMorphism readInstance(Sys system, InputStream inputStream) throws TechSpaceException, UnsupportedFeatureException;
+    Data readInstance(Sys system, InputStream inputStream) throws TechSpaceException, UnsupportedFeatureException;
 
     void writeInstance(Sys system, GraphMorphism instance, OutputStream outputStream) throws TechSpaceException, UnsupportedFeatureException;
 

@@ -35,7 +35,7 @@ public class DataTypePredicate implements GraphPredicate {
     public boolean diagramIsOfType(Diagram diagram) {
         return getClass().isAssignableFrom(diagram.label().getClass()) || StringDT.class.isAssignableFrom(diagram.label().getClass()) ||
                 IntDT.class.isAssignableFrom(diagram.label().getClass()) || FloatDT.class.isAssignableFrom(diagram.label().getClass()) ||
-                BoolDT.class.isAssignableFrom(diagram.label().getClass());
+                BoolDT.class.isAssignableFrom(diagram.label().getClass()) || EnumValue.class.isAssignableFrom(diagram.label().getClass());
     }
 
     public static DataTypePredicate getInstance() {

@@ -11,6 +11,8 @@ import java.util.stream.Stream;
  */
 public interface TechSpaceDirective {
 
+    // TODO maybe the default data types must be changed into a collection ?!
+
     /**
      * The name of the string data type in this technology (if exists).
      */

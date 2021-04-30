@@ -24,19 +24,16 @@ public class StarImpl implements Star {
     private final Sketch apex;
     private final List<Sketch> components;
     private final List<GraphMorphism> projections;
-    private final Set<Name> identities;
 
 
     public StarImpl(Name name,
                     Sketch apex,
                     List<Sketch> components,
-                    List<GraphMorphism> projections,
-                    Set<Name> identities) {
+                    List<GraphMorphism> projections) {
         this.name = name;
         this.apex = apex;
         this.components = components;
         this.projections = projections;
-        this.identities = identities;
     }
 
     @Override
@@ -57,11 +54,6 @@ public class StarImpl implements Star {
     @Override
     public Optional<GraphMorphism> projection(int i) {
         return Optional.of(projections.get(i - 1));
-    }
-
-    @Override
-    public Stream<Name> identities() {
-        return identities.stream();
     }
 
     @Override

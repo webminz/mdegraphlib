@@ -5,9 +5,13 @@ import no.hvl.past.graph.Graph;
 import no.hvl.past.graph.GraphMorphism;
 import no.hvl.past.graph.Universe;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.graph.trees.Node;
+import no.hvl.past.graph.trees.TypedTree;
 import no.hvl.past.logic.Formula;
 import no.hvl.past.logic.Model;
 import no.hvl.past.names.Name;
+import no.hvl.past.systems.Sys;
+import org.checkerframework.checker.nullness.Opt;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,19 +19,24 @@ import java.util.Optional;
 /**
  * A means to "globally" identify an element.
  */
-public interface Key extends Diagram {
+public interface Key {
+
+    Name getName();
 
     /**
-     * The carrier graph where is defined on.
-     *
-     */
-    Graph container();
-
-
-    /**
-     * The name of the global (merged) type the key is defined on.
+     * The name of the global (merged) element (relation or overlap) in the comprehensive schema the key is defined on.
      */
     Name targetType();
+
+    /**
+     * The name of the local type on which this key is defined on.
+     */
+    Name sourceType();
+
+    /**
+     * The system which hosts the original type.
+     */
+    Sys sourceSystem();
 
     /**
      * The type of the (local) elements that are required to evaluate the key.
@@ -36,57 +45,18 @@ public interface Key extends Diagram {
 
     /**
      * Evaluates the key on a given element, the element is identified by its name
-     * in the current containener = a graph morphism, i.e. typed graph.
+     * in the current container = a graph morphism, i.e. typed graph.
      */
-    Name evaluate(Name element, GraphMorphism typedContainer) throws KeyNotEvaluated;
+    Optional<Name> evaluate(Name element, GraphMorphism typedContainer);
+
+    /**
+     * Evaluates the on a given node in typed tree (i.e. a special case of a graph morphism).
+     */
+    Optional<Name> evaluate(Node element, TypedTree typedTree);
 
     /**
      * Evaluates this key on a given java object if possible.
      */
     Name evaluate(Object element) throws KeyNotEvaluated;
 
-    @Override
-    default Formula<Graph> label() {
-        return new Formula<Graph>() {
-            @Override
-            public boolean isSatisfied(Model<Graph> model) {
-                if (model instanceof GraphMorphism) {
-                    // if it is a type graph, we can check if we can actually evaluate it
-                    GraphMorphism morphism = (GraphMorphism) model;
-                    return requiredProperties().stream().allMatch(t -> morphism.codomain().contains(t));
-                }
-                return false;
-            }
-        };
-    }
-
-
-    @Override
-    default GraphMorphism binding() {
-        int arity = requiredProperties().size();
-        return new GraphMorphism() {
-            @Override
-            public Graph domain() {
-                return Universe.ONE_NODE;
-            }
-
-            @Override
-            public Graph codomain() {
-                return container();
-            }
-
-            @Override
-            public Optional<Name> map(Name name) {
-                if (Universe.ONE_NODE_THE_NODE.equals(name)) {
-                    return Optional.of(targetType());
-                }
-                return Optional.empty();
-            }
-
-            @Override
-            public Name getName() {
-                return Key.this.getName().absolute();
-            }
-        };
-    }
 }

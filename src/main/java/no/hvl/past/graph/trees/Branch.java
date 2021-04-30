@@ -6,26 +6,26 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 
-public interface ChildrenRelation {
+public interface Branch {
 
     class Builder  {
-        private final Name key;
+        private final String key;
         private final Name value;
         private final Node.Builder childBuilder;
         private Integer index;
 
-        Name getKey() {
+        String getKey() {
             return key;
         }
 
-        public Builder(Name key, Name value) {
+        public Builder(String key, Name value) {
             this.key = key;
             this.value = value;
             this.childBuilder = null;
             this.index = null;
         }
 
-        public Builder(Name key, Node.Builder childBuilder) {
+        public Builder(String key, Node.Builder childBuilder) {
             this.key = key;
             this.childBuilder = childBuilder;
             this.value = null;
@@ -44,8 +44,8 @@ public interface ChildrenRelation {
             return this.value != null && this.childBuilder == null;
         }
 
-        ChildrenRelation build(Node parent) {
-            ChildrenRelation.Impl result = makeResultObject();
+        Branch build(Node parent) {
+            Branch.Impl result = makeResultObject();
             result.setParent(parent);
             result.setIndex(index);
             if (isAtt()) {
@@ -62,19 +62,23 @@ public interface ChildrenRelation {
         }
 
         @NotNull
-        Node.Impl makeValueNode(ChildrenRelation result) {
+        Node.Impl makeValueNode(Branch result) {
             return new Node.Impl(value, result, Collections.emptyList());
         }
     }
 
-    class Impl implements ChildrenRelation {
+    class Impl implements Branch {
         private Node parent;
-        private final Name key;
+        private final String key;
         private Node child;
         private Integer index;
 
-        Node getChild() {
+        protected Node getChild() {
             return child;
+        }
+
+        protected Node getParent() {
+            return parent;
         }
 
         private void setParent(Node parent) {
@@ -89,24 +93,23 @@ public interface ChildrenRelation {
             this.index = index;
         }
 
-        Impl(Name key) {
+        Impl(String key) {
             this.key = key;
         }
 
-        public Impl(Node parent, Name key, Node child, Integer index) {
+        public Impl(Node parent, String key, Node child, Integer index) {
             this.parent = parent;
             this.key = key;
             this.child = child;
             this.index = index;
         }
 
-        public Impl(Node parent, Name key, Node child) {
+        public Impl(Node parent, String key, Node child) {
             this.parent = parent;
             this.key = key;
             this.child = child;
             this.index = null;
         }
-
 
         @Override
         public Node parent() {
@@ -114,7 +117,7 @@ public interface ChildrenRelation {
         }
 
         @Override
-        public Name key() {
+        public String label() {
             return key;
         }
 
@@ -137,7 +140,7 @@ public interface ChildrenRelation {
 
     Node parent();
 
-    Name key();
+    String label();
 
     Node child();
 
@@ -149,11 +152,11 @@ public interface ChildrenRelation {
         return child().isLeaf() && child().elementName().isValue();
     }
 
-    default Triple edgeRepresentation() {
+    default Triple asEdge() {
             if (isCollection()) {
-                return Triple.edge(parent().elementName(), key().prefixWith(parent().elementName()).index(index()), child().elementName());
+                return Triple.edge(parent().elementName(), Name.identifier(label()).prefixWith(parent().elementName()).index(index()), child().elementName());
             } else {
-                return Triple.edge(parent().elementName(), key().prefixWith(parent().elementName()), child().elementName());
+                return Triple.edge(parent().elementName(), Name.identifier(label()).prefixWith(parent().elementName()), child().elementName());
             }
     }
 

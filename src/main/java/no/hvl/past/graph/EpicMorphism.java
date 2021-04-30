@@ -3,12 +3,14 @@ package no.hvl.past.graph;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.NameSet;
+import no.hvl.past.util.Pair;
 import no.hvl.past.util.PartitionAlgorithm;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -71,13 +73,14 @@ public abstract class EpicMorphism extends AbstractModification {
             Name morphismName,
             Name codomainName,
             Graph domain,
-            PartitionAlgorithm<Name> executedPartitionAlgorithm) {
-        Set<Name> merged = executedPartitionAlgorithm.getResult().stream()
+            PartitionAlgorithm<Name> executedPartitionAlgorithm,
+            Function<NameSet, Name> namingStrategy) {
+        Set<Pair<Set<Name>, Name>> merged = executedPartitionAlgorithm.getResult().stream()
                 .map(set -> {
                     if (set.size() == 1) {
-                        return set.iterator().next();
+                        return new Pair<>(set, set.iterator().next());
                     } else {
-                        return new NameSet(set).toName();
+                        return new Pair<>(set, namingStrategy.apply(new NameSet(set)));
                     }
                 }).collect(Collectors.toSet());
         Map<Name, Name> mapping = new HashMap<>();
@@ -85,7 +88,7 @@ public abstract class EpicMorphism extends AbstractModification {
                 .elements()
                 .map(Triple::getLabel)
                 .forEach(t -> {
-                    Name taregt = merged.stream().filter(l -> l.contains(t)).findFirst().get();
+                    Name taregt = merged.stream().filter(l -> l.getLeft().contains(t)).findFirst().map(Pair::getRight).get();
                     mapping.put(t, taregt);
                 });
         return new EpicMorphism(morphismName, domain, codomainName) {

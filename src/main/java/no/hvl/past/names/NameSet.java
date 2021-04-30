@@ -3,14 +3,19 @@ package no.hvl.past.names;
 import com.google.common.collect.Sets;
 import no.hvl.past.logic.Model;
 import no.hvl.past.logic.Signature;
+import no.hvl.past.util.StreamExt;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class NameSet implements Signature, Model<NameSet> {
+
+    public static final Function<NameSet, Name> DEFAULT_NAME_MERGING_STRATEGY = NameSet::toName;
+
 
     private final Set<Name> names;
 
@@ -33,6 +38,10 @@ public class NameSet implements Signature, Model<NameSet> {
             }
         }
         return true;
+    }
+
+    public StreamExt<Name> elements() {
+        return StreamExt.stream(this.names);
     }
 
     @Override

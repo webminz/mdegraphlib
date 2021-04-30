@@ -184,6 +184,26 @@ public interface Graph extends Element, StateSpace<Name, Triple>, Signature, For
     }
 
 
+    default Graph rename(Name newName) {
+        return new Graph() {
+            @Override
+            public Stream<Triple> elements() {
+                return Graph.this.elements();
+            }
+
+            @Override
+            public Name getName() {
+                return newName;
+            }
+
+            @Override
+            public boolean isInfinite() {
+                return Graph.this.isInfinite();
+            }
+
+        };
+    }
+
     // from state space
 
     @Override
@@ -249,17 +269,17 @@ public interface Graph extends Element, StateSpace<Name, Triple>, Signature, For
         return new Isomorphism(Name.identifier("addPrefix").appliedTo(getName()), this, getName()) {
             @Override
             public Name doRename(Name base) {
-                return base.prefixWith(getName());
+                return base.prefixWith(Graph.this.getName());
             }
 
             @Override
             public boolean hasBeenRenamed(Name name) {
-                return name.hasPrefix(getName());
+                return name.hasPrefix(Graph.this.getName());
             }
 
             @Override
             public Name undoRename(Name renamed) {
-                return renamed.unprefix(getName());
+                return renamed.unprefix(Graph.this.getName());
             }
         }.getResult();
     }
@@ -329,4 +349,7 @@ public interface Graph extends Element, StateSpace<Name, Triple>, Signature, For
     }
 
 
+    default boolean isInvariant(Name node1, Name node2) {
+        return node1.equals(node2);
+    }
 }
