@@ -61,7 +61,7 @@ public class SynchronizationRule implements ConsistencyRule {
                             }
                             return false;
                         })) {
-                            System.out.println("Synchronisation violation: " + elId + " has no partner for " + commonalityName);
+                           // System.out.println("Synchronisation violation: " + elId + " has no partner for " + commonalityName);
                             violations.add(elId);
                         }
 

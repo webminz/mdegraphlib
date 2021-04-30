@@ -231,6 +231,7 @@ public interface Sys {
             }
             if (path.length == 2 && source.isPresent()) {
                 return sketch.carrier().edges()
+                        .filter(t -> displayName(t.getLabel()) != null)
                         .filter(t -> displayName(t.getLabel()).equals(path[1]))
                         .filter(t -> sketch.carrier().isInvariant(t.getSource(), source.get().getSource()))
                         .findFirst();

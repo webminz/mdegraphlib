@@ -61,7 +61,8 @@ public class PlantUMLPlotter {
         writer.close();
 
         String plantUMLSpec = bos.toString("UTF-8");
-        System.out.println(plantUMLSpec);
+        // TODO configurable from outside
+        // System.out.println(plantUMLSpec);
 
         SourceStringReader sourceStringReader = new SourceStringReader(plantUMLSpec);
         sourceStringReader.outputImage(outputStream, new FileFormatOption(this.outputFormat));
