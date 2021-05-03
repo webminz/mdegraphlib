@@ -1,17 +1,17 @@
 package no.hvl.past.systems;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import no.hvl.past.graph.GraphMorphism;
 import no.hvl.past.graph.elements.Triple;
-import no.hvl.past.graph.trees.Node;
-import no.hvl.past.graph.trees.TypedBranch;
-import no.hvl.past.graph.trees.TypedNode;
-import no.hvl.past.graph.trees.TypedTree;
+import no.hvl.past.graph.trees.*;
 import no.hvl.past.keys.Key;
 import no.hvl.past.keys.KeyNotEvaluated;
 import no.hvl.past.names.Name;
 import no.hvl.past.util.Pair;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -36,6 +36,11 @@ public interface Data {
      */
     Stream<Name> properties(Name elementId, Name propertyName);
 
+
+    void index(Multimap<Name, Key> keys, Commonalities commonalities);
+
+    Name typeOf(Name element);
+
     static Data fromMorphism(Sys system, GraphMorphism instance) {
         return new Data() {
             @Override
@@ -54,12 +59,24 @@ public interface Data {
             }
 
             @Override
-            public Stream<Pair<Name, Name>> evaluate(Key k) {
-                return all(k.sourceType())
-                        .map(n -> k.evaluate(n, instance)
-                                .map(res -> new Pair<>(res, n)))
-                        .filter(Optional::isPresent)
-                        .map(Optional::get);
+            public void index(Multimap<Name, Key> keys, Commonalities commonalities) {
+                for (Name type : keys.keySet()) {
+                    all(type).forEach(el -> {
+                            Multimap<Name, Name> evalKeys = HashMultimap.create();
+                            for (Key key : keys.get(type)) {
+                                key.evaluate(el, instance).ifPresent(value -> evalKeys.put(key.targetType(), value));
+                            }
+                            for (Name commType : evalKeys.keySet()) {
+                            for (Name commId : evalKeys.get(commType)) {
+                                commonalities.put(commType, commId, el, Name.identifier(origin().url()));
+                            }
+                            if (evalKeys.get(commType).size() > 1) {
+                                commonalities.notifyDoubleRelationship(commType, el, Name.identifier(origin().url()), new HashSet<>(evalKeys.get(commType)));
+                            }
+                        }
+                    });
+                }
+
             }
 
             @Override
@@ -94,15 +111,26 @@ public interface Data {
             }
 
             @Override
-            public Stream<Pair<Name, Name>> evaluate(Key k) {
-                Set<TypedNode> result = new HashSet<>();
-                tree.root().nodesWithType(k.sourceType(), result);
-                return result.stream()
-                        .map(tn ->
-                            k.evaluate(tn, tree).map(keyValue -> new Pair<>(keyValue, tn.elementName()))
-                        )
-                        .filter(Optional::isPresent)
-                        .map(Optional::get);
+            public void index(Multimap<Name, Key> keys, Commonalities commonalities) {
+                Iterator<TypedNode> iterator = TreeIterator.depthFirstTypedComplex(tree.root());
+                while (iterator.hasNext()) {
+                    TypedNode typedNode = iterator.next();
+                    if (!keys.get(typedNode.nodeType()).isEmpty()) {
+                        Multimap<Name, Name> evalKeys = HashMultimap.create();
+                        for (Key key : keys.get(typedNode.nodeType())) {
+                            key.evaluate(typedNode, tree).ifPresent(value -> evalKeys.put(key.targetType(), value));
+                        }
+                        for (Name commType : evalKeys.keySet()) {
+                            for (Name commId : evalKeys.get(commType)) {
+                                commonalities.put(commType, commId, typedNode.elementName(), Name.identifier(origin().url()));
+                            }
+                            if (evalKeys.get(commType).size() > 1) {
+                                commonalities.notifyDoubleRelationship(commType, typedNode.elementName(), Name.identifier(origin().url()), new HashSet<>(evalKeys.get(commType)));
+                            }
+
+                        }
+                    }
+                }
             }
 
             @Override
@@ -114,7 +142,5 @@ public interface Data {
 
 
 
-    Stream<Pair<Name,Name>> evaluate(Key k);
 
-    Name typeOf(Name element);
 }

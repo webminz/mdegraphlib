@@ -16,6 +16,7 @@ public class SynchronizationRule implements ConsistencyRule {
     private final Name commonalityName;
     private final Set<ComprSys.QName> typeTuple;
     private final List<ComprSys.QName> propagationHierarchy;
+    private final boolean isUnconditional;
 
 
     // TODO conditionals for when synchronizations rules should be enforced
@@ -27,6 +28,7 @@ public class SynchronizationRule implements ConsistencyRule {
         this.commonalityName = commonalityName;
         this.typeTuple = typeTuple;
         this.propagationHierarchy = propagationHierarchy;
+        this.isUnconditional = false;
     }
 
 
@@ -37,54 +39,34 @@ public class SynchronizationRule implements ConsistencyRule {
 
     @Override
     public Stream<Name> violations(ComprData instance) {
-        if (isSymmetric()) {
-            return checkSymmatric(instance);
+        if (isUnconditional) {
+            return doUnconditionalCheck(instance);
         } else {
-            return checkHierarchical(instance);
+            return doConditionalCheck(instance);
         }
+
     }
 
-    private Stream<Name> checkHierarchical(ComprData instance) {
+    private Stream<Name> doConditionalCheck(ComprData instance) {
+        return instance.getCommonalities().iterate(commonalityName).filter(commonality -> {
+            if (propagationHierarchy.isEmpty()) {
+                for (ComprSys.QName typeQName : typeTuple) {
+                    if (commonality.getProjections().stream().noneMatch(qualifiedName -> qualifiedName.getSystem().equals(Name.identifier(typeQName.getContainer().url())))) {
+                        return true;
+                    }
+                }
+            } else {
+                return false; // TODO hierarchy check
+            }
+            return false;
+        }).flatMap(commonality -> {
+            return commonality.getProjections().stream().map(QualifiedName::getElement);
+        });
+    }
+
+    private Stream<Name> doUnconditionalCheck(ComprData instance) {
         return Stream.empty(); // TODO
     }
 
-    private Stream<Name> checkSymmatric(ComprData instance) {
-        Set<Name> violations = new HashSet<>();
-        for (ComprSys.QName qName : typeTuple) {
-            instance.all(qName.getElementName().prefixWith(qName.getContainer().schema().getName()))
-                    .forEach(elId -> {
-                        if (instance.getCommonalitiesOfType(qName.getContainer(), elId, commonalityName).anyMatch(com -> {
-                            for (ComprSys.QName partnerQName : typeTuple) {
-                                if (!partnerQName.equals(qName) && com.getRefs().stream().noneMatch(qRef -> qRef.getOrigin().equals(partnerQName.getContainer()))) {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        })) {
-                           // System.out.println("Synchronisation violation: " + elId + " has no partner for " + commonalityName);
-                            violations.add(elId);
-                        }
 
-                    });
-        }
-
-
-        return violations.stream(); // TODO
-
-        // has pre-calculated trace links
-
-
-        // no pre-calculated trace links
-        // for each type
-            // if has keys
-                // all instances
-                    // at least one can be evaluated --> check that exactly partner exist for every other type
-            // if no key (= unconditional) --> check that no of compatible types coincide || or --> require that there is a given trace model
-
-    }
-
-
-    private boolean isSymmetric() {
-        return propagationHierarchy.isEmpty();
-    }
 }

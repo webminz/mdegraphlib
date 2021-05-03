@@ -46,8 +46,8 @@ public class SynchronisationTest extends GraphTest {
                 .synchronisation(Name.identifier("syncMale"))
                 .synchronisation(Name.identifier("syncFemale"))
                 .identification(Name.identifier("String"))
-                .key(new AttributeBasedKey(persons, Triple.edge(Name.identifier("Person"), Name.identifier("name").prefixWith(Name.identifier("Person")), Name.identifier("String")), Name.identifier("syncMale")))
-                .key(new AttributeBasedKey(persons, Triple.edge(Name.identifier("Person"), Name.identifier("name").prefixWith(Name.identifier("Person")), Name.identifier("String")), Name.identifier("syncFemale")))
+                .key(new AttributeBasedKey(persons, Name.identifier("syncMale"), Triple.node(Name.identifier("Male")), Triple.edge(Name.identifier("Person"), Name.identifier("name").prefixWith(Name.identifier("Person")), Name.identifier("String"))))
+                .key(new AttributeBasedKey(persons, Name.identifier("syncFemale"), Triple.node(Name.identifier("Female")), Triple.edge(Name.identifier("Person"), Name.identifier("name").prefixWith(Name.identifier("Person")), Name.identifier("String"))))
                 .key(new ConcatenatedKey(
                         Name.identifier("syncMale"),
                         Name.identifier("FamilyMember"),

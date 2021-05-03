@@ -204,4 +204,11 @@ public class PropertyHolder {
         File configFile = this.getConfigFile();
         this.write(configFile);
     }
+
+    public boolean getBooleanProperty(String propertyName) {
+        if (properties.containsKey(propertyName)) {
+            return Boolean.parseBoolean(properties.getProperty(propertyName));
+        }
+        return false;
+    }
 }
