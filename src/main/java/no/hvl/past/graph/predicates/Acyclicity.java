@@ -19,7 +19,7 @@ public class Acyclicity implements GraphPredicate {
 
     @Override
     public GraphImpl arity() {
-        return Universe.ARROW;
+        return Universe.LOOP;
     }
 
     private Acyclicity() {
@@ -27,7 +27,7 @@ public class Acyclicity implements GraphPredicate {
 
     @Override
     public boolean check(GraphMorphism instance) {
-        Set<Triple> select = instance.allInstances(Universe.ARROW_THE_ARROW).collect(Collectors.toSet());
+        Set<Triple> select = instance.allInstances(Universe.LOOP_THE_LOOP).collect(Collectors.toSet());
         Set<Triple> closure = closure(select);
         return select.stream()
                 .noneMatch(t1 -> closure.stream().filter(t2 ->

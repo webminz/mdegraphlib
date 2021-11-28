@@ -1,15 +1,11 @@
-package no.hvl.past.graph.plotting;
+package no.hvl.past.graph.plotting.dm;
 
-import net.sourceforge.plantuml.FileFormat;
-import net.sourceforge.plantuml.FileFormatOption;
-import net.sourceforge.plantuml.SourceStringReader;
+
 import no.hvl.past.graph.GraphTheory;
 import no.hvl.past.graph.Universe;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.operations.Invert;
-import no.hvl.past.graph.plotting.dm.*;
 import no.hvl.past.graph.predicates.*;
-import no.hvl.past.logic.FormulaLiteral;
 import no.hvl.past.names.*;
 import no.hvl.past.systems.ComprSys;
 import no.hvl.past.systems.MessageArgument;
@@ -17,6 +13,8 @@ import no.hvl.past.systems.MessageType;
 import no.hvl.past.systems.Sys;
 import no.hvl.past.util.Pair;
 import no.hvl.past.util.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -24,27 +22,16 @@ import java.util.*;
 
 public class PlantUMLPlotter {
 
-    private FileFormat outputFormat;
+    public static final String CHARSET_NAME = "UTF-8";
     private boolean printDiagrams;
+    private boolean drawServices;
+    private Logger logger;
 
 
-    public PlantUMLPlotter(String format, boolean printDiagrams) {
+    public PlantUMLPlotter(boolean printDiagrams, boolean drawServices) {
         this.printDiagrams = printDiagrams;
-        switch (format) {
-            case "SVG":
-                this.outputFormat = FileFormat.SVG;
-                break;
-            case "PDF":
-                this.outputFormat = FileFormat.PDF;
-                break;
-            case "EPS":
-                this.outputFormat = FileFormat.EPS;
-                break;
-            case "PNG":
-            default:
-                this.outputFormat = FileFormat.PNG;
-                break;
-        }
+        this.drawServices = drawServices;
+        this.logger = LogManager.getLogger(getClass());
     }
 
     // TODO for instances
@@ -52,21 +39,19 @@ public class PlantUMLPlotter {
 
 
     public void plot(Sys system, OutputStream outputStream) throws IOException {
+        if (!drawServices) {
+            logger.info("Drawing Messages has been disabled");
+        }
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         OutputStreamWriter writer = new OutputStreamWriter(bos);
 
         writeSystem(system, writer);
-
         writer.flush();
         writer.close();
 
-        String plantUMLSpec = bos.toString("UTF-8");
-        // TODO configurable from outside
-        // System.out.println(plantUMLSpec);
-
-        SourceStringReader sourceStringReader = new SourceStringReader(plantUMLSpec);
-        sourceStringReader.outputImage(outputStream, new FileFormatOption(this.outputFormat));
-
+        String plantUMLSpec = bos.toString(CHARSET_NAME);
+        logger.debug("Sending the following to PlantUML in order to produce a visualization\n\n" + plantUMLSpec);
+        new PlantUMLWriter(outputStream).write(plantUMLSpec, CHARSET_NAME);
     }
 
     private void writeSystem(Sys system, OutputStreamWriter writer) throws IOException {
@@ -118,12 +103,28 @@ public class PlantUMLPlotter {
         });
 
 
-        if (system.messages().anyMatch(x -> true)) {
-            NodePlotElement service = file.addNode(system.schema().getName().printRaw() + "Service");
-            service.setType(NodePlotElement.NodeType.SERVICE);
-            system.messages().forEach(messageType -> {
-                plotMessage(system, service, messageType);
-            });
+        if (drawServices) {
+            if (system.messages().anyMatch(x -> true)) {
+                NodePlotElement globalService = file.addNode(system.schema().getName().printRaw() + "Service");
+                globalService.setType(NodePlotElement.NodeType.SERVICE);
+
+                Map<Name, NodePlotElement> localServices = new HashMap<>();
+
+                system.messages().forEach(messageType -> {
+                    if (!messageType.getGroup().isPresent()) {
+                        plotMessage(system, globalService, messageType);
+                    } else {
+                        Name containerName = messageType.getGroup().get().getTypeName();
+                        if (!localServices.containsKey(containerName)) {
+                            String name = mkReference(system, containerName);
+                            NodePlotElement nodePlotElement = file.addNode(name);
+                            nodePlotElement.setType(NodePlotElement.NodeType.SERVICE);
+                            localServices.put(containerName, nodePlotElement);
+                        }
+                        plotMessage(system, localServices.get(containerName), messageType);
+                    }
+                });
+            }
         }
 
         if (printDiagrams) {
@@ -199,11 +200,11 @@ public class PlantUMLPlotter {
         serviceMethod.append(StringUtils.fuseList(messageType.inputs(), arg -> {
             return system.displayName(arg.asEdge().getLabel()) +
                     " : " +
-                    system.displayName(arg.type()) + makeMultIfNotOptional(system.getTargetMultiplicity(arg.asEdge()));
+                    system.displayName(arg.returnType()) + makeMultIfNotOptional(system.getTargetMultiplicity(arg.asEdge()));
         }, ", "));
         serviceMethod.append(") : ");
         String returnType = StringUtils.fuseList(messageType.outputs(), arg -> {
-            return system.displayName(arg.type()) + makeMultIfNotOptional(system.getTargetMultiplicity(arg.asEdge()));
+            return system.displayName(arg.returnType()) + makeMultIfNotOptional(system.getTargetMultiplicity(arg.asEdge()));
         }, ", ");
         if (returnType.isEmpty()) {
             returnType = "void";
@@ -277,7 +278,7 @@ public class PlantUMLPlotter {
             for (Name lit : system.enumLiterals(node)) {
                 enumPlot.addCompartment(lit.printRaw());
             }
-        } else if (!system.isSimpleTypeNode(node)) {
+        } else if (!system.isSimpleTypeNode(node) && !system.isMessageRelated(node)) {
             NodePlotElement nodePlot = file.addNode(name);
             if (system.isAbstract(node)) {
                 nodePlot.setType(NodePlotElement.NodeType.ABSTRACT_TYPE);

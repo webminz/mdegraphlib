@@ -7,7 +7,7 @@ import no.hvl.past.util.ShouldNotHappenException;
 /**
  * Contains some more or less real example graphs and type graphs.
  */
-public class ExampleGraphs extends AbstractGraphTest {
+public class ExampleGraphs extends TestWithGraphLib {
 
     // String constants
     static final String NAME = "name";

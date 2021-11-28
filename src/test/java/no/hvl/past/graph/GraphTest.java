@@ -11,7 +11,7 @@ import java.util.function.Function;
 
 import static org.junit.Assert.*;
 
-public class GraphTest extends AbstractGraphTest {
+public class GraphTest extends TestWithGraphLib {
 
 
     Graph GRAPH_BASE = buildGraphBase();

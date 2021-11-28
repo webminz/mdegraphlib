@@ -251,14 +251,11 @@ public interface GraphMorphism extends Element, Model<Graph> {
      * as inclusions.
      */
     default Pair<GraphMorphism, GraphMorphism> pullback(
-            GraphMorphism right) throws GraphError {
+            GraphMorphism right) {
         GraphMorphism left = this;
         if (!this.codomain().equals(right.codomain())) {
             // input does not have the same codomain
-            throw new GraphError(GraphError.ERROR_TYPE.CODOMAIN_MISMATCH, Sets.newHashSet(
-                    Triple.edge(left.domain().getName(), left.getName(), left.codomain().getName()),
-                    Triple.edge(right.domain().getName(), right.getName(), right.codomain().getName())
-            ));
+            throw new GraphError().addError(new GraphError.DomainOrCodomainMismatch(left.codomain().getName(), right.codomain().getName(), true));
         }
         if (left.isMonic()) {
             // Calculate preimage
@@ -413,14 +410,12 @@ public interface GraphMorphism extends Element, Model<Graph> {
      * _this_.
      * A pushout can be seen as gluing of two graphs at given interface.
      */
-    default Pair<GraphMorphism, GraphMorphism> pushout(GraphMorphism right) throws GraphError {
+    default Pair<GraphMorphism, GraphMorphism> pushout(GraphMorphism right) {
         GraphMorphism left = this;
         if (!left.domain().equals(right.domain())) {
-            throw new GraphError(GraphError.ERROR_TYPE.DOMAIN_MISMATCH, Sets.newHashSet(
-                    Triple.edge(left.domain().getName(), left.getName(), left.codomain().getName()),
-                    Triple.edge(right.domain().getName(), right.getName(), right.codomain().getName())
-            ));
+            throw new GraphError().addError(new GraphError.DomainOrCodomainMismatch(left.domain().getName(), right.domain().getName(), false));
         }
+
         if (!left.isTotal() || !right.isTotal()) {
             throw new Error("Not implemented yet !!!"); // TODO pushouts of partial maps...
         }

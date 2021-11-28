@@ -1,8 +1,8 @@
 package no.hvl.past.di;
 
 import no.hvl.past.graph.GraphMorphism;
-import no.hvl.past.graph.plotting.PlantUMLPlotter;
-import no.hvl.past.graph.trees.QueryHandler;
+import no.hvl.past.graph.plotting.dm.PlantUMLPlotter;
+import no.hvl.past.systems.QueryHandler;
 import no.hvl.past.names.Name;
 import no.hvl.past.plugin.MetaRegistry;
 import no.hvl.past.plugin.UnsupportedFeatureException;
@@ -15,31 +15,35 @@ import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 public class PlottingTechSpace implements TechSpace {
 
+    public static final String PLOTTING_CONFIG_ARG_DRAW_DIAGRAMS = "plot.draw.diagrams";
+    public static final String PLOTTING_CONFIG_ARG_DRAW_SERVICES = "plot.draw.services";
 
-    public static final PlottingTechSpace PNG = new PlottingTechSpace("PNG");
-    public static final PlottingTechSpace EPS = new PlottingTechSpace("EPS");
-    public static final PlottingTechSpace SVG = new PlottingTechSpace("SVG");
 
-    private final String fileFormat;
+    public static final PlottingTechSpace IMAGE = new PlottingTechSpace();
 
-    private PlottingTechSpace(String fileFormat) {
-        this.fileFormat = fileFormat;
+
+
+    private PlottingTechSpace() {
     }
 
     @Override
     public String ID() {
-        return fileFormat;
+        return "IMAGE";
     }
 
     public static final class AdapterFactory implements TechSpaceAdapterFactory<PlottingTechSpace> {
 
         @Autowired
         MetaRegistry pluginRegistry;
+
+        @Autowired
+        PropertyHolder propertyHolder;
 
         private final PlottingTechSpace techSpace;
 
@@ -53,7 +57,9 @@ public class PlottingTechSpace implements TechSpace {
 
         @Override
         public TechSpaceAdapter<PlottingTechSpace> createAdapter() {
-            PlantUMLPlotter plotter = new PlantUMLPlotter(techSpace.ID(), true);
+            PlantUMLPlotter plotter = new PlantUMLPlotter(
+                    propertyHolder.getBooleanProperty(PLOTTING_CONFIG_ARG_DRAW_DIAGRAMS),
+                    Boolean.parseBoolean(propertyHolder.getPropertyAndSetDefaultIfNecessary(PLOTTING_CONFIG_ARG_DRAW_SERVICES, "true")));
             return new Adapter(plotter, techSpace);
         }
 
@@ -115,29 +121,35 @@ public class PlottingTechSpace implements TechSpace {
         }
 
         @Override
-        public Optional<Name> stringDataType() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<Name> boolDataType() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<Name> integerDataType() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<Name> floatingPointDataType() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Stream<Name> implicitTypeIdentities() {
+        public Stream<StringTypeDescription> stringDataType() {
             return Stream.empty();
         }
+
+        @Override
+        public Stream<BaseTypeDescription> boolDataType() {
+            return Stream.empty();
+        }
+
+        @Override
+        public Stream<IntTypeDescription> integerDataType() {
+            return Stream.empty();
+        }
+
+        @Override
+        public Stream<FloatTypeDescription> floatingPointDataType() {
+            return Stream.empty();
+        }
+
+        @Override
+        public Stream<CustomBaseTypeDescription> otherDataTypes() {
+            return Stream.empty();
+        }
+
+        @Override
+        public void additionalTechnologySpecificRules(TechnologySpecificRules configure) {
+
+        }
+
     }
 
 

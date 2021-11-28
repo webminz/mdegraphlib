@@ -2,13 +2,17 @@ package no.hvl.past.graph;
 
 import no.hvl.past.attributes.IntegerValue;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.names.Name;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static junit.framework.TestCase.*;
 
-public class TripleTest extends AbstractGraphTest {
+public class TripleTest extends TestWithGraphLib {
 
     @Test
     public void testRenaming() {
@@ -79,5 +83,29 @@ public class TripleTest extends AbstractGraphTest {
 
         assertEquals(Optional.of(IntegerValue.value(23)), attr.getValue());
         assertEquals(Optional.empty(), edge.getValue());
+    }
+
+
+    @Test
+    public void testSortingViaIndexing() {
+        Triple t1 = Triple.edge(id("A"), id("f").index(42), Name.value(3));
+        Triple t2 = Triple.edge(id("A"), id("f").index(1), Name.value(2));
+        Triple t3 = Triple.edge(id("A"), id("f").index(23), Name.value(1));
+        List<Triple> list = new ArrayList<>();
+        list.add(t1);
+        list.add(t2);
+        list.add(t3);
+
+        assertTrue(t2.compareTo(t3) < 0);
+        assertTrue(t3.compareTo(t1) < 0);
+        assertTrue(t2.compareTo(t1) < 0);
+
+        List<Triple> expected = new ArrayList<>();
+        expected.add(t2);
+        expected.add(t3);
+        expected.add(t1);
+
+        assertEquals(expected, list.stream().sorted().collect(Collectors.toList()));
+
     }
 }

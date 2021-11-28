@@ -17,7 +17,7 @@ import java.io.IOException;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-public class DOTPlottingTestcase extends AbstractGraphTest {
+public class DOTPlottingTestcase extends TestWithGraphLib {
 
     // TODO must possibly be able to disable this
 

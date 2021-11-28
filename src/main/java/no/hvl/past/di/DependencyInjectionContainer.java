@@ -2,18 +2,31 @@ package no.hvl.past.di;
 
 import no.hvl.past.graph.Universe;
 import no.hvl.past.plugin.MetaRegistry;
+import no.hvl.past.util.FileSystemAccessPoint;
 import no.hvl.past.util.FileSystemUtils;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.Appender;
+
+import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.FileAppender;
 import org.apache.logging.log4j.core.appender.RollingFileAppender;
+import org.apache.logging.log4j.core.appender.rolling.DefaultRolloverStrategy;
+import org.apache.logging.log4j.core.appender.rolling.RollingFileManager;
+import org.apache.logging.log4j.core.appender.rolling.SizeBasedTriggeringPolicy;
+import org.apache.logging.log4j.core.appender.rolling.TriggeringPolicy;
 import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.apache.logging.log4j.core.config.builder.api.Component;
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
+import org.apache.logging.log4j.core.filter.RegexFilter;
 import org.apache.logging.log4j.core.layout.PatternLayout;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.context.support.GenericApplicationContext;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -31,12 +44,15 @@ import java.util.Properties;
 public class DependencyInjectionContainer {
 
     public static final String SPRING_BEAN_CONFIG_XML = "spring-bean-config.xml";
-    public static final String UPDATE_CONFIG_COMMAND = "updateConfig";
+    public static final String UPDATE_CONFIG_COMMAND = "saveConfig";
+    public static final String USE_CONFIG_COMMAND = "useConfig";
     private final ApplicationContext applicationContext;
 
     private DependencyInjectionContainer(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
     }
+
+    // Generic Bean getters
 
     public <B> B getBean(Class<B> type) {
         return this.applicationContext.getBean(type);
@@ -45,6 +61,8 @@ public class DependencyInjectionContainer {
     public <B> B getBean(String beanName, Class<B> returnType) {
         return this.applicationContext.getBean(beanName, returnType);
     }
+
+    // Getters for the Beans that are always there
 
     public MetaRegistry getPluginRegistry() {
         return this.applicationContext.getBean(MetaRegistry.class);
@@ -58,14 +76,18 @@ public class DependencyInjectionContainer {
         return this.applicationContext.getBean(PropertyHolder.class);
     }
 
+    // TODO move into an infrastructure sub-project
     public ServerStarter getServer() {
         return this.applicationContext.getBean(ServerStarter.class);
     }
 
+    public FileSystemUtils getFSUtils() {
+        return applicationContext.getBean(FileSystemUtils.class);
+    }
 
-    private void setUpHttps() {
+
+    private void setUpHttps() throws KeyManagementException, NoSuchAlgorithmException {
         if (getPropertyHolder().isSSLAllowAll()) {
-            try {
                 TrustManager[] trustAllCerts = new TrustManager[]{
                         new X509TrustManager() {
                             @Override
@@ -86,74 +108,124 @@ public class DependencyInjectionContainer {
                 SSLContext context = SSLContext.getInstance("SSL");
                 context.init(null, trustAllCerts, new SecureRandom());
                 HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (KeyManagementException e) {
-                e.printStackTrace();
-            }
         }
-
     }
 
-    public void setUpLogging() {
+    @SuppressWarnings("unchecked raw")
+    private void setUpLogging() throws IOException {
         final LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
         final Configuration config = ctx.getConfiguration();
-        Layout layout = PatternLayout.newBuilder().withConfiguration(config).withPattern("%d %p %c [%t] %m %ex%n").build();
-        FileAppender fileAppender = FileAppender.newBuilder()
-                .setName("configuredFile")
-                .withFileName(getPropertyHolder().getLogDir() + File.separator + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + ".log")
+        PatternLayout layout = PatternLayout.newBuilder().withConfiguration(config).withPattern(getPropertyHolder().getLogLayoutPattern()).build();
+        SizeBasedTriggeringPolicy policy = SizeBasedTriggeringPolicy.createPolicy(getPropertyHolder().getLogMaxFileSize());
+        DefaultRolloverStrategy rolloverStrategy = DefaultRolloverStrategy.newBuilder().withConfig(config).withFileIndex(getPropertyHolder().getLogMaxBackupIndex()).build();
+//        RollingFileManager fileManager = RollingFileManager.getFileManager(getPropertyHolder().getLogDir().getAbsolutePath() + "/%d{yyyy-MM-dd}.log",
+//                getPropertyHolder().getLogDir().getAbsolutePath() + "/%d{yyyy-MM-dd}.%i.log",
+//                true,
+//                false,
+//                policy,
+//                rolloverStrategy,
+//                null,
+//                layout,
+//                128,
+//                false,
+//                true,
+//                null,
+//                null,
+//                null,
+//                config);
+//        policy.initialize(fileManager);
+
+
+
+
+
+        RollingFileAppender fileAppender = RollingFileAppender.newBuilder()
+                .setName("main")
+                .withPolicy(policy)
+                .withStrategy(rolloverStrategy)
+                .withAppend(true)
+                .withFileName(getPropertyHolder().getLogDir().getAbsolutePath() + "/" + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + ".log")
+                .withFilePattern(getPropertyHolder().getLogDir().getAbsolutePath() + "/" + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + ".%i.log")
                 .setLayout(layout)
                 .build();
+
+
+
         fileAppender.start();
         config.addAppender(fileAppender);
-        config.getRootLogger().removeAppender("file");
+        config.getRootLogger().removeAppender("Console");
         config.getRootLogger().addAppender(fileAppender, null, null);
+
+        config.getLoggerConfig("org.eclipse.jetty").setLevel(Level.OFF);
+        config.getLoggerConfig("graphql.execution.ExecutionStrategy").setLevel(Level.OFF);
         config.getRootLogger().setLevel(getPropertyHolder().getLogLevel());
+
+
         ctx.updateLoggers();
+       // Configurator.setLevel(LogManager.getLogger("io.javalin.Javalin").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.http.HttpParser").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("notprivacysafe.graphql.GraphQL").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("graphql.GraphQL").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("notprivacysafe.graphql.execution.Execution").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("graphql.execution.ExecutionStrategy").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.HttpOutput").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.HttpConnection").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.HttpInput").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.HttpChannelState").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.ChannelEndPoint").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.session").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.WriteFlusher").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.Request").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.AbstractConnection").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.http.HttpCookie").getName(), Level.OFF);
     }
 
-    public static DependencyInjectionContainer create() throws IOException {
-        String basePath = System.getProperty("user.dir");
-        return create(basePath);
-    }
 
-    public static DependencyInjectionContainer create(String basePath) throws IOException {
-        File file = new File(basePath, "corrlang.conf");
-        return create(file);
-    }
+    public static DependencyInjectionContainer create(String appName, Properties configArgs) throws Exception {
+        PropertyHolder propertyHolder = setUpPropertyHolder(appName, configArgs);
 
-    public FileSystemUtils getFSUtils() {
-        return applicationContext.getBean(FileSystemUtils.class);
-    }
+        DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+        beanFactory.registerSingleton("propertyHolder", propertyHolder);
+        GenericApplicationContext genericApplicationContext = new GenericApplicationContext(beanFactory);
+        genericApplicationContext.refresh();
 
-    public static DependencyInjectionContainer create(File configFilePath) throws IOException {
-        ApplicationContext applicationContext = new ClassPathXmlApplicationContext(SPRING_BEAN_CONFIG_XML);
+        ApplicationContext applicationContext = new ClassPathXmlApplicationContext(new String[] {SPRING_BEAN_CONFIG_XML},genericApplicationContext);
         DependencyInjectionContainer dependencyInjectionContainer = new DependencyInjectionContainer(applicationContext);
-        PropertyHolder propertyHolder = dependencyInjectionContainer.getPropertyHolder();
-        if (configFilePath.exists()) {
-            propertyHolder.load(configFilePath);
-        } else {
-            propertyHolder.bootstrap(configFilePath);
-        }
-        dependencyInjectionContainer.getFSUtils().setBaseDir(propertyHolder.getBaseDir());
+
+        dependencyInjectionContainer.setUpLogging();
+        dependencyInjectionContainer.setUpHttps();
+
+
         return dependencyInjectionContainer;
     }
 
-    public void load(Properties properties) throws IOException {
-        PropertyHolder propertyHolder = getPropertyHolder();
-        boolean updateProperties = false;
-        for (Object o : properties.keySet()) {
-            String key = o.toString();
-            if (key.equals(UPDATE_CONFIG_COMMAND)) {
-                updateProperties = true;
-            } else if (properties.containsKey(key) && properties.get(key) != null) {
-                propertyHolder.set(key, properties.getProperty(key));
+    @NotNull
+    private static PropertyHolder setUpPropertyHolder(String appName, Properties configArgs) throws IOException {
+        FileSystemUtils fileSystemUtils = FileSystemUtils.getInstance();
+        File configFile;
+        if (configArgs.containsKey(USE_CONFIG_COMMAND)) {
+            configFile = fileSystemUtils.accessPoint("").file(configArgs.getProperty(USE_CONFIG_COMMAND));
+        } else {
+            if (configArgs.containsKey(PropertyHolder.BASE_DIR)) {
+                configFile = new File(configArgs.getProperty(PropertyHolder.BASE_DIR) + "/" + appName.toLowerCase() + ".conf");
+            } else {
+                configFile = fileSystemUtils.accessPoint("").file(appName.toLowerCase() + ".conf");
             }
         }
-        if (updateProperties) {
-            propertyHolder.persistCurrentConfig();
+        PropertyHolder propertyHolder = PropertyHolder.bootstrap(appName, configFile);
+        for (Object o : configArgs.keySet()) {
+            if (!o.equals(UPDATE_CONFIG_COMMAND) && !o.equals(USE_CONFIG_COMMAND)) {
+                propertyHolder.setProperty(o.toString(), configArgs.get(o).toString());
+            }
         }
-        setUpLogging();
-        setUpHttps();
+        if (configArgs.containsKey(UPDATE_CONFIG_COMMAND)) {
+            propertyHolder.write();
+        }
+        return propertyHolder;
+    }
+
+
+    public FileSystemAccessPoint getFSAccessPoint() {
+        return getBean(FileSystemAccessPoint.class);
     }
 }

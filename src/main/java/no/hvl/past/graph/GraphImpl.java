@@ -133,7 +133,12 @@ public class GraphImpl implements StateSpace<Name, Triple>, Graph, Iterable<Trip
         GraphImpl result = new GraphImpl(name, elements);
         Set<Triple> dangling = result.danglingEdges().collect(Collectors.toSet());
         if (!dangling.isEmpty()) {
-            throw new GraphError(GraphError.ERROR_TYPE.DANGLING_EDGE, dangling);
+            GraphError ex = new GraphError();
+            for (Triple d : dangling) {
+                ex.addError(new GraphError.DanglingEdge(d, true, true));
+            }
+            throw ex;
+
         }
         return result;
     }

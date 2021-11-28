@@ -11,10 +11,9 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
-public class GraphBuildersTest extends AbstractGraphTest {
+public class GraphBuildersTest extends TestWithGraphLib {
 
     private final Universe universe = new UniverseImpl(UniverseImpl.EMPTY);
     private final GraphBuilders standardBuilder = new GraphBuilders(universe, true, true);
@@ -50,6 +49,7 @@ public class GraphBuildersTest extends AbstractGraphTest {
         } catch (GraphError error) {
             assertDangling(id("f"), error);
         }
+        strictErrorBuilder.clear();
 
         // this builder does not create context but he ignores errors thus the result is not a valid graph (dangling edges)
         errorIgnoringBuilder.edge("A", "f", "B");
@@ -59,12 +59,12 @@ public class GraphBuildersTest extends AbstractGraphTest {
         addExpectedTriple(t("A", "f", "B"));
         assertStreamEquals(expected(), graph.danglingEdges());
 
-        // the standard builder ignores errors as well, thus the result is inconsistent (duplicate names)
+        // the standard builder ignores errors, thus the second operation below has no effect
         standardBuilder.edge("A", "f", "B");
         standardBuilder.edge("B", "f", "A");
         standardBuilder.graph("G");
         graph = standardBuilder.getResult(Graph.class);
-        assertStreamEquals(Stream.of(id("f")), graph.duplicateNames());
+        assertStreamEquals(Stream.of(Triple.edge(id("A"), id("f"), id("B"))), graph.edges());
 
         // this builder is more strict and report the "duplicate name"
         contextCreatingBuilder.edge("A", "f", "B");
@@ -89,7 +89,6 @@ public class GraphBuildersTest extends AbstractGraphTest {
         addExpectedTriple(t("A", "b", "B"));
         addExpectedTriple(t("C", "c", "A"));
         assertStreamEquals(expected(), graph.danglingEdges());
-        assertStreamEquals(Stream.of(id("a")), graph.duplicateNames());
 
         // the strict builder reports on dangling edges as well
         strictErrorBuilder.node("A");
@@ -102,8 +101,7 @@ public class GraphBuildersTest extends AbstractGraphTest {
             graph = strictErrorBuilder.getResult(Graph.class);
             fail();
         } catch (GraphError error) {
-            assertDangling(id("d1"), error);
-            assertDangling(id("d2"), error);
+            assertEquals(2, error.getDangling().size());
         }
 
     }
@@ -185,7 +183,7 @@ public class GraphBuildersTest extends AbstractGraphTest {
             strictErrorBuilder.getResult(GraphMorphism.class);
         } catch (GraphError error) {
             assertAmbiguouslyMapped(id("A"), error);
-            assertUnknownMember(id("g"), error);
+            assertUnknownMember(id("i"), error);
         }
 
         // testing the error ignoring builder
@@ -260,8 +258,10 @@ public class GraphBuildersTest extends AbstractGraphTest {
             strictErrorBuilder.getResult(GraphMorphism.class);
             fail();
         } catch (GraphError error) {
-            assertIllFormed(id("m"), error);
+            assertFalse(error.getMissingDomain().isEmpty());
+            assertFalse(error.getMissingCodomain().isEmpty());
         }
+        strictErrorBuilder.clear();
 
         // missing codomain
         strictErrorBuilder.node("A");
@@ -272,7 +272,8 @@ public class GraphBuildersTest extends AbstractGraphTest {
             strictErrorBuilder.getResult(GraphMorphism.class);
             fail();
         } catch (GraphError error) {
-            assertIllFormed(id("m"), error);
+            assertTrue(error.getMissingDomain().isEmpty());
+            assertFalse(error.getMissingCodomain().isEmpty());
         }
 
         // context creating builds the domain when needed

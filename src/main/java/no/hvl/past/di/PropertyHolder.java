@@ -1,152 +1,140 @@
 package no.hvl.past.di;
 
+import no.hvl.past.util.FileSystemAccessPoint;
+import no.hvl.past.util.FileSystemUtils;
 import org.apache.logging.log4j.Level;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Map;
-import java.util.Properties;
+import java.io.*;
+import java.util.*;
 
+
+/**
+ * Central key-value-based storage of configuration parameters that is shared globally.
+ * The property holder will at least contain configuration parameters for the execution directories
+ * and logging.
+ *
+ * Other components can simply add their own properties.
+ * But they should make sure to avoid naming conflicts, e.g. by adding prefixes.
+ *
+ * The property holder is the foundation for the {@link DependencyInjectionContainer}.
+ */
 public class PropertyHolder {
 
-    public static final String BASE_DIR = "path";
+    private static final String VARIABLE_PREFIX = "${";
+    private static final String VARIABLE_DELIMITTER = "}";
+
+    // Implicit params
+    public static final String BASE_DIR = "workdir";
     public static final String CONFIG_FILE = "config";
-    public static final String SERVER_HOSTNAME = "server.hostname";
-    public static final String SERVER_PORT = "server.port";
-    public static final String HIDE_LOGO = "logo.hide";
-    public static final String LOG_LOCATION = "log.location";
+    public static final String CONFIG_DIR = "configdir";
+    public static final String APP_NAME = "appname";
+    public static final String JVM = "jvm";
+
+    // Logging params
+    public static final String LOG_LOCATION = "log.dir";
     public static final String LOG_LEVEL = "log.level";
-    public static final String ENABLE_DRAWING_DOT = "enable.drawing.dot";
-    private static final String SSL_ALLOW_ALL = "ssl.acceptAll";
+    public static final String LOG_LAYOUT_PATTERN = "log.pattern";
+    public static final String LOG_MAX_FILE_SIZE = "log.rollover.fileSize";
+    public static final String LOG_MAX_BACKUP_INDEX = "log.rollover.backupIndex";
 
-    private Properties properties;
+    // SSL params
+    public static final String SSL_ALLOW_ALL = "http.ssl.acceptAll";
+    public static final String SSL_ROOT_CERTS = "http.ssl.rootCerts";
 
-    public PropertyHolder(Properties properties) {
+    private static final String[] BUILTIN_PARAMS = new String[]{
+            BASE_DIR,
+            CONFIG_FILE,
+            CONFIG_DIR,
+            APP_NAME,
+            JVM,
+            LOG_LOCATION,
+            LOG_LEVEL,
+            LOG_MAX_FILE_SIZE,
+            LOG_MAX_BACKUP_INDEX,
+            LOG_LAYOUT_PATTERN,
+            SSL_ALLOW_ALL,
+            SSL_ROOT_CERTS
+    };
+
+    private final String appName;
+    private final Properties properties;
+
+    private PropertyHolder(String appName, Properties properties) {
+        this.appName = appName;
         this.properties = properties;
     }
 
-    public File getBaseDir() {
-        String base = getProperty(BASE_DIR);
-        if (base == null || base.isEmpty()) {
-            base = System.getProperty("user.dir");
-            setProperty(BASE_DIR, base);
-        }
-        return new File(base);
-    }
+    // Generic getter and setter
 
-    public File getConfigFile() {
-        String property = getProperty(CONFIG_FILE);
-        if (property == null || property.isEmpty()) {
-            property = getBaseDir().getAbsolutePath() + File.pathSeparator + "corrlang.conf";
-            setProperty(CONFIG_FILE, property);
-            return new File(getBaseDir(), "corrlang.conf");
-        } else {
-            return new File(property);
-        }
-    }
-
-    public int getServerPort() {
-        int result = 9001; // Default. Its over 9000 ;-)
-        String property = this.properties.getProperty(SERVER_PORT);
-        if (property == null) {
-            property = Integer.toString(result);
-        } else {
-            try {
-                result = Integer.parseInt(property);
-            } catch (NumberFormatException e) {
-                property = Integer.toString(result);
-            }
-        }
-        setProperty(SERVER_PORT, property);
-        return result;
-    }
-
-    public boolean isHideLogo() {
-        String property = this.properties.getProperty(HIDE_LOGO);
-        if (property == null) {
-            return false;
-        } else {
-            return Boolean.parseBoolean(property);
-        }
-    }
-
-
-    public String reportContent() {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("[PARAMETERS]");
-        stringBuilder.append("\n");
-        for (Map.Entry<Object, Object> entry : this.properties.entrySet()) {
-            stringBuilder.append(entry.getKey());
-            stringBuilder.append('=');
-            stringBuilder.append(entry.getValue());
-            stringBuilder.append('\n');
-        }
-
-        return stringBuilder.toString();
-    }
-
-    public String getPropertyAndSetDefaultIfNecessary(String property, String defaultValue) {
-        if (this.properties.containsKey(property)) {
-            return this.properties.getProperty(property);
-        } else {
-            this.properties.put(property, defaultValue);
-            return defaultValue;
-        }
-    }
-
-    private void setProperty(String key, String value) {
+    public void setProperty(String key, String value) {
         this.properties.setProperty(key, value);
     }
 
-    private String getProperty(String key) {
-        return this.properties.getProperty(key);
-    }
-
-    public void write(File target) throws IOException {
-        if (!target.getParentFile().exists()) {
-            target.mkdirs();
+    public String getProperty(String key) {
+        if (this.properties.containsKey(key)) {
+            String value = this.properties.getProperty(key);
+            while (value.contains(VARIABLE_PREFIX)) {
+                int startIdx = value.indexOf(VARIABLE_PREFIX);
+                int endIdx = value.indexOf(VARIABLE_DELIMITTER);
+                String var = value.substring(startIdx + VARIABLE_PREFIX.length(), endIdx);
+                String val = getProperty(var);
+                value = value.substring(0, startIdx) + val + value.substring(endIdx + VARIABLE_DELIMITTER.length());
+            }
+            return value;
         }
-        if (target.exists()) {
-            target.delete();
+        return null;
+    }
+
+    public String getPropertyAndSetDefaultIfNecessary(String property, String defaultValue) {
+        if (!this.properties.containsKey(property)) {
+            setProperty(property, defaultValue);
         }
-        FileOutputStream fos = new FileOutputStream(target);
-        properties.store(fos, "Updated at " + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        fos.flush();
-        fos.close();
+        return getProperty(property);
     }
 
-    public void load(File configFilePath) throws IOException {
-        FileInputStream fileInputStream = new FileInputStream(configFilePath);
-        this.properties.load(fileInputStream);
-    }
-
-    public void bootstrap(File configFilePath) throws IOException {
-        this.setProperty(CONFIG_FILE, configFilePath.getAbsolutePath());
-        this.setProperty(BASE_DIR, configFilePath.getParentFile().getAbsolutePath());
-        this.getLogDir();
-        this.getLogLevel();
-        this.write(configFilePath);
-    }
-
-    public String getLogDir() {
-        if (this.properties.containsKey(LOG_LOCATION)) {
-            return this.properties.getProperty(LOG_LOCATION);
-        } else {
-            File baseDir = getBaseDir();
-            File logDir = new File(baseDir, "logs");
-            logDir.mkdirs();
-            this.properties.put(LOG_LOCATION, logDir.getAbsolutePath());
-            return logDir.getAbsolutePath();
+    public boolean getBooleanProperty(String propertyName) {
+        if (properties.containsKey(propertyName)) {
+            return Boolean.parseBoolean(getProperty(propertyName));
         }
+        return false;
+    }
+
+    public int getIntegerProperty(String propertyName) {
+        if (properties.containsKey(propertyName)) {
+            return Integer.parseInt(getProperty(propertyName));
+        }
+        return -1;
+    }
+
+    public File getFileProperty(String propertyName) {
+        if (properties.containsKey(propertyName)) {
+            return new File(getProperty(propertyName));
+        }
+        return null;
+    }
+
+    // Special getters
+
+    public File getBaseDir() {
+        return getFileProperty(BASE_DIR);
+    }
+
+    public File getConfigFile() {
+        return getFileProperty(CONFIG_FILE);
+    }
+
+    public File getConfigFileDirectory() {
+        return getFileProperty(CONFIG_DIR);
+    }
+
+
+    public File getLogDir() throws IOException {
+        return getFileProperty(LOG_LOCATION);
     }
 
     public Level getLogLevel() {
-        if (this.properties.containsKey(LOG_LEVEL)) {
-            switch (this.properties.getProperty(LOG_LEVEL)) {
+        String logLevel = getProperty(LOG_LEVEL);
+            switch (logLevel) {
                 case "FATAL" :
                     return Level.FATAL;
                 case "ERROR":
@@ -165,50 +153,191 @@ public class PropertyHolder {
                 case "INFO":
                     return Level.INFO;
             }
-        } else {
-            this.properties.put(LOG_LEVEL, "INFO");
-            return Level.INFO;
-        }
     }
 
-    public String getServerurl() {
-        String prefix = "http://"; // TODO later add SSL support
-        String hsotname = getServerHostname();
-        int serverPort = getServerPort();
-        return prefix + hsotname + ":" + serverPort;
+    public String getLogLayoutPattern() {
+        return getProperty(LOG_LAYOUT_PATTERN);
     }
 
-    private String getServerHostname() {
-        if (properties.containsKey(SERVER_HOSTNAME)) {
-            return properties.getProperty(SERVER_HOSTNAME);
-        } else {
-            this.properties.setProperty(SERVER_HOSTNAME, "127.0.0.1");
-            return "127.0.0.1";
-        }
+    public String getLogMaxFileSize() {
+        return getProperty(LOG_MAX_FILE_SIZE);
+    }
+
+    public String getLogMaxBackupIndex() {
+        return getProperty(LOG_MAX_BACKUP_INDEX);
     }
 
     public boolean isSSLAllowAll() {
-        if (properties.containsKey(SSL_ALLOW_ALL)) {
-            return Boolean.parseBoolean(properties.getProperty(SSL_ALLOW_ALL));
+        return getBooleanProperty(SSL_ALLOW_ALL);
+    }
+
+
+
+    // Reporting, reading and writing
+
+    public String reportContent() {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("[PARAMETERS]");
+        stringBuilder.append("\n");
+        for (Map.Entry<Object, Object> entry : this.properties.entrySet()) {
+            stringBuilder.append(entry.getKey());
+            stringBuilder.append('=');
+            stringBuilder.append(entry.getValue());
+            stringBuilder.append('\n');
+        }
+        return stringBuilder.toString();
+    }
+
+    public void write() throws IOException {
+        File target = getConfigFile();
+        if (!target.getParentFile().exists()) {
+            target.mkdirs();
+        }
+        if (target.exists()) {
+            target.delete();
+        }
+        FileOutputStream fos = new FileOutputStream(target);
+        BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(fos));
+        bufferedWriter.append(getExplanationText(appName));
+
+        if (getBaseDir().getAbsolutePath().equals(new File(System.getProperty("user.dir")).getAbsolutePath())) {
+            bufferedWriter.append("#");
+            bufferedWriter.append(BASE_DIR);
+            bufferedWriter.append("=/home/user/working/directory");
         } else {
-            this.properties.setProperty(SSL_ALLOW_ALL, "false");
-            return false;
+            bufferedWriter.append(BASE_DIR);
+            bufferedWriter.append("=");
+            bufferedWriter.append(getProperty(BASE_DIR));
         }
-    }
-
-    public void set(String key, String value) {
-        this.properties.setProperty(key, value);
-    }
-
-    public void persistCurrentConfig() throws IOException {
-        File configFile = this.getConfigFile();
-        this.write(configFile);
-    }
-
-    public boolean getBooleanProperty(String propertyName) {
-        if (properties.containsKey(propertyName)) {
-            return Boolean.parseBoolean(properties.getProperty(propertyName));
+        bufferedWriter.append("\n\n# Logging configuration\n");
+        bufferedWriter.append(LOG_LOCATION);
+        bufferedWriter.append("=");
+        if (!getProperty(LOG_LOCATION).equals(getConfigFileDirectory().getAbsolutePath() + "/logs")) {
+            bufferedWriter.append(getProperty(LOG_LOCATION));
+        } else {
+            bufferedWriter.append("${configdir}/logs");
         }
-        return false;
+        bufferedWriter.append("\n");
+        bufferedWriter.append(LOG_LEVEL);
+        bufferedWriter.append("=");
+        bufferedWriter.append(getProperty(LOG_LEVEL));
+        bufferedWriter.append("\n");
+        bufferedWriter.append(LOG_LAYOUT_PATTERN);
+        bufferedWriter.append("=");
+        bufferedWriter.append(getProperty(LOG_LAYOUT_PATTERN));
+        bufferedWriter.append("\n");
+        bufferedWriter.append(LOG_MAX_FILE_SIZE);
+        bufferedWriter.append("=");
+        bufferedWriter.append(getProperty(LOG_MAX_FILE_SIZE));
+        bufferedWriter.append("\n");
+        bufferedWriter.append(LOG_MAX_BACKUP_INDEX);
+        bufferedWriter.append("=");
+        bufferedWriter.append(getProperty(LOG_MAX_BACKUP_INDEX));
+        bufferedWriter.append("\n");
+        bufferedWriter.append("\n# SSL/TLS handling of the HTTP client\n");
+        if (this.properties.containsKey(SSL_ALLOW_ALL)) {
+            bufferedWriter.append(SSL_ALLOW_ALL);
+            bufferedWriter.append("=");
+            bufferedWriter.append(getProperty(SSL_ALLOW_ALL));
+            bufferedWriter.append("\n");
+        } else {
+            bufferedWriter.append("#");
+            bufferedWriter.append(SSL_ALLOW_ALL);
+            bufferedWriter.append("=true # e.g., if you want to trust all SSL certificates\n");
+        }
+        if (this.properties.containsKey(SSL_ROOT_CERTS)) {
+            bufferedWriter.append(SSL_ROOT_CERTS);
+            bufferedWriter.append("=");
+            bufferedWriter.append(getProperty(SSL_ROOT_CERTS));
+        } else {
+            bufferedWriter.append("#");
+            bufferedWriter.append(SSL_ALLOW_ALL);
+            bufferedWriter.append("/path/to/trusted/X509/root/certificate...\n");
+        }
+        bufferedWriter.append("\n\n# Custom configuration parameters\n");
+        TreeSet<String> otherKeys = new TreeSet<>();
+        List<String> builtin = Arrays.asList(BUILTIN_PARAMS);
+        this.properties.keySet().stream()
+                .map(Object::toString)
+                .filter(key -> !builtin.contains(key))
+                .filter(this.properties::containsKey)
+                .forEach(otherKeys::add);
+        for (String o : otherKeys) {
+            if (!builtin.contains(o)) {
+                bufferedWriter.append(o);
+                bufferedWriter.append("=");
+                bufferedWriter.append(getProperty(o));
+                bufferedWriter.append("\n");
+            }
+        }
+        bufferedWriter.append("\n");
+        bufferedWriter.flush();
+        bufferedWriter.close();
+        fos.flush();
+        fos.close();
     }
+
+
+
+    public static PropertyHolder bootstrap(String appName, File configFilePath) throws IOException {
+        Properties properties = new Properties();
+        if (configFilePath.exists()) {
+            FileInputStream fis = new FileInputStream(configFilePath);
+            properties.load(fis);
+            fis.close();
+        }
+        properties.put(APP_NAME, appName);
+        properties.put(CONFIG_FILE, configFilePath.getAbsolutePath());
+        properties.put(CONFIG_DIR, configFilePath.getParentFile().getAbsolutePath());
+        properties.put(JVM, System.getProperty("java.runtime.version"));
+        if (!properties.containsKey(BASE_DIR)) {
+            properties.put(BASE_DIR, new File(System.getProperty("user.dir")).getAbsolutePath());
+        }
+
+        if (!properties.containsKey(LOG_LOCATION)) {
+            properties.put(LOG_LOCATION, "${" + CONFIG_DIR + "}/logs");
+        }
+        if (!properties.containsKey(LOG_LEVEL)) {
+            properties.put(LOG_LEVEL, "INFO");
+        }
+        if (!properties.containsKey(LOG_LAYOUT_PATTERN)) {
+            properties.put(LOG_LAYOUT_PATTERN, "%d %p %c [%t] %m %ex%n");
+        }
+        if (!properties.containsKey(LOG_MAX_FILE_SIZE)) {
+            properties.put(LOG_MAX_FILE_SIZE, "1MB");
+        }
+        if (!properties.containsKey(LOG_MAX_BACKUP_INDEX)) {
+            properties.put(LOG_MAX_BACKUP_INDEX, "4");
+        }
+
+        PropertyHolder propertyHolder = new PropertyHolder(appName, properties);
+        if (!configFilePath.exists()) {
+            propertyHolder.write();
+        }
+        return propertyHolder;
+    }
+
+
+    private static String getExplanationText(String appName) {
+        return "# " + appName + " configuration file\n" +
+                "\n" +
+                "# This file allows a key-value based configuration of core application parameters for the " + appName + "  application\n" +
+                "# Parameters are defined as follows:\n" +
+                "# key=value\n" +
+                "# you can also use parameter substitution using the ${...} syntax\n" +
+                "# The following variables are implicitly defined\n" +
+                "#    ${appname} --> Contains the string '"+ appName + "'\n" +
+                "#    ${jvm} --> Contains the name of the JVM that is used to run this application\n" +
+                "#    ${workdir} --> Contains the current working directory from where you called " + appName + "\n" +
+                "#    ${config} --> Contains the path to this configuration file\n" +
+                "#    ${configdir} --> Contains the path to the directory that contains this file\n" +
+                "# ${appname}, ${jvm}, ${config} and ${configdir} cannot be overwritten, but ${workdir} can. See below...\n" +
+                "\n" +
+                "# ${workdir} points to the the directory which is used as the reference point for all relative file system references in the application.\n" +
+                "# By default it is the current working directory upon calling "+ appName+"\n";
+    }
+
+
+
+
 }

@@ -53,9 +53,14 @@ public class TargetMultiplicity implements GraphPredicate {
     }
 
     @Override
-    public boolean diagramIsOfType(Diagram diagram) {
-        return diagram.label().getClass().isAssignableFrom(this.getClass()) && ((TargetMultiplicity)diagram.label()).getLowerBound() == lowerBound && ((TargetMultiplicity)diagram.label()).getUpperBound() == upperBound;
+    public boolean labelIsEquivalent(GraphPredicate graphPredicate) {
+        if (graphPredicate instanceof TargetMultiplicity) {
+            TargetMultiplicity other = (TargetMultiplicity) graphPredicate;
+            return this.lowerBound == other.lowerBound && this.upperBound == other.upperBound;
+        }
+        return GraphPredicate.super.labelIsEquivalent(graphPredicate);
     }
+
 
     public static GraphPredicate getInstance(int lowerBound, int upperBound) {
         return new TargetMultiplicity(lowerBound, upperBound);

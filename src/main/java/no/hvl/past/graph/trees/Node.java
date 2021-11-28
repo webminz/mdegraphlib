@@ -218,7 +218,6 @@ public interface Node {
         return childrenByKey(key).map(Branch::child);
     }
 
-
     default Stream<Branch> childrenByKey(String key) {
         return children().filter(child -> child.label().equals(key));
     }
@@ -242,7 +241,6 @@ public interface Node {
     default Optional<Node> parent() {
         return parentRelation().map(Branch::parent);
     }
-
 
     default Stream<Node> siblings() {
         if (!parentRelation().isPresent()) {
@@ -268,7 +266,6 @@ public interface Node {
         return children().map(Branch::child).anyMatch(n -> n.contains(nodeName));
     }
 
-
     default void aggregateSubtree(Set<Triple> result) {
         result.add(Triple.node(elementName()));
         children().forEach(child -> {
@@ -277,11 +274,15 @@ public interface Node {
         });
     }
 
-
     default Stream<Triple> subTree() {
         Set<Triple> result = new HashSet<>();
         aggregateSubtree(result);
         return result.stream();
     }
+
+    default int depth() {
+        return children().map(b -> b.child().depth()).max(Integer::compare).orElse(0) + 1;
+    }
+
 
 }

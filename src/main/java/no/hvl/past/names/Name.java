@@ -10,6 +10,9 @@ import no.hvl.past.util.ProperComparator;
 
 import java.lang.reflect.Array;
 import java.math.BigInteger;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.*;
 
 /**
@@ -25,19 +28,31 @@ import java.util.*;
  */
 public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
 
+    // single names start at 0xE0
     static final byte IDENTIFIER_MAGIC_BYTE = (byte) 0x00E0;
-    static final byte VARIABLE_MAGIC_BYTE = (byte) 0x00E1;
-    protected static final byte BOOL_VALUE_MAGIC_BYTE = (byte) 0x00E2;
-    protected static final byte INT_VALUE_MAGIC_BYTE = (byte) 0x00E3;
-    protected static final byte FLOAT_VALUE_MAGIC_BYTE = (byte) 0x00E4;
-    protected static final byte STRING_VALUE_MAGIC_BYTE = (byte) 0x00E5;
+    static final byte ANONYMOUS_IDENTIFIER_BYTE = (byte) 0x00E1;
+    static final byte URI_IDENTIFIER_BYTE = (byte) 0x00E2;
+    static final byte UUID_IDENTIFIER_BYTE = (byte) 0x00E3;
+    static final byte USER_DEFINED_IDENTIFIER = (byte) 0x00E4;
+
+    static final byte VARIABLE_MAGIC_BYTE = (byte) 0x00E5;
+
     protected static final byte USER_VALUE_MAGIC_BYTE = (byte) 0x00E6;
+
+    protected static final byte BOOL_VALUE_MAGIC_BYTE = (byte) 0x00E7;
+    protected static final byte INT_VALUE_MAGIC_BYTE = (byte) 0x00E8;
+    protected static final byte FLOAT_VALUE_MAGIC_BYTE = (byte) 0x00E9;
+    protected static final byte STRING_VALUE_MAGIC_BYTE = (byte) 0x00EA;
+    // room for more built-in values
     protected static final byte ERROR_VALUE = (byte) 0x00EF;
+
+    // multiple names start at 0xF0
     static final byte PREFIX_MAGIC_BYTE = (byte) 0x00F0;
-    static final byte UNARY_OP_MAGIC_BYTE = (byte) 0x00F1;
-    static final byte BINARY_OP_MAGIC_BYTE = (byte) 0x00F2;
-    static final byte MERGE_MAGIC_BYTE = (byte) 0x00F3;
-    static final byte INDEX_MAGIC_BYTE = (byte) 0x00F4;
+    static final byte INDEX_MAGIC_BYTE = (byte) 0x00F1;
+    static final byte UNARY_OP_MAGIC_BYTE = (byte) 0x00F2;
+    static final byte BINARY_OP_MAGIC_BYTE = (byte) 0x00F3;
+    static final byte MULTIARY_OP_MAGIC_BYTE = (byte) 0x00F4;
+    static final byte NAME_SET_MAGIC_BYT = (byte) 0x00FF;
 
 
     /**
@@ -90,10 +105,23 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
         return lhs.compareWith(rhs);
     }
 
+
+
+    @Override
+    public boolean isSatisfied(Model<NameSet> model) {
+        // Every Name is also an atomic propositional formula
+        if (model instanceof NameSet) {
+            NameSet instance = (NameSet) model;
+            return instance.contains(this);
+        }
+        return false;
+    }
+
     /**
      * Compares two names with each other.
      * Normally names are either equal or non-comparable, i.e. a discrete partial order.
-     * But some sub-classes of names (e.g. values, indices, user defined identifiers,...) may have a total order.
+     * But some sub-classes of names (e.g. values, indices, user defined identifiers,...) may have a more refined
+     * notion of order. In this case this method may be overwritten while still assuring the contract of this method.
      */
     public CompareResult compareWith(Name other) {
         if (identity(other)) {
@@ -161,6 +189,11 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
     public abstract Name unprefix(Name name);
 
     public abstract Name unprefixAll();
+
+    public Name unprefixTop() {
+        return this;
+    }
+
 
     // Typing
 
@@ -285,7 +318,6 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
 
     public Name absolute() {
         return new UnaryCombinator(this, UnaryCombinator.Operation.ABSOLUTE);
-
     }
 
     public Name index(long idx) {
@@ -303,6 +335,30 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
     public Name childOf(Name parent) {
         return new BinaryCombinator(this, parent, BinaryCombinator.Operation.CHILD_OF);
     };
+
+    public Name substitution(Name name) {
+        return new BinaryCombinator(this, name, BinaryCombinator.Operation.SUBSTITUTION);
+    }
+
+    public Name source() {
+        return new UnaryCombinator(this, UnaryCombinator.Operation.SOURCE);
+    }
+
+    public Name target() {
+        return new UnaryCombinator(this, UnaryCombinator.Operation.TARGET);
+    }
+
+    public String printRaw() {
+        return this.print(PrintingStrategy.IGNORE_PREFIX);
+    }
+
+    public boolean isProjection() {
+        return false;
+    }
+
+    public Name asResult() {
+        return new UnaryCombinator(this, UnaryCombinator.Operation.RESULT);
+    }
 
 
     // Factory methods
@@ -355,37 +411,12 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
         return new BoolValue(false);
     }
 
-    public  Name unprefixTop() {
-        return this;
+
+    public static URIName uri(String uri) throws URISyntaxException {
+        new URI(uri);
+        return new URIName(uri);
     }
 
-    @Override
-    public boolean isSatisfied(Model<NameSet> model) {
-        // Every Name is also an atomic propositional formula
-        if (model instanceof NameSet) {
-            NameSet instance = (NameSet) model;
-            return instance.contains(this);
-        }
-        return false;
-    }
 
-    public Name substitution(Name name) {
-        return new BinaryCombinator(this, name, BinaryCombinator.Operation.SUBSTITUTION);
-    }
 
-    public Name source() {
-        return new UnaryCombinator(this, UnaryCombinator.Operation.SOURCE);
-    }
-
-    public Name target() {
-        return new UnaryCombinator(this, UnaryCombinator.Operation.TARGET);
-    }
-
-    public String printRaw() {
-        return this.print(PrintingStrategy.IGNORE_PREFIX);
-    }
-
-    public boolean isProjection() {
-        return false;
-    }
 }

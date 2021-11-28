@@ -37,6 +37,7 @@ public class NodePlotElement extends PlotElement{
 
         @Override
         public void writePlantUML(Writer writer) throws IOException {
+            writer.append("   ");
             writer.append(name);
             if (typeName != null) {
                 writer.append(" : ");
@@ -114,7 +115,7 @@ public class NodePlotElement extends PlotElement{
             compartment.writePlantUML(writer);
         }
 
-        writer.append("}\n");
+        writer.append("}\n\n");
 
     }
 }

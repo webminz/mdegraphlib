@@ -45,15 +45,15 @@ public class QualifiedName {
     }
 
 
-    public static QualifiedName qref(Name systemURI, Name element) {
+    public static QualifiedName qname(Name systemURI, Name element) {
         return new QualifiedName(systemURI, element);
     }
 
-    public static QualifiedName qref(String systemURI, Name element) {
+    public static QualifiedName qname(String systemURI, Name element) {
         return new QualifiedName(Name.identifier(systemURI), element); // TODO exchange later with a proper URI type
     }
 
-    public static QualifiedName qref(Sys system, Name element) {
+    public static QualifiedName qname(Sys system, Name element) {
         return new QualifiedName(Name.identifier(system.url()), element);
     }
 }

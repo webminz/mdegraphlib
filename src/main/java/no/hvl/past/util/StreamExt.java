@@ -1,4 +1,6 @@
 package no.hvl.past.util;
+import org.checkerframework.checker.nullness.Opt;
+
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.*;
@@ -13,6 +15,21 @@ public class StreamExt<X> implements Stream<X>{
 
     private StreamExt(Stream<X> wrapped) {
         this.wrapped = wrapped;
+    }
+
+
+    public static <Z> Z pickOne(Collection<Z> collection) throws NoSuchElementException {
+        return collection.stream().findFirst().orElseThrow(NoSuchElementException::new);
+    }
+
+    public static <Z> Optional<Z> pickOneSafe(Collection<Z> collection) {
+        return collection.stream().findFirst();
+    }
+
+
+    @SuppressWarnings("unchecked")
+    public <Y> StreamExt<Y> filterByType(Class<Y> type) {
+        return new StreamExt<>(wrapped.filter(x -> type.isAssignableFrom(x.getClass()))).map(x -> (Y) x);
     }
 
     public boolean isEmpty() {

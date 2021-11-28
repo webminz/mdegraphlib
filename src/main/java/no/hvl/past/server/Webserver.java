@@ -1,6 +1,7 @@
 package no.hvl.past.server;
 
 import io.javalin.Javalin;
+import io.javalin.core.event.EventHandler;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.LinkedHashMap;
@@ -14,19 +15,6 @@ public class Webserver {
         this.javalin = javalin;
     }
 
-    public void registerOptions(WebserviceRequestHandler handler, Map<String, String> options) {
-            this.javalin.options(handler.getContextPath(), ctx -> {
-                HttpServletResponse response = ctx.res;
-                for (Map.Entry<String, String> entries : options.entrySet()) {
-                    response.setHeader(entries.getKey(), entries.getValue());
-                }
-                response.setHeader("Content-Type", null);
-                response.setHeader("Content-Length", "0");
-
-                response.setStatus(204);
-            });
-
-    }
 
     public void registerHandler(WebserviceRequestHandler handler) {
         switch (handler.getMethod()) {
@@ -56,10 +44,12 @@ public class Webserver {
         this.javalin.stop();
     }
 
-    public static Webserver start(int port) {
+    public static Webserver start(int port, EventHandler startedHandler, EventHandler stoppedHandler) {
         Javalin javalin = Javalin.create(config -> {
-
             config.enableCorsForAllOrigins();
+        }).events(event -> {
+            event.serverStarted(startedHandler);
+            event.serverStopped(stoppedHandler);
         }).start(port);
         return new Webserver(javalin);
     }

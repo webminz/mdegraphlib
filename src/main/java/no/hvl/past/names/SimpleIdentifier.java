@@ -1,11 +1,19 @@
 package no.hvl.past.names;
 
+import no.hvl.past.util.ByteUtils;
+
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 /**
  * A simple identifier that is given by a human readable String.
  */
 public final class SimpleIdentifier extends Identifier {
+
+    @Override
+    public final byte[] getValue() {
+        return ByteUtils.prefix(IDENTIFIER_MAGIC_BYTE, name.getBytes(StandardCharsets.UTF_8));
+    }
 
     /**
      * Should be a FQN in the respective scope.
@@ -16,15 +24,6 @@ public final class SimpleIdentifier extends Identifier {
         this.name = name;
     }
 
-    @Override
-    public Optional<String> getAuthority() {
-        return Optional.empty();
-    }
-
-    @Override
-    public byte[] serialize() {
-        return name.getBytes();
-    }
 
     @Override
     public String toString() {

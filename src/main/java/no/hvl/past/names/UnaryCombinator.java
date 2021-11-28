@@ -69,8 +69,12 @@ public final class UnaryCombinator extends Combinator {
             public String print(PrintingStrategy strategy, String nested) {
                 return strategy.target(nested);
             }
-        };
+        }, RESULT {
+            public String print(PrintingStrategy strategy, String nested) {
+                return strategy.resultOf(nested);
+            }
 
+        };
 
 
 

@@ -11,7 +11,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class GraphPredicateTest extends AbstractGraphTest {
+public class GraphPredicateTest extends TestWithGraphLib {
 
 
     // one node predicates

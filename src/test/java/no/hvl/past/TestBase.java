@@ -33,8 +33,6 @@ public class TestBase {
         logger.throwing(getClass().getName(), Thread.currentThread().getStackTrace()[2].getMethodName(), ex);
     }
 
-
-
     protected static String getHostname() {
         try {
             return InetAddress.getLocalHost().getHostName();

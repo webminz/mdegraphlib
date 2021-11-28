@@ -1,6 +1,7 @@
 package no.hvl.past.graph;
 
 
+import no.hvl.past.logic.Formula;
 import no.hvl.past.plugin.ExtensionPoint;
 import no.hvl.past.logic.Model;
 
@@ -36,12 +37,25 @@ public interface GraphPredicate extends GraphTheory, ExtensionPoint {
     }
 
     default boolean diagramIsOfType(Diagram diagram) {
-        return diagram.label().getClass().isAssignableFrom(getClass());
+        if (diagram.label() instanceof GraphPredicate) {
+            return labelIsEquivalent((GraphPredicate) diagram.label());
+        }
+        return false;
     }
 
     default Stream<Diagram> diagramsWithType(Sketch sketch) {
         return sketch.diagrams().filter(this::diagramIsOfType);
     }
 
+    default boolean labelIsEquivalent(GraphPredicate graphPredicate) {
+        return graphPredicate.getClass().isAssignableFrom(getClass());
+    }
 
+    @Override
+    default Formula<Graph> iff(Formula<Graph> other) {
+        if (other instanceof GraphPredicate) {
+            return ((GraphPredicate) other).labelIsEquivalent(this) ? Formula.top() : Formula.bot();
+        }
+        return GraphTheory.super.iff(other);
+    }
 }

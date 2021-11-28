@@ -2,9 +2,7 @@ package no.hvl.past.server;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import no.hvl.past.util.GenericIOHandler;
-import no.hvl.past.util.Observer;
 import org.junit.Test;
 
 import java.io.*;
@@ -21,7 +19,7 @@ public class WebserverTest {
 
     @Test
     public void testWebserver() {
-        Webserver webserver = Webserver.start(9001);
+        Webserver webserver = Webserver.start(9001, () -> {}, () -> {});
         webserver.registerHandler(new WebserviceRequestHandler("/json", HttpMethod.GET, WebserviceRequestHandler.ResponseType.JSON) {
 
             @Override

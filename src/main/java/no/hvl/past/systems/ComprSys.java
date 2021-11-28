@@ -1,63 +1,52 @@
 package no.hvl.past.systems;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import no.hvl.past.graph.*;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.keys.Key;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.PrintingStrategy;
+import no.hvl.past.util.Holder;
+import no.hvl.past.util.Pair;
 import no.hvl.past.util.PartitionAlgorithm;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public interface ComprSys extends Sys {
+public class ComprSys implements Sys {
+
+    // TODO move them a different place (e.g. the AddImplicitIdentities) such their names are configurable.
+    public static final Name GLOBAL_STRING_NAME = Name.identifier("String");
+    public static final Name GLOBAL_INT_NAME = Name.identifier("Integer");
+    public static final Name GLOBAL_FLOAT_NAME = Name.identifier("Float");
+    public static final Name GLOBAL_BOOL_NAME = Name.identifier("Bool");
 
 
-     static final Name GLOBAL_STRING_NAME = Name.identifier("String");
-     static final Name GLOBAL_INT_NAME = Name.identifier("Integer");
-     static final Name GLOBAL_FLOAT_NAME = Name.identifier("Float");
-     static final Name GLOBAL_BOOL_NAME = Name.identifier("Bool");
+    public static class ConstructionException extends RuntimeException {
 
+        private final Name comprSysName;
+        private static final String PREFIX_1 = "Could not create comprehensive systems with name '";
+        private static final String PREFIX_2 = "' because ";
 
-
-    // TODO reorganize the testcases, fix compile error and make sure that they are green
-
-    // TODO no unprefixing here, support for inheritance,
-
-    static QName qname(Sys container, Name elmentName) {
-        return new QName(container, elmentName);
-    }
-
-    Stream<ConsistencyRule> rules();
-
-    Optional<Name> projection(Sys origin, Name targetType);
-
-
-    class QName {
-        private final Sys container;
-        private final Name elementName;
-
-        public QName(Sys container, Name elementName) {
-            this.container = container;
-            this.elementName = elementName;
+        public ConstructionException(String message, Name comprSysName) {
+            super(PREFIX_1 + comprSysName.print(PrintingStrategy.DETAILED) + PREFIX_2 + message);
+            this.comprSysName = comprSysName;
         }
 
-        public Sys getContainer() {
-            return container;
-        }
-
-        public Name getElementName() {
-            return elementName;
+        public Name getComprSysName() {
+            return comprSysName;
         }
     }
 
-
-    class Builder {
+    public static class Builder {
 
         private final Universe universe;
         private final List<Sys> localSystems;
         private final Name name;
+        private final Map<Name, Sys> sysMap = new HashMap<>();
         private final Map<Sys, GraphBuilders> projectionBuilders = new LinkedHashMap<>();
         private final GraphBuilders commonalitiesBuilder;
         private final Set<Name> identities = new HashSet<>();
@@ -65,6 +54,8 @@ public interface ComprSys extends Sys {
         private final Set<Key> keys = new HashSet<>();
         private final Map<Sys, GraphMorphism> embeddings = new LinkedHashMap<>();
         private final Set<ConsistencyRule> rules = new HashSet<>();
+        private final Map<Name, String> namingMap = new HashMap<>();
+        private final Map<Name, MessageType> messages = new LinkedHashMap<>();
 
         private String url = "http://localhost";
         private Star star;
@@ -86,40 +77,50 @@ public interface ComprSys extends Sys {
 
         public Builder addSystem(Sys sys) {
             this.localSystems.add(sys);
+            this.sysMap.put(Name.identifier(sys.url()), sys);
             this.projectionBuilders.put(sys, new GraphBuilders(universe, false, false));
             return this;
         }
 
+        public Builder renderedName(Name name, String raw) {
+            this.namingMap.put(name, raw);
+            return this;
+        }
 
-        public Builder nodeCommonality(Name commonalityName, QName... related) {
+        private Sys sys(QualifiedName qualifiedName) {
+            return sysMap.get(qualifiedName.getSystem());
+        }
+
+
+        public Builder nodeCommonality(Name commonalityName, QualifiedName... related) {
             commonalitiesBuilder.node(commonalityName);
-            for (QName rel : related) {
-                this.projectionBuilders.get(rel.container).map(commonalityName, rel.elementName);
+            for (QualifiedName rel : related) {
+                this.projectionBuilders.get(sys(rel)).map(commonalityName, rel.getElement());
             }
             return this;
         }
 
-        public Builder nodeCommonality(Name commonalityName, List<QName> related) {
+        public Builder nodeCommonality(Name commonalityName, List<QualifiedName> related) {
             commonalitiesBuilder.node(commonalityName);
-            for (QName rel : related) {
-                this.projectionBuilders.get(rel.container).map(commonalityName, rel.elementName);
+            for (QualifiedName rel : related) {
+                this.projectionBuilders.get(sys(rel)).map(commonalityName, rel.getElement());
             }
             return this;
         }
 
 
-        public Builder edgeCommonality(Name sourceCommonality, Name label, Name targetCommonality, QName... related) {
+        public Builder edgeCommonality(Name sourceCommonality, Name label, Name targetCommonality, QualifiedName... related) {
             commonalitiesBuilder.edge(sourceCommonality, label, targetCommonality);
-            for (QName rel : related) {
-                this.projectionBuilders.get(rel.container).map(label, rel.elementName);
+            for (QualifiedName rel : related) {
+                this.projectionBuilders.get(sys(rel)).map(label, rel.getElement());
             }
             return this;
         }
 
-        public Builder edgeCommonality(Name sourceCommonality, Name label, Name targetCommonality, List<QName> related) {
+        public Builder edgeCommonality(Name sourceCommonality, Name label, Name targetCommonality, List<QualifiedName> related) {
             commonalitiesBuilder.edge(sourceCommonality, label, targetCommonality);
-            for (QName rel : related) {
-                this.projectionBuilders.get(rel.container).map(label, rel.elementName);
+            for (QualifiedName rel : related) {
+                this.projectionBuilders.get(sys(rel)).map(label, rel.getElement());
             }
             return this;
         }
@@ -230,50 +231,118 @@ public interface ComprSys extends Sys {
             comprehensiveSchemaBuilder.graph(name.absolute());
 
             Set<Name> diagramsWithCoordination = new HashSet<>();
-            Set<MessageType> messages = new HashSet<>();
+            Multimap<Name, Pair<MessageType, GraphMorphism>> mergedMessages = HashMultimap.create();
 
-            // Moving all diagrams up
+
+            // Moving all diagrams (by recreation) up and translating message types
             this.star.apex().diagrams().forEach(diagram -> {
                 GraphMorphism compose = union.inclusionOf(this.name).get().compose(superobject).compose(congruence);
-                moveDiagram(comprehensiveSchemaBuilder, diagramsWithCoordination, messages, diagram, compose);
+                moveDiagram(comprehensiveSchemaBuilder, diagramsWithCoordination, diagram, compose);
             });
+
             for (Sys s : this.localSystems) {
+
+                s.messages().forEach(msg -> {
+                    // Identifications of messages creates global messages
+                    Name translatedMsgName = embeddings.get(s).map(msg.typeName()).get();
+                    if (identities.contains(translatedMsgName.unprefixTop())) {
+                        mergedMessages.put(translatedMsgName, new Pair<>(msg, embeddings.get(s)));
+                    } else {
+                        // Non merged messages are just renamed
+                        messages.put(translatedMsgName, msg.substitute(embeddings.get(s)));
+                    }
+                });
+
+                // moves diagram along the injection morphism
                 s.schema().diagrams().forEach(diagram -> {
-                    moveDiagram(comprehensiveSchemaBuilder, diagramsWithCoordination, messages,  diagram, this.embeddings.get(s));
+                    moveDiagram(comprehensiveSchemaBuilder, diagramsWithCoordination, diagram, this.embeddings.get(s));
                 });
             }
-            // TODO turn keys into diagrams
 
-            // TODO coordinate diagrams
+            // Building global messages
+            for (Name k : mergedMessages.keySet()) {
+                Set<Name> alreadySeen = new HashSet<>();
+                List<MessageArgument> ins = new ArrayList<>();
+                List<MessageArgument> outs = new ArrayList<>();
 
-            this.comprehensiveSchema = comprehensiveSchemaBuilder.sketch(name).getResult(Sketch.class).restrict(messages);
+                Holder<Name> msgContainerName = new Holder<>();
+                for (Pair<MessageType, GraphMorphism> p : mergedMessages.get(k)) {
+                    if (p.getLeft().getGroup().isPresent()) {
+                        Name containerName = p.getRight().map(p.getLeft().getGroup().get().getTypeName()).get();
+                        if (!msgContainerName.hasValue()) {
+                            msgContainerName.set(containerName);
+                        } else if (!msgContainerName.unsafeGet().equals(containerName)) {
+                            throw new ConstructionException("Message containers '" +
+                                    msgContainerName.unsafeGet().print(PrintingStrategy.DETAILED) +
+                                    "' and '" + p.getLeft().getGroup().get().getTypeName().print(PrintingStrategy.DETAILED) +
+                                    "' have not been identified!", this.name);
+                        }
+                    }
+                }
 
-            // TODO build morphisms properly using a builder to get inheritance morphisms ?!
+                MessageType messageType = new MessageType(k, ins, outs, msgContainerName.safeGet().map(MessageContainer::new).orElse(null), mergedMessages.get(k).stream().anyMatch(p -> p.getLeft().hasSideEffects()));
+
+                for (Pair<MessageType, GraphMorphism> p : mergedMessages.get(k)) {
+                    for (MessageArgument in : p.getLeft().inputs()) {
+                        argumentTranslation(alreadySeen, ins, messageType, p, in,false);
+                    }
+                    for (MessageArgument out : p.getLeft().outputs()) {
+                        argumentTranslation(alreadySeen, outs, messageType, p, out,true);
+                    }
+                }
+                messages.put(k, messageType);
+            }
+
+
+            this.comprehensiveSchema = comprehensiveSchemaBuilder.sketch(name).getResult(Sketch.class);
+
+            // TODO recreate morphisms using a builder to get inheritance morphisms ?!
 
             for (Name sync : this.syncs) {
-                Set<QName> collect = comprehensiveSchema.carrier().outgoing(sync.prefixWith(name))
+                Set<QualifiedName> collect = comprehensiveSchema.carrier().outgoing(sync.prefixWith(name))
                         .filter(Triple::isEddge)
                         .map(Triple::getTarget)
                         .map(n -> {
                             Name sys = n.firstPart();
                             Name el = n.secondPart();
-                            return new QName(localSystems.stream().filter(s -> s.schema().getName().equals(sys)).findFirst().get(), el);
+                            // TODO this should be made nicer!
+                            return new QualifiedName(
+                                    Name.identifier(localSystems.stream().filter(s -> s.schema().getName().equals(sys)).findFirst().get().url()),
+                                    el);
                         })
                         .collect(Collectors.toSet());
                 this.rules.add(new SynchronizationRule(sync, collect, new ArrayList<>()));
             }
         }
 
+        private void argumentTranslation(
+                Set<Name> alreadySeen,
+                List<MessageArgument> ins,
+                MessageType messageType,
+                Pair<MessageType, GraphMorphism> p,
+                MessageArgument in,
+                boolean isOutput) {
+            Name translatedLabel = p.getRight().map(in.asEdge().getLabel()).get();
+            if (identities.contains(translatedLabel)) {
+                if (!alreadySeen.contains(translatedLabel)) {
+                    alreadySeen.add(translatedLabel);
+                    int idx = ins.size();
+                    ins.add(new MessageArgument(messageType, p.getRight().apply(in.asEdge()).get(), idx, isOutput));
+                }
+            } else {
+                int idx = ins.size();
+                ins.add(new MessageArgument(messageType, p.getRight().apply(in.asEdge()).get(), idx, isOutput));
+            }
+        }
+
         private void moveDiagram(
                 GraphBuilders comprehensiveSchemaBuilder,
                 Set<Name> diagramsWithCoordination,
-                Set<MessageType> messages,
                 Diagram diagram,
                 GraphMorphism compose) {
-            if (diagram instanceof MessageType) {
-                messages.add( ((MessageType) diagram).substitue(compose));
-            } else if (diagram.label() instanceof GraphTheory) {
-                comprehensiveSchemaBuilder.startDiagram((GraphTheory) diagram.label()); // TODO dangerous ?!
+            // TODO dangerous ?! re-evaluate
+            if (diagram.label() instanceof GraphTheory) {
+                comprehensiveSchemaBuilder.startDiagram((GraphTheory) diagram.label());
                 diagram.binding().mappings().forEach(t -> {
                     Optional<Name> target = compose.map(t.getCodomain());
                     if (target.isPresent()) {
@@ -330,10 +399,11 @@ public interface ComprSys extends Sys {
             comprehensiveSystemConstruction();
 
 
-            return new ComprSys.Impl(
+            return new ComprSys(
                     url,
                     comprehensiveSchema,
-                    new HashMap<>(),
+                    namingMap,
+                    messages,
                     embeddings,
                     identities,
                     keys,
@@ -341,147 +411,136 @@ public interface ComprSys extends Sys {
         }
     }
 
-
-    class Impl implements ComprSys {
-
-        private final String url;
-        private final Sketch comprehensiveSchema;
-        private final Map<Name, String> namingMap;
-        private final Map<Sys, GraphMorphism> systemsWithEmbeddings;
-        private final Set<Name> mergedElements;
-        private final Set<Key> keys;
-        private final Set<ConsistencyRule> rules;
+    private final String url;
+    private final Sketch comprehensiveSchema;
+    private final Map<Name, String> namingMap;
+    private final Map<Name, MessageType> messages;
+    private final Map<Sys, GraphMorphism> systemsWithEmbeddings;
+    private final Set<Name> mergedElements;
+    private final Set<Key> keys;
+    private final Set<ConsistencyRule> rules;
 
 
-        public Impl(
-                String url,
-                Sketch comprehensiveSchema,
-                Map<Name, String> namingMap,
-                Map<Sys, GraphMorphism> systemsWithEmbeddings,
-                Set<Name> mergedElements,
-                Set<Key> keys, Set<ConsistencyRule> rules) {
-            this.url = url;
-            this.comprehensiveSchema = comprehensiveSchema;
-            this.namingMap = namingMap;
-            this.systemsWithEmbeddings = systemsWithEmbeddings;
-            this.mergedElements = mergedElements;
-            this.keys = keys;
-            this.rules = rules;
-        }
-
-
-        @Override
-        public Stream<Key> keys() {
-            return keys.stream();
-        }
-
-        @Override
-        public Stream<ConsistencyRule> rules() {
-            return rules.stream();
-        }
-
-        @Override
-        public Optional<Name> projection(Sys origin, Name comm) {
-            return comprehensiveSchema.carrier()
-                    .outgoing(comm.prefixWith(comprehensiveSchema.getName()))
-                    .filter(t -> t.getTarget().firstPart().equals(origin.schema().getName()))
-                    .findFirst()
-                    .map(Triple::getTarget)
-                    .map(Name::secondPart);
-        }
-
-        @Override
-        public Stream<Key> relationKeys() {
-            return keys.stream().filter(key -> !mergedElements.contains(key.targetType()));
-        }
-
-        @Override
-        public GraphMorphism embeddingOf(Sys sys) {
-            return this.systemsWithEmbeddings.get(sys);
-        }
-
-        @Override
-        public Stream<Sys> components() {
-            return systemsWithEmbeddings.keySet().stream();
-        }
-
-        @Override
-        public boolean isMerged(Name elementName) {
-            return mergedElements.contains(elementName);
-        }
-
-        @Override
-        public Stream<Name> localNames(Sys component, Name elementName) {
-            GraphMorphism morphism = this.systemsWithEmbeddings.get(component);
-            return comprehensiveSchema.carrier().get(elementName).map(t -> morphism.allInstances(t).map(Triple::getLabel)).orElse(Stream.empty());
-        }
-
-        @Override
-        public String displayName(Name name) {
-            return name.print(PrintingStrategy.IGNORE_PREFIX);
-//            if (namingMap.containsKey(name)) {
-//                return namingMap.get(name);
-//            }
-//            for (Sys sys : systemsWithEmbeddings.keySet()) {
-//                String s = sys.displayName(name);
-//                if (s != null && !s.isEmpty()) {
-//                    return s;
-//                }
-//            }
-//            return name.print(PrintingStrategy.IGNORE_PREFIX);
-        }
-
-        @Override
-        public Optional<Triple> lookup(String... path) {
-            if (path.length == 0) {
-                return Optional.empty();
-            }
-            Optional<Sys> isSystemPrefix = systemsWithEmbeddings.keySet().stream().filter(sys -> sys.schema().getName().equals(Name.identifier(path[0]))).findFirst();
-            if (isSystemPrefix.isPresent()) {
-                String[] lookup = new String[path.length - 1];
-                for (int i = 1; i < path.length; i++) {
-                    lookup[i - 1] = path[i];
-                }
-                return isSystemPrefix.get().lookup(lookup);
-            }
-            Name prefixedName = Name.identifier(path[path.length - 1]);
-            if (path.length > 1) {
-                for (int i = path.length - 2; i >= 0; i--) {
-                    prefixedName = prefixedName.prefixWith(Name.identifier(path[i]));
-                }
-            }
-            return comprehensiveSchema.carrier().get(prefixedName);
-        }
-
-        @Override
-        public Sketch schema() {
-            return comprehensiveSchema;
-        }
-
-        @Override
-        public String url() {
-            return url;
-        }
+    public ComprSys(
+            String url,
+            Sketch comprehensiveSchema,
+            Map<Name, String> namingMap,
+            Map<Name, MessageType> messages,
+            Map<Sys, GraphMorphism> systemsWithEmbeddings,
+            Set<Name> mergedElements,
+            Set<Key> keys,
+            Set<ConsistencyRule> rules) {
+        this.url = url;
+        this.comprehensiveSchema = comprehensiveSchema;
+        this.namingMap = namingMap;
+        this.messages = messages;
+        this.systemsWithEmbeddings = systemsWithEmbeddings;
+        this.mergedElements = mergedElements;
+        this.keys = keys;
+        this.rules = rules;
     }
 
 
-    Stream<Key> relationKeys();
-
-
-    GraphMorphism embeddingOf(Sys sys);
-
-    Stream<Sys> components();
-
-    boolean isMerged(Name elementName);
-
-    Stream<Name> localNames(Sys component, Name elementName);
-
-    default Stream<Key> keys() {
-        return schema().diagrams().filter(diagram -> diagram instanceof Key).map(diagram -> (Key) diagram);
+    public Stream<Key> keys() {
+        return keys.stream();
     }
 
-    default Stream<MessageType> globalMessages() {
-        return messages().filter(msg -> isMerged(msg.typeName()));
+    public Stream<ConsistencyRule> rules() {
+        return rules.stream();
     }
 
+    public Optional<Name> projection(Sys origin, Name comm) {
+        return comprehensiveSchema.carrier()
+                .outgoing(comm.prefixWith(comprehensiveSchema.getName()))
+                .filter(t -> t.getTarget().firstPart().equals(origin.schema().getName()))
+                .findFirst()
+                .map(Triple::getTarget)
+                .map(Name::secondPart);
+    }
+
+    public Stream<Key> relationKeys() {
+        return keys.stream().filter(key -> !mergedElements.contains(key.targetType()));
+    }
+
+    public GraphMorphism embeddingOf(Sys sys) {
+        return this.systemsWithEmbeddings.get(sys);
+    }
+
+    public Stream<Sys> components() {
+        return systemsWithEmbeddings.keySet().stream();
+    }
+
+    public boolean isMerged(Name elementName) {
+        return mergedElements.contains(elementName);
+    }
+
+    public Stream<Name> localNames(Sys component, Name elementName) {
+        GraphMorphism morphism = this.systemsWithEmbeddings.get(component);
+        return comprehensiveSchema.carrier().get(elementName).map(t -> morphism.allInstances(t).map(Triple::getLabel)).orElse(Stream.empty());
+    }
+
+    @Override
+    public String displayName(Name name) {
+        if (this.namingMap.containsKey(name)) {
+            return this.namingMap.get(name);
+        }
+        if (name.hasPrefix(this.comprehensiveSchema.getName())) {
+            return name.printRaw();
+        }
+        for (Sys s : this.systemsWithEmbeddings.keySet()) {
+            if (name.hasPrefix(s.schema().getName())) {
+                return s.displayName(name.unprefixTop());
+            }
+        }
+        // Should not happen
+        return name.printRaw();
+    }
+
+    @Override
+    public Optional<Triple> lookup(String... path) {
+        if (path.length == 0) {
+            return Optional.empty();
+        }
+        Optional<Sys> isSystemPrefix = systemsWithEmbeddings.keySet().stream().filter(sys -> sys.schema().getName().equals(Name.identifier(path[0]))).findFirst();
+        if (isSystemPrefix.isPresent()) {
+            String[] lookup = new String[path.length - 1];
+            for (int i = 1; i < path.length; i++) {
+                lookup[i - 1] = path[i];
+            }
+            return isSystemPrefix.get().lookup(lookup);
+        }
+        Name prefixedName = Name.identifier(path[path.length - 1]);
+        if (path.length > 1) {
+            for (int i = path.length - 2; i >= 0; i--) {
+                prefixedName = prefixedName.prefixWith(Name.identifier(path[i]));
+            }
+        }
+        return comprehensiveSchema.carrier().get(prefixedName);
+    }
+
+    @Override
+    public Sketch schema() {
+        return comprehensiveSchema;
+    }
+
+    @Override
+    public String url() {
+        return url;
+    }
+
+    @Override
+    public Stream<MessageType> messages() {
+        return messages.values().stream();
+    }
+
+
+    @Override
+    public MessageType getMessageType(Name type) {
+        return messages.get(type);
+    }
+
+    @Override
+    public boolean isMessageType(Name typeName) {
+        return messages.containsKey(typeName);
+    }
 }

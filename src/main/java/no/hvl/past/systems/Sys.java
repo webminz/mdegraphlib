@@ -8,9 +8,7 @@ import no.hvl.past.graph.predicates.*;
 import no.hvl.past.graph.trees.TreeBuildStrategy;
 import no.hvl.past.names.Name;
 import no.hvl.past.util.Pair;
-import no.hvl.past.util.StringUtils;
 
-import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -24,16 +22,20 @@ import java.util.stream.Stream;
  */
 public interface Sys {
 
+    interface SysBuilderParent {
+        Triple getEdgeByLabel(Name edgeLabel);
+        SysBuilderParent addMessage(MessageType msg);
+    }
 
-    class Builder {
-
+    class Builder implements SysBuilderParent {
         private final String url;
         private final Sketch sketch;
         private final Map<Name, String> displayNames;
-        private Set<MessageType> messages = new LinkedHashSet<>();
+        private Map<Name, MessageType> messages = new LinkedHashMap<>();
 
-        void addMessage(MessageType msg) {
-            this.messages.add(msg);
+        public Builder addMessage(MessageType msg) {
+            this.messages.put(msg.typeName(), msg);
+            return this;
         }
 
         public Builder(String url, Sketch sketch) {
@@ -47,12 +49,96 @@ public interface Sys {
             return this;
         }
 
-        public MessageType.Builder beginMessage(Name msgType) {
-            return new MessageType.Builder(sketch.carrier(), msgType, this);
+        public MessageBuilder<Builder> beginMessage(Name msgType, boolean hasSideEffect) throws GraphError {
+            // TODO check if node exists
+            return new MessageBuilder<>(msgType, this, null, hasSideEffect);
+        }
+
+        public MessageContainerBuilder beginMessageContainer(Name container) throws GraphError {
+            return new MessageContainerBuilder(container, this);
+        }
+
+        public Triple getEdgeByLabel(Name label)  {
+            return sketch.carrier().get(label).get();
         }
 
         public Sys build() {
-            return new Impl(url, sketch.restrict(this.messages), displayNames);
+            return new Impl(url,sketch,displayNames,messages);
+        }
+    }
+
+
+    class MessageContainerBuilder implements SysBuilderParent {
+
+        private final Name containerName;
+        private final Builder parentBuilder;
+        private final MessageContainer messageContainer;
+
+        public MessageContainerBuilder(Name containerName, Builder parentBuilder) {
+            this.containerName = containerName;
+            this.parentBuilder = parentBuilder;
+            this.messageContainer = new MessageContainer(containerName);
+        }
+
+        public Triple getEdgeByLabel(Name edgeLabel) {
+            return parentBuilder.getEdgeByLabel(edgeLabel);
+        }
+
+        public Builder endMessageContainer() {
+            return parentBuilder;
+        }
+
+        public MessageBuilder<MessageContainerBuilder> beginMessage(Name msgType, boolean hasSideEffect) throws GraphError {
+            // TODO check if node exists
+            return new MessageBuilder<>(msgType.prefixWith(messageContainer.getTypeName()), this, messageContainer, hasSideEffect);
+        }
+
+        @Override
+        public SysBuilderParent addMessage(MessageType msg) {
+            parentBuilder.addMessage(msg);
+            return this;
+        }
+    }
+
+
+    class MessageBuilder<P extends SysBuilderParent>  {
+
+        private final List<MessageArgument> inputArguments;
+        private final List<MessageArgument> outputArguments;
+        private final P parentBuilder;
+        private final Name type;
+        private MessageType result;
+
+        private MessageBuilder(Name type, P parentBuilder, MessageContainer container, boolean hasSideEffect) {
+            this.type = type;
+            this.parentBuilder = parentBuilder;
+            this.inputArguments = new ArrayList<>();
+            this.outputArguments = new ArrayList<>();
+            this.result = new MessageType(type, inputArguments, outputArguments, container, hasSideEffect);
+        }
+
+
+        public MessageBuilder<P> input(Name edgeLabel) throws GraphError {
+            int indx = this.inputArguments.size();
+            Triple t = parentBuilder.getEdgeByLabel(edgeLabel.prefixWith(type));
+            this.inputArguments.add(new MessageArgument(result, t, indx, false));
+            return this;
+        }
+
+        public MessageBuilder<P> output(Name edgeLabel) throws GraphError {
+            int indx = this.outputArguments.size();
+            Triple t = parentBuilder.getEdgeByLabel(edgeLabel.prefixWith(type));
+            this.outputArguments.add(new MessageArgument(result, t, indx, true));
+            return this;
+        }
+
+        public MessageType build() {
+            return result;
+        }
+
+        public P endMessage() {
+            this.parentBuilder.addMessage(this.result);
+            return parentBuilder;
         }
     }
 
@@ -61,31 +147,38 @@ public interface Sys {
 
         private final String url;
         private final Sketch sketch;
+        private final Map<Name, MessageType> messages;
+        private final Map<Name, String> displayNames;
+
+        // Caches
+
         private final Set<Name> abstractTypes;
         private final Set<Name> singletonTypes;
+
         private final Set<Name> stringTypes;
         private final Set<Name> intTypes;
         private final Set<Name> floatTypes;
         private final Set<Name> boolTypes;
         private final Set<Name> otherDataTypes;
+
         private final Map<Name, Set<Name>> enumTypes;
-        private final Set<MessageType> messages;
-        private final Map<Name, String> displayNames;
+
         private final Map<Triple, Pair<Integer, Integer>> targetMultiplicities;
-        private final Map<Triple, Pair<Integer, Integer>> sourceMuttiplicities;
+        private final Map<Triple, Pair<Integer, Integer>> sourceMultiplicities;
+        private final Map<Triple, Triple> inversePartners;
         private final Set<Triple> orderedTriples;
         private final Set<Triple> uniqueTriples;
         private final Set<Triple> acyclicTriples;
 
 
-        public Impl(String url, Sketch sketch, Map<Name, String> displayNames) {
+        public Impl(String url, Sketch sketch, Map<Name, String> displayNames, Map<Name, MessageType> messages) {
             this.url = url;
             this.sketch = sketch;
             this.displayNames = displayNames;
+            this.messages = messages;
 
             this.abstractTypes = new HashSet<>();
             this.singletonTypes = new HashSet<>();
-            this.messages = new HashSet<>();
             this.stringTypes = new HashSet<>();
             this.intTypes = new HashSet<>();
             this.floatTypes = new HashSet<>();
@@ -93,7 +186,8 @@ public interface Sys {
             this.otherDataTypes = new HashSet<>();
             this.enumTypes = new HashMap<>();
             this.targetMultiplicities = new HashMap<>();
-            this.sourceMuttiplicities = new HashMap<>();
+            this.sourceMultiplicities = new HashMap<>();
+            this.inversePartners = new HashMap<>();
             this.orderedTriples = new HashSet<>();
             this.uniqueTriples = new HashSet<>();
             this.acyclicTriples = new HashSet<>();
@@ -125,13 +219,22 @@ public interface Sys {
                     diagram.edgeBinding().ifPresent(t -> this.targetMultiplicities.put(t, new Pair<>(multiplicity.getLowerBound(), multiplicity.getUpperBound())));
                 } else if (SourceMultiplicity.class.isAssignableFrom(diagram.label().getClass())) {
                     SourceMultiplicity multiplicity = (SourceMultiplicity) diagram.label();
-                    diagram.edgeBinding().ifPresent(t -> this.sourceMuttiplicities.put(t, new Pair<>(multiplicity.getLowerBound(), multiplicity.getUpperBound())));
+                    diagram.edgeBinding().ifPresent(t -> this.sourceMultiplicities.put(t, new Pair<>(multiplicity.getLowerBound(), multiplicity.getUpperBound())));
                 } else if (Ordered.getInstance().diagramIsOfType(diagram)) {
                     diagram.edgeBinding().ifPresent(this.orderedTriples::add);
                 } else if (Unique.getInstance().diagramIsOfType(diagram)) {
                     diagram.edgeBinding().ifPresent(this.uniqueTriples::add);
-                } else if (diagram instanceof MessageType) {
-                    messages.add((MessageType) diagram);
+                } else if (Acyclicity.getInstance().diagramIsOfType(diagram)) {
+                    diagram.edgeBinding().ifPresent(this.acyclicTriples::add);
+                } else if (Invert.class.isAssignableFrom(diagram.getClass())) {
+                    Name fwdSrc = diagram.binding().map(Universe.CYCLE_FWD.getSource()).get();
+                    Name fwdLbl = diagram.binding().map(Universe.CYCLE_FWD.getLabel()).get();
+                    Name fwdTrg = diagram.binding().map(Universe.CYCLE_FWD.getTarget()).get();
+                    Name bwdSrc = diagram.binding().map(Universe.CYCLE_BWD.getSource()).get();
+                    Name bwdLbl = diagram.binding().map(Universe.CYCLE_BWD.getLabel()).get();
+                    Name bwdTrg = diagram.binding().map(Universe.CYCLE_BWD.getTarget()).get();
+                    this.inversePartners.put(Triple.edge(fwdSrc, fwdLbl, fwdTrg), Triple.edge(bwdSrc, bwdLbl, bwdTrg));
+                    this.inversePartners.put(Triple.edge(bwdSrc, bwdLbl, bwdTrg), Triple.edge(fwdSrc, fwdLbl, fwdTrg));
                 }
             });
         }
@@ -174,6 +277,11 @@ public interface Sys {
 
 
         @Override
+        public Optional<Triple> getOppositeIfExists(Triple edge) {
+            return Optional.ofNullable(this.inversePartners.get(edge));
+        }
+
+        @Override
         public boolean isSimpleTypeNode(Name nodeName) {
             return isBoolType(nodeName) || isStringType(nodeName) || isIntType(nodeName) || isEnumType(nodeName) || isFloatType(nodeName) ||
                     this.otherDataTypes.contains(nodeName);
@@ -181,8 +289,8 @@ public interface Sys {
 
         @Override
         public Pair<Integer, Integer> getSourceMultiplicity(Triple edge) {
-            if (this.sourceMuttiplicities.containsKey(edge)) {
-                return this.sourceMuttiplicities.get(edge);
+            if (this.sourceMultiplicities.containsKey(edge)) {
+                return this.sourceMultiplicities.get(edge);
             }
             return new Pair<>(0, -1);
         }
@@ -257,7 +365,17 @@ public interface Sys {
 
         @Override
         public Stream<MessageType> messages() {
-            return messages.stream();
+            return messages.values().stream();
+        }
+
+        @Override
+        public MessageType getMessageType(Name type) {
+            return messages.get(type);
+        }
+
+        @Override
+        public boolean isMessageType(Name typeName) {
+            return messages.containsKey(typeName);
         }
     }
 
@@ -269,6 +387,27 @@ public interface Sys {
 
     String url();
 
+    Stream<MessageType> messages();
+
+    default boolean isMessageContainer(Name name) {
+        return messages().anyMatch(msg -> msg.getGroup().map(MessageContainer::getTypeName).map(name::equals).orElse(false));
+    }
+
+    default boolean isMessageRelated(Name type) {
+        return messages().anyMatch(msg -> {
+            if (msg.typeName().equals(type)) {
+                return true;
+            }
+            if (msg.getGroup().map(cont -> cont.getTypeName().equals(type)).orElse(false)) {
+                return true;
+            }
+            return msg.arguments().anyMatch(arg -> arg.asEdge().getLabel().equals(type));
+        });
+    }
+
+    default MessageType getMessageType(Name type) {
+        return messages().filter(m -> m.typeName().equals(type)).findFirst().orElse(null);
+    }
 
     default TreeBuildStrategy treeBuildStrategy() {
         return new TreeBuildStrategy.TypedStrategy() {
@@ -323,9 +462,6 @@ public interface Sys {
         return schema().carrier().edges().filter(t -> !this.isAttributeType(t) && !isMessageType(t.getSource()));
     }
 
-    default Stream<MessageType> messages() {
-        return schema().diagrams().filter(diag -> diag instanceof MessageType).map(diagram -> (MessageType) diagram);
-    }
 
     default boolean isSubtypeOf(Triple first, Triple second) {
         return first.equals(second);

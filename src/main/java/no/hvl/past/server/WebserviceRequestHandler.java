@@ -4,6 +4,8 @@ package no.hvl.past.server;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import no.hvl.past.util.GenericIOHandler;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -23,6 +25,8 @@ public abstract class WebserviceRequestHandler implements Handler {
     private final String contextPath;
     private final HttpMethod method;
     private final ResponseType responseType;
+    private Logger logger = LogManager.getLogger(getClass());
+
 
     protected WebserviceRequestHandler(String contextPath, HttpMethod method, ResponseType responseType) {
         this.contextPath = contextPath;
@@ -57,24 +61,25 @@ public abstract class WebserviceRequestHandler implements Handler {
                 ctx.queryParamMap(),
                 ctx.cookieMap(),
                 ctx.sessionAttributeMap());
-        handler.handle(bis, bos);
-        ctx.result(bos.toByteArray());
-        switch (getResponseType()) {
-            case HTML:
-                ctx.contentType("text/html");
-                break;
-            case BINARY:
-                ctx.contentType("application/octet-stream");
-                break;
-            case XML:
-                ctx.contentType("application/xml");
-                break;
-            case JSON:
-                ctx.contentType("application/json");
-                break;
-            case PLAIN_TEXT:
-                ctx.contentType("text/plain");
-                break;
-        }
+            handler.handle(bis, bos);
+            ctx.result(bos.toByteArray());
+            switch (getResponseType()) {
+                case HTML:
+                    ctx.contentType("text/html");
+                    break;
+                case BINARY:
+                    ctx.contentType("application/octet-stream");
+                    break;
+                case XML:
+                    ctx.contentType("application/xml");
+                    break;
+                case JSON:
+                    ctx.contentType("application/json");
+                    break;
+                case PLAIN_TEXT:
+                    ctx.contentType("text/plain");
+                    break;
+            }
+
     }
 }

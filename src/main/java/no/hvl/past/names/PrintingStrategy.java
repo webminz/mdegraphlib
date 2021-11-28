@@ -195,6 +195,11 @@ public interface PrintingStrategy {
             return "trg(" + nested + ")";
         }
 
+        @Override
+        public String resultOf(String nested) {
+            return nested + ".$result";
+        }
+
         public String extens(String firstTransformed, String secondTransformed) {
             return firstTransformed + extendsSymbol + secondTransformed;
         }
@@ -494,5 +499,8 @@ public interface PrintingStrategy {
     String source(String nested);
 
     String target(String nested);
+
+    String resultOf(String nested);
+
 
 }

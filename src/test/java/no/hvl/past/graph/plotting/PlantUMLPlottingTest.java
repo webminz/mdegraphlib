@@ -2,11 +2,12 @@ package no.hvl.past.graph.plotting;
 
 import no.hvl.past.attributes.BuiltinOperations;
 import no.hvl.past.attributes.DataOperation;
-import no.hvl.past.graph.AbstractGraphTest;
+import no.hvl.past.graph.TestWithGraphLib;
 import no.hvl.past.graph.GraphError;
 import no.hvl.past.graph.Sketch;
 import no.hvl.past.graph.Universe;
 import no.hvl.past.graph.operations.Invert;
+import no.hvl.past.graph.plotting.dm.PlantUMLPlotter;
 import no.hvl.past.graph.predicates.*;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.Value;
@@ -18,9 +19,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import static no.hvl.past.systems.ComprSys.qname;
+import static no.hvl.past.systems.QualifiedName.qname;
 
-public class PlantUMLPlottingTest extends AbstractGraphTest {
+
+public class PlantUMLPlottingTest extends TestWithGraphLib {
 
 
     @Test
@@ -33,7 +35,7 @@ public class PlantUMLPlottingTest extends AbstractGraphTest {
 
         FileOutputStream fos = new FileOutputStream(outputFile);
 
-        PlantUMLPlotter plotter = new PlantUMLPlotter("EPS", false);
+        PlantUMLPlotter plotter = new PlantUMLPlotter(false, false);
 
 
         Sys sytstem = makePersonExample();
@@ -96,7 +98,7 @@ public class PlantUMLPlottingTest extends AbstractGraphTest {
 
         FileOutputStream fos = new FileOutputStream(outputFile);
 
-        PlantUMLPlotter plotter = new PlantUMLPlotter("PNG", false);
+        PlantUMLPlotter plotter = new PlantUMLPlotter( false, false);
 
         plotter.plot(comprSys,fos);
         fos.close();
@@ -406,13 +408,13 @@ public class PlantUMLPlottingTest extends AbstractGraphTest {
                 .getResult(Sketch.class);
 
         Sys sytstem = new Sys.Builder("test", result)
-                .beginMessage(Name.identifier("all"))
-                .output(Name.identifier("result").prefixWith(Name.identifier("all")))
+                .beginMessage(Name.identifier("all"), false)
+                    .output(Name.identifier("result"))
                 .endMessage()
-                .beginMessage(Name.identifier("createPerson"))
-                .input(Name.identifier("name").prefixWith(Name.identifier("createPerson")))
-                .input(Name.identifier("age").prefixWith(Name.identifier("createPerson")))
-                .endMessage()
+                .beginMessage(Name.identifier("createPerson"), true)
+                    .input(Name.identifier("name"))
+                    .input(Name.identifier("age"))
+                    .endMessage()
                 .build();
         return sytstem;
     }

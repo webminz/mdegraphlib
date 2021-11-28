@@ -10,18 +10,6 @@ import java.util.Optional;
  */
 public abstract class Identifier extends Name {
 
-    /**
-     * Some identifiers may be assigned by some authority.
-     * This method provides a string representation of this authority.
-     */
-    public abstract Optional<String> getAuthority();
-
-    public abstract byte[] serialize();
-
-    @Override
-    public final byte[] getValue() {
-        return ByteUtils.prefix(IDENTIFIER_MAGIC_BYTE, serialize());
-    }
 
     @Override
     public final Name unprefix(Name name) {

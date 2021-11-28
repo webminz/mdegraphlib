@@ -73,14 +73,11 @@ public interface Sketch extends Element, Formula<Graph> {
 
 
 
-    default GraphMorphism extend(Name name, GraphMorphism instance, ExecutionContext executionContext) throws GraphError {
+    default GraphMorphism extend(Name name, GraphMorphism instance, ExecutionContext executionContext) {
         if (instance.codomain().equals(carrier())) {
             return new DiagrammaticWorkflow(name, instance, this, executionContext).execute();
         } else {
-            throw new GraphError(GraphError.ERROR_TYPE.CODOMAIN_MISMATCH, Sets.newHashSet(
-                    Triple.node(carrier().getName()),
-                    Triple.node(instance.codomain().getName())
-            ));
+            throw new GraphError().addError(new GraphError.DomainOrCodomainMismatch(instance.codomain().getName(), carrier().getName(), true));
         }
     }
 

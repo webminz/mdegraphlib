@@ -6,6 +6,7 @@ import no.hvl.past.names.Name;
 import no.hvl.past.util.Pair;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -22,7 +23,6 @@ public interface TypedNode extends Node {
             typedChildren().map(TypedBranch::child).forEach(n -> n.nodesWithType(type,aggregator));
         }
     }
-
 
     class Builder extends Node.Builder {
 

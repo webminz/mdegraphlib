@@ -2,7 +2,6 @@ package no.hvl.past.names;
 
 import no.hvl.past.util.ByteUtils;
 
-import java.io.BufferedWriter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,7 +35,7 @@ public final class MulitaryCombinator extends Combinator {
     @Override
     public byte[] getValue() {
         byte[] result = new byte[2];
-        result[0] = MERGE_MAGIC_BYTE;
+        result[0] = MULTIARY_OP_MAGIC_BYTE;
         result[1] = (byte) op.ordinal();
         for (Name n : names) {
             result = ByteUtils.concat(result, n.getValue());

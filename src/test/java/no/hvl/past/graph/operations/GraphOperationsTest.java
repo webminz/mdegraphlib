@@ -2,7 +2,7 @@ package no.hvl.past.graph.operations;
 
 import no.hvl.past.attributes.BuiltinOperations;
 import no.hvl.past.attributes.OperationTerm;
-import no.hvl.past.graph.AbstractGraphTest;
+import no.hvl.past.graph.TestWithGraphLib;
 import no.hvl.past.graph.GraphError;
 import no.hvl.past.graph.GraphMorphism;
 import no.hvl.past.graph.Universe;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 
-public class GraphOperationsTest extends AbstractGraphTest {
+public class GraphOperationsTest extends TestWithGraphLib {
 
     @Test
     public void testComposition() throws GraphError {
@@ -198,7 +198,7 @@ public class GraphOperationsTest extends AbstractGraphTest {
 
     @Test
     public void testMultiAttrEval() throws GraphError {
-        OperationTerm term = new OperationTerm.Appl(
+        OperationTerm term = new OperationTerm.Appl(  // var0 * (var1 + var2)
                 BuiltinOperations.Multiplication.getInstance(),
                 3,
                 new OperationTerm[]{
@@ -237,7 +237,7 @@ public class GraphOperationsTest extends AbstractGraphTest {
                 .getResult(GraphMorphism.class);
 
         GraphMorphism result = operation.execute(mor, getExecutionContext());
-        // should evaluate 2 * (3+1) on B
+        // should evaluate 2 * (1+3) on B
         assertEquals(Name.value(8), result.allInstances(Universe.SPAN_RIGHT_LEG).findFirst().get().getTarget());
     }
 

@@ -19,7 +19,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class SketchTest extends AbstractGraphTest {
+public class SketchTest extends TestWithGraphLib {
 
     private Sketch sketch;
     private GraphMorphism instance;

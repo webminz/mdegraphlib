@@ -56,7 +56,11 @@ public class JsonParser {
 
     public TypedTree parseTyped(
             JsonNode source,
-            Name resultName, Sketch schema, Name rootType, BiFunction<Name, String, Optional<Triple>> nameLookup) {
+            Name resultName,
+            Sketch schema,
+            Name rootType,
+            BiFunction<Name, String, Optional<Triple>> nameLookup) {
+        source.toString();
         return null; // TODO
     }
 

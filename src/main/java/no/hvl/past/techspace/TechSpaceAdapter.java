@@ -1,17 +1,14 @@
 package no.hvl.past.techspace;
 
 import no.hvl.past.graph.GraphMorphism;
-import no.hvl.past.graph.Sketch;
-import no.hvl.past.graph.trees.QueryHandler;
+import no.hvl.past.systems.QueryHandler;
 import no.hvl.past.names.Name;
 import no.hvl.past.plugin.UnsupportedFeatureException;
-import no.hvl.past.server.WebserviceRequestHandler;
 import no.hvl.past.systems.Data;
 import no.hvl.past.systems.Sys;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.List;
 
 /**
  * An Adaptor translates between the formal mdegraphlib-sketch-graph-representation

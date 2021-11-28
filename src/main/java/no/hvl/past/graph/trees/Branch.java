@@ -146,6 +146,7 @@ public interface Branch {
 
     boolean isCollection();
 
+    // TODO should be long
     int index();
 
     default boolean isAttribute() {

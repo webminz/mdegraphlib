@@ -8,13 +8,11 @@ import no.hvl.past.names.Name;
 import no.hvl.past.util.Pair;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import static no.hvl.past.systems.ComprSys.qname;
-import static org.junit.Assert.assertEquals;
+import static no.hvl.past.systems.QualifiedName.qname;
+import static org.junit.Assert.*;
 
 public class ComprehensiveSystemsTest extends GraphTest {
 
@@ -112,5 +110,117 @@ public class ComprehensiveSystemsTest extends GraphTest {
 
         GraphMorphism emb1 = comprSys.embeddingOf(g1);
         assertEquals(Name.identifier("ID").prefixWith(Name.identifier("GG")), emb1.map(Name.identifier("A")).get());
+    }
+
+
+    @Test
+    public void testComprehensiveSystemsServicesHandling() {
+        Sys sysA = new Sys.Builder("http://1", getContextCreatingBuilder()
+                .node("Service")
+                .node("Repository")
+                .node("ReturnTypeA")
+                .node("InputTypeA")
+                .node(Name.identifier("op1A").prefixWith(Name.identifier("Service")))
+                .node(Name.identifier("op2A").prefixWith(Name.identifier("Repository")))
+                .edgePrefixWithOwner(Name.identifier("op1A").prefixWith(Name.identifier("Service")), "argument", Name.identifier("InputTypeA"))
+                .edgePrefixWithOwner(Name.identifier("op1A").prefixWith(Name.identifier("Service")), "return", Name.identifier("ReturnTypeA"))
+                .edgePrefixWithOwner(Name.identifier("op2A").prefixWith(Name.identifier("Repository")), "return", Name.identifier("ReturnTypeA"))
+                .graph(Name.identifier("A").absolute())
+                .sketch(Name.identifier("A"))
+                .getResult(Sketch.class)).
+                beginMessageContainer(Name.identifier("Service"))
+                .beginMessage(Name.identifier("op1A"), true)
+                .input(Name.identifier("argument"))
+                .output(Name.identifier("return"))
+                .endMessage()
+                .endMessageContainer()
+                .beginMessageContainer(Name.identifier("Repository"))
+                .beginMessage(Name.identifier("op2A"), false)
+                .output(Name.identifier("return"))
+                .endMessage().endMessageContainer().build();
+
+
+        Sys sysB = new Sys.Builder("http://2", getContextCreatingBuilder()
+                .node("ReturnTypeB")
+                .node("Service")
+                .node(Name.identifier("op1B").prefixWith(Name.identifier("Service")))
+                .edgePrefixWithOwner(Name.identifier("op1B").prefixWith(Name.identifier("Service")), "return", Name.identifier("ReturnTypeB"))
+                .graph(Name.identifier("B").absolute())
+                .sketch(Name.identifier("B"))
+                .getResult(Sketch.class)).
+                beginMessageContainer(Name.identifier("Service"))
+                .beginMessage(Name.identifier("op1B"), true)
+                .output(Name.identifier("return"))
+                .endMessage()
+                .endMessageContainer()
+                .build();
+
+
+        // only identify the returnType, still three Service containers
+        ComprSys attempt1 = new ComprSys.Builder(Name.identifier("attempt1"), universe)
+                .addSystem(sysA)
+                .addSystem(sysB)
+                .nodeCommonality(Name.identifier("ReturnType"), qname(sysA, Name.identifier("ReturnTypeA")), qname(sysB, Name.identifier("ReturnTypeB")))
+                .identification(Name.identifier("ReturnType"))
+                .build();
+
+        assertTrue(attempt1.schema().carrier().contains(Triple.node(Name.identifier("ReturnType").prefixWith(Name.identifier("attempt1")))));
+        assertFalse(attempt1.schema().carrier().contains(Triple.node(Name.identifier("ReturnTypeA").prefixWith(Name.identifier("A")))));
+        assertFalse(attempt1.schema().carrier().contains(Triple.node(Name.identifier("ReturnTypeB").prefixWith(Name.identifier("B")))));
+        assertEquals(3, attempt1.messages().count());
+        Set<Name> actualServiceContainers = attempt1.messages().map(MessageType::getGroup)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(MessageContainer::getTypeName)
+                .collect(Collectors.toSet());
+        HashSet<Name> expectedServiceContainers = Sets.newHashSet(Name.identifier("Service").prefixWith(Name.identifier("A")),
+                Name.identifier("Repository").prefixWith(Name.identifier("A")),
+                Name.identifier("Service").prefixWith(Name.identifier("B")));
+
+        assertEquals(expectedServiceContainers, actualServiceContainers);
+
+
+        // identify op1A/op1B --> error because container has not been identified
+        try {
+            new ComprSys.Builder(Name.identifier("attempt2"), universe)
+                    .addSystem(sysA)
+                    .addSystem(sysB)
+                    .nodeCommonality(Name.identifier("ReturnType"), qname(sysA, Name.identifier("ReturnTypeA")), qname(sysB, Name.identifier("ReturnTypeB")))
+                    .nodeCommonality(Name.identifier("op1"),
+                            qname(sysA, Name.identifier("op1A").prefixWith(Name.identifier("Service"))),
+                            qname(sysB, Name.identifier("op1B").prefixWith(Name.identifier("Service"))))
+                    .identification(Name.identifier("ReturnType"))
+                    .identification(Name.identifier("op1"))
+                    .build();
+            fail();
+        } catch (ComprSys.ConstructionException t) {
+            assertTrue(t.getMessage().contains("Service"));
+        }
+
+        // identify op1A/op1B and identify both services, now it works, i.e. only two containers left
+        ComprSys attempt3 = new ComprSys.Builder(Name.identifier("attempt3"), universe)
+                .addSystem(sysA)
+                .addSystem(sysB)
+                .nodeCommonality(Name.identifier("ReturnType"), qname(sysA, Name.identifier("ReturnTypeA")), qname(sysB, Name.identifier("ReturnTypeB")))
+                .nodeCommonality(Name.identifier("SuperService"), qname(sysA, Name.identifier("Service")), qname(sysB, Name.identifier("Service")))
+                .nodeCommonality(Name.identifier("op1"),
+                        qname(sysA, Name.identifier("op1A").prefixWith(Name.identifier("Service"))),
+                        qname(sysB, Name.identifier("op1B").prefixWith(Name.identifier("Service"))))
+                .identification(Name.identifier("ReturnType"))
+                .identification(Name.identifier("op1"))
+                .identification(Name.identifier("SuperService"))
+                .build();
+        assertEquals(3, attempt1.messages().count());
+
+        Set<Name> actualServiceContainers2 = attempt3.messages().map(MessageType::getGroup)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(MessageContainer::getTypeName)
+                .collect(Collectors.toSet());
+        HashSet<Name> expectedServiceContainers2 = Sets.newHashSet(
+                Name.identifier("Repository").prefixWith(Name.identifier("A")),
+                Name.identifier("SuperService").prefixWith(Name.identifier("attempt3")));
+
+        assertEquals(expectedServiceContainers2, actualServiceContainers2);
     }
 }

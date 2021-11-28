@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 import static org.junit.Assert.*;
 
-public class MorphismTest extends AbstractGraphTest {
+public class MorphismTest extends TestWithGraphLib {
 
     @Test
     public void testIsTotal() throws GraphError {

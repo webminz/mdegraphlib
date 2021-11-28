@@ -4,7 +4,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import no.hvl.past.TestBase;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.logic.Formula;
 import no.hvl.past.names.Name;
+import no.hvl.past.util.StreamExt;
 import org.junit.Assert;
 
 import java.util.*;
@@ -15,7 +17,7 @@ import java.util.stream.Stream;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
-public class AbstractGraphTest extends TestBase {
+public class TestWithGraphLib extends TestBase {
 
     protected static final Universe universe = new UniverseImpl(UniverseImpl.EMPTY);
     private final Set<Triple> expected = new HashSet<>();
@@ -92,6 +94,7 @@ public class AbstractGraphTest extends TestBase {
         Assert.assertEquals(expected.collect(Collectors.toSet()), actual.collect(Collectors.toSet()));
     }
 
+    @SafeVarargs
     protected static <T> void assertStreamEquals(Stream<T> toTest, T... toCompare) {
         Assert.assertEquals(Sets.newHashSet(toCompare), toTest.collect(Collectors.toSet()));
     }
@@ -148,28 +151,25 @@ public class AbstractGraphTest extends TestBase {
 
 
     protected void assertDangling(Name edgeLabel, GraphError error) {
-        assertTrue(error.getDangling().contains(edgeLabel));
+        assertEquals(edgeLabel, StreamExt.pickOne(error.getDangling()).getEdge().getLabel());;
     }
 
     protected void assertUnknownMember(Name unknownOrMissing, GraphError error) {
-        assertTrue(error.getUnknown().contains(unknownOrMissing));
+        assertEquals(unknownOrMissing, StreamExt.pickOne(error.getUnknown()).getMapping().getCodomain());;
     }
 
     protected void assertDuplicate(Name name, GraphError error) {
-        assertTrue(error.getDuplicates().contains(name));
+        assertEquals(name, StreamExt.pickOne(error.getDuplicates()).getName());;
     }
 
     protected void assertHomViolation(Name violatingEdgeLabel, GraphError error) {
-        assertTrue(error.getHomomorphismViolations().contains(violatingEdgeLabel));
+        assertEquals(violatingEdgeLabel, StreamExt.pickOne(error.getHomomorphismViolations()).getDomainEdge().getLabel());;
     }
 
     protected void assertAmbiguouslyMapped(Name ambiguosMapped, GraphError error) {
-        assertTrue(error.getAmbiguousMappings().contains(ambiguosMapped));
+        assertEquals(ambiguosMapped,  StreamExt.pickOne(StreamExt.pickOne(error.getAmbigous()).getConflictingMappings()).getDomain());
     }
 
-    protected void assertIllFormed(Name m, GraphError error) {
-        assertTrue(error.getIllFormed().contains(m));
-    }
 
     public static void assertGraphsEqual(Graph graph, Triple... allEdges) {
         Set<Triple> allEdgesSet = new HashSet<>();
@@ -198,7 +198,7 @@ public class AbstractGraphTest extends TestBase {
         assertEquals(actual.diagrams().count(), (long) expectedDiagrams.length);
         assertTrue(actual.diagrams().allMatch(actualDiagram -> {
             for (Diagram expected : expectedDiagrams) {
-                if (expected.label().equals(actualDiagram.label())) {
+                if (expected.label().iff(actualDiagram.label()).equals(Formula.top())) {
                     if (actualDiagram.binding().domain().elements().allMatch(t -> actualDiagram.binding().apply(t).equals(expected.binding().apply(t)))) {
                         return true;
                     }

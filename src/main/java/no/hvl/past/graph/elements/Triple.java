@@ -140,7 +140,7 @@ public class Triple implements ProperComparator<Triple>, Comparable<Triple> {
 
     @Override
     public CompareResult cmp(Triple lhs, Triple rhs) {
-        CompareResult compareResult = lhs.getSource().compareWith(rhs.getTarget());
+        CompareResult compareResult = lhs.getLabel().compareWith(rhs.getLabel());
         if (compareResult.equals(CompareResult.EQUAL)) {
             return lhs.getLabel().compareWith(rhs.getLabel());
         } else {
@@ -286,9 +286,9 @@ public class Triple implements ProperComparator<Triple>, Comparable<Triple> {
             case EQUAL:
                 return 0;
             case LESS_THAN:
-                return 1;
-            case BIGGER_THAN:
                 return -1;
+            case BIGGER_THAN:
+                return 1;
             case INCOMPARABLE:
             default:
                 return 1;

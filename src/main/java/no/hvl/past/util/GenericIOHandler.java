@@ -6,5 +6,5 @@ import java.io.OutputStream;
 
 public interface GenericIOHandler {
 
-    void handle(InputStream i, OutputStream o) throws IOException;
+    void handle(InputStream i, OutputStream o) throws Exception;
 }

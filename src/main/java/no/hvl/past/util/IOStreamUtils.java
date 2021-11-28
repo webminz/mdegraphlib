@@ -1,5 +1,7 @@
 package no.hvl.past.util;
 
+import no.hvl.past.systems.Sys;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
@@ -7,9 +9,7 @@ import java.util.function.Consumer;
 public class IOStreamUtils {
 
     public interface OutputStreamConsumer {
-
         void consume(OutputStream outputStream) throws IOException;
-
     }
 
     public static String readInputStreamAsString(InputStream i) throws IOException {

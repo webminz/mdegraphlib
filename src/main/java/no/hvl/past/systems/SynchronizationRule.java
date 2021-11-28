@@ -14,8 +14,8 @@ import java.util.stream.Stream;
 public class SynchronizationRule implements ConsistencyRule {
 
     private final Name commonalityName;
-    private final Set<ComprSys.QName> typeTuple;
-    private final List<ComprSys.QName> propagationHierarchy;
+    private final Set<QualifiedName> typeTuple;
+    private final List<QualifiedName> propagationHierarchy;
     private final boolean isUnconditional;
 
 
@@ -23,8 +23,8 @@ public class SynchronizationRule implements ConsistencyRule {
 
     public SynchronizationRule(
             Name commonalityName,
-            Set<ComprSys.QName> typeTuple,
-            List<ComprSys.QName> propagationHierarchy) {
+            Set<QualifiedName> typeTuple,
+            List<QualifiedName> propagationHierarchy) {
         this.commonalityName = commonalityName;
         this.typeTuple = typeTuple;
         this.propagationHierarchy = propagationHierarchy;
@@ -50,8 +50,8 @@ public class SynchronizationRule implements ConsistencyRule {
     private Stream<Name> doConditionalCheck(ComprData instance) {
         return instance.getCommonalities().iterate(commonalityName).filter(commonality -> {
             if (propagationHierarchy.isEmpty()) {
-                for (ComprSys.QName typeQName : typeTuple) {
-                    if (commonality.getProjections().stream().noneMatch(qualifiedName -> qualifiedName.getSystem().equals(Name.identifier(typeQName.getContainer().url())))) {
+                for (QualifiedName typeQName : typeTuple) {
+                    if (commonality.getProjections().stream().noneMatch(qualifiedName -> qualifiedName.getSystem().equals(typeQName.getSystem()))) {
                         return true;
                     }
                 }

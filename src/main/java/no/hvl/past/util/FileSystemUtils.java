@@ -13,17 +13,24 @@ public class FileSystemUtils {
 
     private static FileSystemUtils instance;
 
-    private  String baseDir;
+    private final String baseDir;
     private final OperatingSystemType os;
+    private FileSystemAccessPoint entryPoint;
 
-
-    public FileSystemUtils(String baseDir, OperatingSystemType os) {
+    private FileSystemUtils(String baseDir, OperatingSystemType os) {
         this.baseDir = baseDir;
         this.os = os;
     }
 
-    public void setBaseDir(File baseDir) {
-       this.baseDir = baseDir.getAbsolutePath();
+    private FileSystemAccessPoint getEntryPoint() {
+        if (entryPoint == null) {
+            try {
+                this.entryPoint = FileSystemAccessPoint.create(new File(baseDir), this);
+            } catch (IOException e) {
+                throw new ShouldNotHappenException(FileSystemUtils.class,e);
+            }
+        }
+        return this.entryPoint;
     }
 
     public enum OperatingSystemType {
@@ -72,36 +79,8 @@ public class FileSystemUtils {
         return os;
     }
 
-    /**
-     * Retrieves the {@link File} object for the given location.
-     */
-    public File file(String location) throws IOException {
-        // TODO check for URL schemes as well
-        if (location.startsWith("file:") || location.startsWith("http")) {
-            return new UrlResource(location).getFile();
-        }
-        if (location.startsWith("classpath:")) {
-            return new ClassPathResource(location).getFile();
-        }
-        if (location.startsWith("/")) {
-            return new File(location);
-        } else {
-            return new File(baseDir, location);
-        }
-    }
-
-    public File fileOverwrite(String location) throws IOException {
-        File file = file(location);
-        if (file.exists()) {
-            file.delete();
-        }
-        return file;
-    }
-
-    public File fileCreateIfNecessary(String location) throws IOException {
-        File file = file(location);
-        file.mkdirs();
-        return file;
+    public FileSystemAccessPoint accessPoint(String atPath) throws IOException {
+        return getEntryPoint().cd(atPath);
     }
 
 
@@ -110,7 +89,6 @@ public class FileSystemUtils {
             return s.hasNext() ? s.next() : "";
         }
     }
-
 
     public static FileSystemUtils getInstance() {
         if (instance == null) {

@@ -44,7 +44,6 @@ public class XmlParser {
     }
 
 
-
     public Tree parse(Document rootNode, Name resultName) {
         return null; // TODO
     }

@@ -1,10 +1,12 @@
 package no.hvl.past.graph;
 
+import com.google.common.collect.HashMultiset;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.Value;
 import no.hvl.past.util.Pair;
+import no.hvl.past.util.ShouldNotHappenException;
 
 
 import java.util.*;
@@ -115,6 +117,15 @@ public class GraphBuilders {
         return edge(fromName, labelName, toName);
     }
 
+    /**
+     * Constructs an edge.
+     * Name of the label is given as a String and interpreted as a simple identifier.
+     */
+    public GraphBuilders edgePrefixWithOwner(Name owner, String label, Name to) {
+        Name labelName = Name.identifier(label).prefixWith(owner);
+        return edge(owner, labelName, to);
+    }
+
 
     /**
      * Constructs an edge.
@@ -133,6 +144,18 @@ public class GraphBuilders {
     public GraphBuilders graph(Name name) {
         Set<Triple> elements = new HashSet<>();
         elements.addAll(nodeAggregator.stream().map(Triple::node).collect(Collectors.toSet()));
+        Map<Name, Triple> duplicates = new HashMap<>();
+        for (Triple t : edgeAggregator) {
+            if (!duplicates.containsKey(t.getLabel())) {
+                duplicates.put(t.getLabel(), t);
+                elements.add(t);
+            } else {
+                if (!ignoreErrors) {
+                    this.errors.add(new GraphError.DuplicateName(t.getLabel()));
+                }
+            }
+        }
+
         elements.addAll(edgeAggregator);
         Graph base = new GraphImpl(name, elements);
         Graph constructed  = base;
@@ -144,8 +167,7 @@ public class GraphBuilders {
         this.edgeAggregator.clear();
 
         if (!ignoreErrors && !constructed.verify()) {
-            constructed.duplicateNames().map(n -> errors.add(new GraphError.DuplicateName(n)));
-            constructed.danglingEdges().map(t -> errors.add(new GraphError.DanglingEdge(t,!base.containsNode(t.getSource()), !base.containsNode(t.getTarget()))));
+            constructed.danglingEdges().forEach(t -> errors.add(new GraphError.DanglingEdge(t,!base.containsNode(t.getSource()), !base.containsNode(t.getTarget()))));
             return this;
         }
 
@@ -172,7 +194,7 @@ public class GraphBuilders {
         if (this.universe.getTypeOfElement(name).map(FrameworkElement.GRAPH::equals).orElse(false)) {
             this.graphAggregator.add(0, (Graph) this.universe.getElement(name).get());
         } else {
-            // FIXME this.errors.add(new Pair<>(name, GraphError.ERROR_TYPE.UNKNOWN_MEMBER));
+            this.errors.add(new GraphError.UnknownReference(name, FrameworkElement.GRAPH.name()));
         }
         return this;
     }
@@ -189,7 +211,7 @@ public class GraphBuilders {
         if (this.universe.getTypeOfElement(identifier).map(FrameworkElement.GRAPH::equals).orElse(false)) {
             this.graphAggregator.add(1, (Graph) this.universe.getElement(identifier).get());
         } else {
-           // FIXME this.errors.add(new Pair<>(identifier, GraphError.ERROR_TYPE.UNKNOWN_MEMBER));
+            this.errors.add(new GraphError.UnknownReference(identifier, FrameworkElement.GRAPH.name()));
         }
         return this;
     }
@@ -198,7 +220,7 @@ public class GraphBuilders {
     public GraphBuilders map(Name from, Name to) {
         if (this.bindingAggregator.containsKey(from) && !ignoreErrors) {
             if (!this.bindingAggregator.get(from).equals(to)) {
-               // FIXME this.errors.add(new Pair<>(from, GraphError.ERROR_TYPE.AMBIGUOS_MAPPING));
+                this.errors.add(new GraphError.AmbiguouslyMapped(new Tuple(from, to), new Tuple(from, this.bindingAggregator.get(from))));
                 return this;
             }
         }
@@ -238,7 +260,10 @@ public class GraphBuilders {
         }
 
         if (this.graphAggregator.size() < 2) {
-            // TODO FIXME this.errors.add(new Pair<>(morphismName, GraphError.ERROR_TYPE.ILL_FORMED));
+            if (graphAggregator.size() < 1) {
+                this.errors.add(new GraphError.MissingDomainAndOrCodomain(morphismName, false));
+            }
+            this.errors.add(new GraphError.MissingDomainAndOrCodomain(morphismName, true));
             return this;
         }
 
@@ -297,7 +322,7 @@ public class GraphBuilders {
         Graph carrier = this.graphAggregator.get(1);
         this.morphism(diagramName.absolute());
         if (this.morphismAggregator.size() == 0) {
-            // FIXME this.errors.add(new Pair<>(diagramName, GraphError.ERROR_TYPE.NOT_CONSTRUCTED));
+            this.errors.add(new GraphError.NotConstructed(FrameworkElement.GRAPH_MORPHISM.name()));
             this.labelStack.pop();
             this.graphAggregator.add(0, carrier);
             return this;
@@ -307,7 +332,7 @@ public class GraphBuilders {
         this.morphismAggregator.remove(this.morphismAggregator.size() - 1);
 
         if (this.labelStack.isEmpty()) {
-            // FIXME this.errors.add(new Pair<>(diagramName, GraphError.ERROR_TYPE.LABEL_MISSING));
+            this.errors.add(new GraphError.NotConstructed(FrameworkElement.LABEL.name()));
             this.graphAggregator.add(0, carrier);
             return this;
         }
@@ -373,7 +398,9 @@ public class GraphBuilders {
                 this.map(instance.getLabel(), type.getLabel());
                 this.map(instance.getTarget(), type.getTarget());
             } else {
-                // FIXME this.errors.add(new Pair<>(type.getLabel(), GraphError.ERROR_TYPE.UNKNOWN_MEMBER));
+                this.errors.add(new GraphError.UnknownTargetMapping(new Tuple(instance.getSource(), type.getSource())));
+                this.errors.add(new GraphError.UnknownTargetMapping(new Tuple(instance.getLabel(), type.getLabel())));
+                this.errors.add(new GraphError.UnknownTargetMapping(new Tuple(instance.getTarget(), type.getTarget())));
                 return this;
             }
         }
@@ -424,9 +451,10 @@ public class GraphBuilders {
         return this;
     }
 
+    @SuppressWarnings("unchecked")
     public <E extends Element> E getResult(Class<E> type) throws GraphError {
         if (!this.errors.isEmpty()) {
-            GraphError graphError = new GraphError(new ArrayList<>());
+            GraphError graphError = new GraphError();
             for (GraphError.GraphErrorReportDetails ed : this.errors) {
                 graphError.addError(ed);
             }
@@ -434,7 +462,7 @@ public class GraphBuilders {
         }
 
         if (this.resultTypeStack.isEmpty() || !type.isAssignableFrom(this.resultTypeStack.peek())) {
-            throw new GraphError(GraphError.ERROR_TYPE.NOT_CONSTRUCTED, Collections.emptySet());
+            throw new GraphError().addError(new GraphError.NotConstructed(type.getName()));
         }
 
         this.resultTypeStack.pop();
@@ -451,13 +479,13 @@ public class GraphBuilders {
             result = this.sketchAggregator.get(this.sketchAggregator.size() - 1);
             this.sketchAggregator.remove(this.sketchAggregator.size() - 1);
         } else { // TODO other framework elements
-            throw new GraphError(GraphError.ERROR_TYPE.NOT_CONSTRUCTED, Collections.emptySet());
+            throw new GraphError().addError(new GraphError.NotConstructed(type.getName()));
         }
 
         try {
             return (E) result;
         } catch (ClassCastException e) {
-            throw new GraphError(Collections.singletonList(new Pair<>(result.getName(), GraphError.ERROR_TYPE.ILL_FORMED)));
+            throw new ShouldNotHappenException(GraphBuilders.class, e);
         }
     }
 

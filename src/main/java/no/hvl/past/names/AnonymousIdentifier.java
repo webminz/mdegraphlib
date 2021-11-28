@@ -15,20 +15,15 @@ import java.util.Optional;
  */
 public class AnonymousIdentifier extends Identifier {
 
-    @Override
-    public Optional<String> getAuthority() {
-        return Optional.empty();
-    }
-
-    @Override
-    public byte[] serialize() {
-        int originalHashCode = System.identityHashCode(this);
-        return ByteUtils.intToByteArray(originalHashCode, true);
-    }
-
 
     @Override
     public String toString() {
         return "";
+    }
+
+    @Override
+    public byte[] getValue() {
+        int originalHashCode = System.identityHashCode(this);
+        return ByteUtils.prefix(Name.ANONYMOUS_IDENTIFIER_BYTE, ByteUtils.intToByteArray(originalHashCode, true));
     }
 }

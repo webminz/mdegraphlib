@@ -4,8 +4,6 @@ public interface QueryBranch extends TypedBranch {
 
     QueryNode parent();
 
-    @Override
-    QueryNode child();
 
     boolean isProjection();
 

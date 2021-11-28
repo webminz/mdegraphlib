@@ -62,5 +62,8 @@ public interface QueryTree extends TypedTree {
      */
     String textualRepresentation();
 
-
+    @Override
+    default boolean isInfinite() {
+        return false;
+    }
 }

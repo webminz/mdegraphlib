@@ -52,6 +52,14 @@ public class SourceMultiplicity implements GraphPredicate {
         }
     }
 
+    @Override
+    public boolean labelIsEquivalent(GraphPredicate graphPredicate) {
+        if (graphPredicate instanceof SourceMultiplicity) {
+            SourceMultiplicity sm = (SourceMultiplicity) graphPredicate;
+            return lowerBound == sm.lowerBound && upperBound == sm.upperBound;
+        }
+        return GraphPredicate.super.labelIsEquivalent(graphPredicate);
+    }
 
     public static GraphPredicate getInstance(int lowerBound, int upperBound) {
         return new SourceMultiplicity(lowerBound, upperBound);

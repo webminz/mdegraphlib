@@ -10,7 +10,7 @@ import java.util.Map;
 public class FilePlotElement extends PlotElement {
 
     private Map<String, NodePlotElement> nodes = new LinkedHashMap<>();
-    private Map<String, LinkPlotElement> edges = new LinkedHashMap<>();
+    private List<LinkPlotElement> edges = new ArrayList<>();
     private List<LinkPlotElement> anonEdges = new ArrayList<>();
     private List<NotePlotElement> notes = new ArrayList<>();
     private Map<String, MultiPlotElement> relations = new LinkedHashMap<>();
@@ -24,7 +24,7 @@ public class FilePlotElement extends PlotElement {
 
     public LinkPlotElement addNamedEdge(String srcNode, String trgNode, String label) {
         LinkPlotElement result = new LinkPlotElement(srcNode, trgNode, label);
-        this.edges.put(label, result);
+        this.edges.add(result);
         return result;
     }
 
@@ -66,7 +66,7 @@ public class FilePlotElement extends PlotElement {
         for (MultiPlotElement multi : this.relations.values()) {
             multi.writePlantUML(writer);
         }
-        for (LinkPlotElement link : this.edges.values()) {
+        for (LinkPlotElement link : this.edges) {
             link.writePlantUML(writer);
         }
         for (LinkPlotElement link : this.anonEdges) {

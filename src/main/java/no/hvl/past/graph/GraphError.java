@@ -1,23 +1,26 @@
 package no.hvl.past.graph;
 
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
+
+import com.google.common.collect.Sets;
+import net.sourceforge.plantuml.bpm.Col;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.PrintingStrategy;
-import no.hvl.past.util.Pair;
+import no.hvl.past.util.StreamExt;
 
-import javax.lang.model.type.ErrorType;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class GraphError extends Exception {
+public class GraphError extends RuntimeException {
+
+    public GraphError() {
+    }
 
     public static abstract class GraphErrorReportDetails {
-        private List<GraphErrorReportDetails> dueTo;
-        private String message;
+        private final List<GraphErrorReportDetails> dueTo;
+        private final String message;
 
         public GraphErrorReportDetails(String message) {
             this.message = message;
@@ -35,11 +38,15 @@ public class GraphError extends Exception {
     }
 
     public static class DuplicateName extends GraphErrorReportDetails {
-        private Name name;
+        private final Name name;
 
         public DuplicateName(Name name) {
             super("The following name is a duplicates: ");
             this.name = name;
+        }
+
+        public Name getName() {
+            return name;
         }
 
         @Override
@@ -52,8 +59,8 @@ public class GraphError extends Exception {
 
     public static class DanglingEdge extends GraphErrorReportDetails {
         private final Triple edge;
-        private boolean srcUnknown;
-        private boolean trgUnknown;
+        private final boolean srcUnknown;
+        private final boolean trgUnknown;
 
         public DanglingEdge(Triple edge, boolean srcUnknown, boolean trgUnknown) {
             super("This edge is dangling (source and/or target node is missing): ");
@@ -79,12 +86,24 @@ public class GraphError extends Exception {
                 stringBuilder.append(edge.getTarget().print(PrintingStrategy.DETAILED));
             }
             stringBuilder.append('\n');
+        }
 
+
+        public Triple getEdge() {
+            return edge;
+        }
+
+        public boolean isSrcUnknown() {
+            return srcUnknown;
+        }
+
+        public boolean isTrgUnknown() {
+            return trgUnknown;
         }
     }
 
     public static class UnknownTargetMapping extends GraphErrorReportDetails {
-        private Tuple mapping;
+        private final Tuple mapping;
 
         public UnknownTargetMapping(Tuple mapping) {
             super("The target of the following mapping is unknown: ");
@@ -99,17 +118,37 @@ public class GraphError extends Exception {
             stringBuilder.append(mapping.getCodomain().print(PrintingStrategy.DETAILED));
             stringBuilder.append("' !?");
             stringBuilder.append('\n');
+        }
 
+        public Tuple getMapping() {
+            return mapping;
+        }
+    }
+
+    public static class MissingDomainAndOrCodomain extends GraphErrorReportDetails {
+        private final Name name;
+        private final boolean isCodomain;
+
+        public MissingDomainAndOrCodomain(Name name, boolean isCodomain) {
+            super("The morphism '" + name.print(PrintingStrategy.DETAILED) + "' is missing a " + (isCodomain ? "codomain" : "domain") + "!");
+            this.name = name;
+            this.isCodomain = isCodomain;
+        }
+
+        public MissingDomainAndOrCodomain(String message, Name name, boolean isCodomain) {
+            super(message);
+            this.name = name;
+            this.isCodomain = isCodomain;
         }
     }
 
     public static class HomPropertypViolated extends GraphErrorReportDetails {
 
-        private Triple domainEdge;
-        private Triple codomainEdge;
-        private Tuple srcMapping;
-        private Tuple lblmapping;
-        private Tuple trgMapping;
+        private final Triple domainEdge;
+        private final Triple codomainEdge;
+        private final Tuple srcMapping;
+        private final Tuple lblmapping;
+        private final Tuple trgMapping;
 
         public HomPropertypViolated(Triple domainEdge, Triple codomainEdge, Tuple srcMapping, Tuple lblmapping, Tuple trgMapping) {
             super("The following elements violate the homomorphism property (node-edge incidence): ...\n");
@@ -124,20 +163,20 @@ public class GraphError extends Exception {
         protected void report(StringBuilder stringBuilder) {
             super.report(stringBuilder);
             String topLeft = "(" + domainEdge.getSource().print(PrintingStrategy.DETAILED) + ")";
-            String topCenter =  "[" +domainEdge.getLabel().print(PrintingStrategy.DETAILED) + "]";
-            String topRight =  "(" +domainEdge.getTarget().print(PrintingStrategy.DETAILED) + ")";
+            String topCenter = "[" + domainEdge.getLabel().print(PrintingStrategy.DETAILED) + "]";
+            String topRight = "(" + domainEdge.getTarget().print(PrintingStrategy.DETAILED) + ")";
             String middleLeft = "«" + srcMapping.getDomain().print(PrintingStrategy.IGNORE_PREFIX) + "=>" + srcMapping.getCodomain().print(PrintingStrategy.IGNORE_PREFIX) + "»";
             String middleCenter = "«" + lblmapping.getDomain().print(PrintingStrategy.IGNORE_PREFIX) + "=>" + lblmapping.getCodomain().print(PrintingStrategy.IGNORE_PREFIX) + "»";
             String middleRight = "«" + trgMapping.getDomain().print(PrintingStrategy.IGNORE_PREFIX) + "=>" + trgMapping.getCodomain().print(PrintingStrategy.IGNORE_PREFIX) + "»";
             String bottomLeft = "(" + codomainEdge.getSource().print(PrintingStrategy.DETAILED) + ")";
-            String bottomCenter =  "[" +codomainEdge.getLabel().print(PrintingStrategy.DETAILED) + "]";
-            String bottomRight =  "(" +codomainEdge.getTarget().print(PrintingStrategy.DETAILED) + ")";
+            String bottomCenter = "[" + codomainEdge.getLabel().print(PrintingStrategy.DETAILED) + "]";
+            String bottomRight = "(" + codomainEdge.getTarget().print(PrintingStrategy.DETAILED) + ")";
             int firstColumnOffset = Math.max(Math.max(topLeft.length(), bottomLeft.length()), middleLeft.length());
             int secondColumnOffest = Math.max(Math.max(topCenter.length(), bottomCenter.length()), middleCenter.length());
 
-            int firstColumnCntr = Math.min(topLeft.length(), bottomLeft.length()) /2;
-            int secondColumnCntr = Math.min(topCenter.length(), bottomCenter.length()) /2;
-            int thirdColumnCntr = Math.min(topRight.length(), bottomRight.length()) /2;
+            int firstColumnCntr = Math.min(topLeft.length(), bottomLeft.length()) / 2;
+            int secondColumnCntr = Math.min(topCenter.length(), bottomCenter.length()) / 2;
+            int thirdColumnCntr = Math.min(topRight.length(), bottomRight.length()) / 2;
 
             int currentPos = 0;
             stringBuilder.append(topLeft);
@@ -150,7 +189,7 @@ public class GraphError extends Exception {
             stringBuilder.append(topCenter);
             currentPos += topCenter.length();
 
-            fillChars(stringBuilder,currentPos, firstColumnOffset + secondColumnOffest, '-');
+            fillChars(stringBuilder, currentPos, firstColumnOffset + secondColumnOffest, '-');
             stringBuilder.append("-->");
             stringBuilder.append(topRight);
             stringBuilder.append('\n');
@@ -166,7 +205,7 @@ public class GraphError extends Exception {
             currentPos += 3;
             stringBuilder.append(middleCenter);
             currentPos += middleCenter.length();
-            fillChars(stringBuilder,currentPos, firstColumnOffset + secondColumnOffest, '-');
+            fillChars(stringBuilder, currentPos, firstColumnOffset + secondColumnOffest, '-');
             stringBuilder.append("  ");
             stringBuilder.append(middleRight);
             stringBuilder.append('\n');
@@ -183,7 +222,7 @@ public class GraphError extends Exception {
             currentPos += 3;
             stringBuilder.append(bottomCenter);
             currentPos += bottomCenter.length();
-            fillChars(stringBuilder,currentPos, firstColumnOffset + secondColumnOffest, '-');
+            fillChars(stringBuilder, currentPos, firstColumnOffset + secondColumnOffest, '-');
             stringBuilder.append("-->");
             stringBuilder.append(bottomRight);
             stringBuilder.append('\n');
@@ -200,13 +239,13 @@ public class GraphError extends Exception {
                 char c) {
             for (int i = 0; i < count; i++) {
                 int currentPos = 0;
-                fillChars(stringBuilder, currentPos, firstColumnCntr,' ');
+                fillChars(stringBuilder, currentPos, firstColumnCntr, ' ');
                 stringBuilder.append(c);
                 currentPos++;
-                fillChars(stringBuilder,currentPos, firstColumnOffset + secondColumnCntr + 3, ' ');
+                fillChars(stringBuilder, currentPos, firstColumnOffset + secondColumnCntr + 3, ' ');
                 stringBuilder.append(c);
                 currentPos++;
-                fillChars(stringBuilder,currentPos,  secondColumnOffest + thirdColumnCntr + 3, ' ');
+                fillChars(stringBuilder, currentPos, secondColumnOffest + thirdColumnCntr + 3, ' ');
                 stringBuilder.append(c);
                 stringBuilder.append('\n');
             }
@@ -218,123 +257,178 @@ public class GraphError extends Exception {
                 currentPos++;
             }
         }
-    }
 
-    private final Multimap<ERROR_TYPE, Name> errors = ArrayListMultimap.create();
-    private List<GraphErrorReportDetails> errorReports = new ArrayList<>();
+        public Triple getDomainEdge() {
+            return domainEdge;
+        }
 
-    private static final String MESSAGE = "The given construction is formally ill defined, details: ";
+        public Triple getCodomainEdge() {
+            return codomainEdge;
+        }
 
-    public GraphError(List<Pair<Name, ERROR_TYPE>> errors) {
-        for (Pair<Name, ERROR_TYPE> e : errors) {
-            this.errors.put(e.getSecond(), e.getFirst());
+        public Tuple getSrcMapping() {
+            return srcMapping;
+        }
+
+        public Tuple getLblmapping() {
+            return lblmapping;
+        }
+
+        public Tuple getTrgMapping() {
+            return trgMapping;
         }
     }
 
-    public void addError(GraphErrorReportDetails details) { // TODO make private and add a builder
-        this.errorReports.add(details);
+
+    public static class AmbiguouslyMapped extends GraphErrorReportDetails {
+        private final Set<Tuple> conflictingMappings;
+
+
+        public AmbiguouslyMapped(Tuple a, Tuple b) {
+            super("The following elements are mapped ambiguously: \n" + createMessage(Sets.newHashSet(a, b)));
+            this.conflictingMappings = Sets.newHashSet(a, b);
+        }
+
+        public AmbiguouslyMapped(Set<Tuple> conflictingMappings) {
+            super("The following elements are mapped ambiguously: \n" + createMessage(conflictingMappings));
+            this.conflictingMappings = conflictingMappings;
+        }
+
+        private static String createMessage(Set<Tuple> conflictingMappings) {
+            StringBuilder sb = new StringBuilder();
+            Iterator<Tuple> iterator = conflictingMappings.iterator();
+            while (iterator.hasNext()) {
+                Tuple next = iterator.next();
+                sb.append(next.getDomain().print(PrintingStrategy.DETAILED));
+                sb.append(" => ");
+                sb.append(next.getCodomain().print(PrintingStrategy.DETAILED));
+                if (iterator.hasNext()) {
+                    sb.append('\n');
+                }
+            }
+            return sb.toString();
+        }
+
+        public Set<Tuple> getConflictingMappings() {
+            return conflictingMappings;
+        }
     }
 
-    GraphError(ERROR_TYPE errorType, Set<Triple> affected) {
-        this.errors.putAll(errorType, affected.stream().map(Triple::getLabel).collect(Collectors.toSet()));
+    public static class NotConstructed extends GraphErrorReportDetails {
+
+
+        private final String elementName;
+
+        public NotConstructed(String elementName) {
+            super("An element of type '" + elementName + "' has not been constructed!");
+            this.elementName = elementName;
+        }
+
+        public String getElementName() {
+            return elementName;
+        }
     }
+
+
+    public static class DomainOrCodomainMismatch extends GraphErrorReportDetails {
+        private final Name domainA;
+        private final Name domainB;
+        private final boolean isCodomain;
+
+        public DomainOrCodomainMismatch(Name domainA, Name domainB, boolean isCodomain) {
+            super((isCodomain ? "Codomains" : "Domains") + " mismatch: LHS was '" + domainA.print(PrintingStrategy.DETAILED) + "' while RHS was '" + domainB.print(PrintingStrategy.DETAILED)+"'!");
+            this.domainA = domainA;
+            this.domainB = domainB;
+            this.isCodomain = isCodomain;
+        }
+
+        public Name getDomainA() {
+            return domainA;
+        }
+
+        public Name getDomainB() {
+            return domainB;
+        }
+
+        public boolean isCodomain() {
+            return isCodomain;
+        }
+    }
+
+    public static class UnknownReference extends GraphErrorReportDetails {
+        private final Name elemntName;
+        private final String elementTypeName;
+
+        public UnknownReference(Name elemntName, String elementTypeName) {
+            super("The referenced element '" + elemntName.print(PrintingStrategy.DETAILED) + "' of type " + elementTypeName + " is not known!");
+            this.elemntName = elemntName;
+            this.elementTypeName = elementTypeName;
+        }
+
+        public Name getElemntName() {
+            return elemntName;
+        }
+
+        public String getElementTypeName() {
+            return elementTypeName;
+        }
+    }
+
+    private final List<GraphErrorReportDetails> errorReports = new ArrayList<>();
+
+    private static final String MESSAGE = "The current construction is formally ill defined, see further details below: ";
+
+
+    public GraphError addError(GraphErrorReportDetails details) {
+        this.errorReports.add(details);
+        return this;
+    }
+
 
     @Override
     public String getMessage() {
-        if (!errorReports.isEmpty()) {
-            StringBuilder buffer = new StringBuilder();
-            for (GraphErrorReportDetails e : this.errorReports) {
-                e.report(buffer);
-            }
-            return buffer.toString();
-        } else {
-            StringBuilder buffer = new StringBuilder();
-            buffer.append(MESSAGE);
-            buffer.append("\n\n");
-            if (this.errors.containsKey(ERROR_TYPE.DUPLICATE_NAME)) {
-                buffer.append("The following names appear as duplicates:\n");
-                for (Name n : this.errors.get(ERROR_TYPE.DUPLICATE_NAME)) {
-                    buffer.append(n.print(PrintingStrategy.DETAILED));
-                    buffer.append("\n");
-                }
-            }
-            buffer.append("\n");
-            if (this.errors.containsKey(ERROR_TYPE.DANGLING_EDGE)) {
-                buffer.append("The edges with the following names are dangling (source and/or target node is missing):\n");
-                for (Name n : this.errors.get(ERROR_TYPE.DANGLING_EDGE)) {
-                    buffer.append(n.print(PrintingStrategy.DETAILED));
-                    buffer.append("\n");
-                }
-            }
-            buffer.append("\n");
-            if (this.errors.containsKey(ERROR_TYPE.UNKNOWN_MEMBER)) {
-                buffer.append("The construction contains references to the following unkown elements:\n");
-                for (Name n : this.errors.get(ERROR_TYPE.UNKNOWN_MEMBER)) {
-                    buffer.append(n.print(PrintingStrategy.DETAILED));
-                    buffer.append("\n");
-                }
-            }
-            buffer.append("\n");
-            if (this.errors.containsKey(ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION)) {
-                buffer.append("The following elements violate the homomorphism property (node-edge incidence):\n");
-                for (Name n : this.errors.get(ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION)) {
-                    buffer.append(n.print(PrintingStrategy.DETAILED));
-                    buffer.append("\n");
-                }
-            }
-            // TODO treat the other errors as well.
-            return buffer.toString();
+        StringBuilder buffer = new StringBuilder();
+        for (GraphErrorReportDetails e : this.errorReports) {
+            e.report(buffer);
         }
-    }
-
-    public Collection<Name> getDetailsForErrorType(GraphError.ERROR_TYPE type) {
-        return this.errors.get(type);
-    }
-
-    public Collection<Name> getDangling() {
-        return this.errors.get(ERROR_TYPE.DANGLING_EDGE);
-    }
-
-    public Collection<Name> getUnknown() {
-        return this.errors.get(ERROR_TYPE.UNKNOWN_MEMBER);
-    }
-
-    public Collection<Name> getDuplicates() {
-        return this.errors.get(ERROR_TYPE.DUPLICATE_NAME);
-    }
-
-    public Collection<Name> getHomomorphismViolations() {
-        return this.errors.get(ERROR_TYPE.HOMOMORPHISM_PROPERTY_VIOLATION);
-    }
-
-    public Collection<Name> getAmbiguousMappings() {
-        return this.errors.get(ERROR_TYPE.AMBIGUOS_MAPPING);
-    }
-
-    public Collection<Name> getIllFormed() {
-        return this.errors.get(ERROR_TYPE.ILL_FORMED);
+        return buffer.toString();
     }
 
 
-    public boolean isNotConstructed() {
-        return this.errors.containsKey(ERROR_TYPE.NOT_CONSTRUCTED);
+    public Collection<DanglingEdge> getDangling() {
+        return StreamExt.stream(this.errorReports.stream()).filterByType(DanglingEdge.class).collect(Collectors.toSet());
+    }
+
+    public Collection<UnknownTargetMapping> getUnknown() {
+        return StreamExt.stream(this.errorReports.stream()).filterByType(UnknownTargetMapping.class).collect(Collectors.toSet());
+    }
+
+    public Collection<DuplicateName> getDuplicates() {
+        return StreamExt.stream(this.errorReports.stream()).filterByType(DuplicateName.class).collect(Collectors.toSet());
+    }
+
+    public Collection<HomPropertypViolated> getHomomorphismViolations() {
+        return StreamExt.stream(this.errorReports.stream()).filterByType(HomPropertypViolated.class).collect(Collectors.toSet());
     }
 
 
-
-    public enum ERROR_TYPE {
-        DUPLICATE_NAME,
-        DANGLING_EDGE,
-        UNKNOWN_MEMBER,
-        HOMOMORPHISM_PROPERTY_VIOLATION,
-        DOMAIN_MISMATCH,
-        CODOMAIN_MISMATCH,
-        ILL_FORMED,
-        AMBIGUOS_MAPPING,
-        NOT_CONSTRUCTED,
-        LABEL_MISSING;
+    public Collection<NotConstructed> getNotConstructed() {
+        return StreamExt.stream(this.errorReports.stream()).filterByType(NotConstructed.class).collect(Collectors.toSet());
     }
 
+
+    public Collection<AmbiguouslyMapped> getAmbigous() {
+        return StreamExt.stream(this.errorReports.stream()).filterByType(AmbiguouslyMapped.class).collect(Collectors.toSet());
+    }
+
+
+    public Collection<MissingDomainAndOrCodomain> getMissingDomain() {
+        return StreamExt.stream(this.errorReports.stream()).filterByType(MissingDomainAndOrCodomain.class).filter(miss -> !miss.isCodomain).collect(Collectors.toSet());
+    }
+
+    public Collection<MissingDomainAndOrCodomain> getMissingCodomain() {
+        return StreamExt.stream(this.errorReports.stream()).filterByType(MissingDomainAndOrCodomain.class).filter(miss -> miss.isCodomain).collect(Collectors.toSet());
+    }
 
 
 }

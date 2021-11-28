@@ -1,7 +1,7 @@
 package no.hvl.past.graph.matching;
 
 
-import no.hvl.past.graph.AbstractGraphTest;
+import no.hvl.past.graph.TestWithGraphLib;
 import no.hvl.past.graph.Graph;
 import no.hvl.past.graph.GraphError;
 import no.hvl.past.graph.GraphMorphism;
@@ -11,7 +11,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-public class GraphMatchingTest extends AbstractGraphTest {
+public class GraphMatchingTest extends TestWithGraphLib {
 
     @Test
     public void testMatchingOnlyNodes() throws GraphError {

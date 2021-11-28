@@ -16,10 +16,10 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static no.hvl.past.systems.QualifiedName.qname;
 
 public class SynchronisationTest extends GraphTest {
 
@@ -40,9 +40,9 @@ public class SynchronisationTest extends GraphTest {
         familiesAndPersons = new ComprSys.Builder(f2pName, universe)
                 .addSystem(families)
                 .addSystem(persons)
-                .nodeCommonality(Name.identifier("String"), ComprSys.qname(families, Name.identifier("String")), ComprSys.qname(persons, Name.identifier("String")))
-                .nodeCommonality(Name.identifier("syncMale"), ComprSys.qname(families, Name.identifier("FamilyMember")), ComprSys.qname(persons, Name.identifier("Male")))
-                .nodeCommonality(Name.identifier("syncFemale"), ComprSys.qname(families, Name.identifier("FamilyMember")), ComprSys.qname(persons, Name.identifier("Female")))
+                .nodeCommonality(Name.identifier("String"), qname(families, Name.identifier("String")), qname(persons, Name.identifier("String")))
+                .nodeCommonality(Name.identifier("syncMale"), qname(families, Name.identifier("FamilyMember")), qname(persons, Name.identifier("Male")))
+                .nodeCommonality(Name.identifier("syncFemale"), qname(families, Name.identifier("FamilyMember")), qname(persons, Name.identifier("Female")))
                 .synchronisation(Name.identifier("syncMale"))
                 .synchronisation(Name.identifier("syncFemale"))
                 .identification(Name.identifier("String"))

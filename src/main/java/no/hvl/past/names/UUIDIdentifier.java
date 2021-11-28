@@ -45,30 +45,27 @@ public class UUIDIdentifier extends Identifier {
         this.uuid = uuid;
     }
 
-    @Override
-    public Optional<String> getAuthority() {
-        return Optional.empty();
-    }
 
     @Override
-    public byte[] serialize() {
-        byte[] result = new byte[16];
-        result[0] = (byte) (uuid.getMostSignificantBits() >> 56);
-        result[1] = (byte) (uuid.getMostSignificantBits() >> 48);
-        result[2] = (byte) (uuid.getMostSignificantBits() >> 40);
-        result[3] = (byte) (uuid.getMostSignificantBits() >> 32);
-        result[4] = (byte) (uuid.getMostSignificantBits() >> 24);
-        result[5] = (byte) (uuid.getMostSignificantBits() >> 16);
-        result[6] = (byte) (uuid.getMostSignificantBits() >> 8);
-        result[7] = (byte) (uuid.getMostSignificantBits());
-        result[8] = (byte) (uuid.getLeastSignificantBits() >> 56);
-        result[9] = (byte) (uuid.getLeastSignificantBits() >> 48);
-        result[10] = (byte) (uuid.getLeastSignificantBits() >> 40);
-        result[11] = (byte) (uuid.getLeastSignificantBits() >> 32);
-        result[12] = (byte) (uuid.getLeastSignificantBits() >> 24);
-        result[13] = (byte) (uuid.getLeastSignificantBits() >> 16);
-        result[14] = (byte) (uuid.getLeastSignificantBits() >> 8);
-        result[15] = (byte) (uuid.getLeastSignificantBits());
+    public byte[] getValue() {
+        byte[] result = new byte[17];
+        result[0] = Name.UUID_IDENTIFIER_BYTE;
+        result[1] = (byte) (uuid.getMostSignificantBits() >> 56);
+        result[2] = (byte) (uuid.getMostSignificantBits() >> 48);
+        result[3] = (byte) (uuid.getMostSignificantBits() >> 40);
+        result[4] = (byte) (uuid.getMostSignificantBits() >> 32);
+        result[5] = (byte) (uuid.getMostSignificantBits() >> 24);
+        result[6] = (byte) (uuid.getMostSignificantBits() >> 16);
+        result[7] = (byte) (uuid.getMostSignificantBits() >> 8);
+        result[8] = (byte) (uuid.getMostSignificantBits());
+        result[9] = (byte) (uuid.getLeastSignificantBits() >> 56);
+        result[10] = (byte) (uuid.getLeastSignificantBits() >> 48);
+        result[11] = (byte) (uuid.getLeastSignificantBits() >> 40);
+        result[12] = (byte) (uuid.getLeastSignificantBits() >> 32);
+        result[13] = (byte) (uuid.getLeastSignificantBits() >> 24);
+        result[14] = (byte) (uuid.getLeastSignificantBits() >> 16);
+        result[15] = (byte) (uuid.getLeastSignificantBits() >> 8);
+        result[16] = (byte) (uuid.getLeastSignificantBits());
         return result;
     }
 

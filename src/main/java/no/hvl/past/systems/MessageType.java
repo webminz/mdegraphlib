@@ -1,168 +1,79 @@
 package no.hvl.past.systems;
 
-import no.hvl.past.graph.*;
+import com.google.common.collect.Streams;
+
+import no.hvl.past.graph.GraphMorphism;
 import no.hvl.past.graph.elements.Triple;
-import no.hvl.past.logic.Formula;
 import no.hvl.past.names.Name;
-import no.hvl.past.util.Pair;
-import no.hvl.past.util.ShouldNotHappenException;
 
 import java.util.*;
 import java.util.stream.Stream;
 
-public interface MessageType extends Diagram {
+public class MessageType {
 
-    class Builder {
-
-        private final List<MessageArgument> arguments;
-        private int inArgCounter = 0;
-        private int outArgCounter = 0;
-        private final Impl result;
-        private final Sys.Builder parentBuilder;
-
-        Builder(Graph carrier, Name type, Sys.Builder parentBuilder) {
-            this.arguments = new ArrayList<>();
-            this.result = new Impl(carrier, type, arguments);
-            this.parentBuilder = parentBuilder;
-        }
-
-        public Builder(Graph carrier, Name type) {
-            this.arguments = new ArrayList<>();
-            this.result = new Impl(carrier, type, arguments);
-            this.parentBuilder = null;
-        }
-
-        public Builder input(Name edgeLabel) throws GraphError {
-            Optional<Triple> triple = result.carrier.get(edgeLabel);
-            if (!triple.isPresent()) {
-                throw new GraphError(Collections.singletonList(new Pair<>(edgeLabel, GraphError.ERROR_TYPE.UNKNOWN_MEMBER)));
-            }
-            this.arguments.add(new MessageArgument(result, edgeLabel, triple.get().getTarget(), inArgCounter++, false));
-            return this;
-        }
-
-        public Builder output(Name edge) throws GraphError {
-            Optional<Triple> triple = result.carrier.get(edge);
-            if (!triple.isPresent()) {
-                throw new GraphError(Collections.singletonList(new Pair<>(edge, GraphError.ERROR_TYPE.UNKNOWN_MEMBER)));
-            }
-            this.arguments.add(new MessageArgument(result, edge, triple.get().getTarget(), inArgCounter++, true));
-            return this;
-        }
-
-        public MessageType build() {
-            return result;
-        }
-
-        public Sys.Builder endMessage() {
-            if (this.parentBuilder != null) {
-                this.parentBuilder.addMessage(build());
-            }
-            return parentBuilder;
-        }
+    private final Name type;
+    private final List<MessageArgument> inputArgs;
+    private final List<MessageArgument> outputArgs;
+    private final MessageContainer container;
+    private final boolean sideEffect;
 
 
+    public MessageType(Name type, List<MessageArgument> inputArgs, List<MessageArgument> outputArgs) {
+        this.type = type;
+        this.inputArgs = inputArgs;
+        this.outputArgs = outputArgs;
+        this.container = null;
+        this.sideEffect = true;
     }
 
-
-    class Impl implements MessageType {
-        private final Graph carrier;
-        private final Name typeName;
-        private final Collection<MessageArgument> arguments;
-
-        public Impl(Graph carrier, Name typeName, Collection<MessageArgument> arguments) {
-            this.carrier = carrier;
-            this.typeName = typeName;
-            this.arguments = arguments;
-        }
-
-        @Override
-        public Stream<MessageArgument> arguments() {
-            return arguments.stream();
-        }
-
-        @Override
-        public Graph carrier() {
-            return carrier;
-        }
-
-        @Override
-        public Name typeName() {
-            return typeName;
-        }
+    public MessageType(Name type, List<MessageArgument> inputArgs, List<MessageArgument> outputArgs, MessageContainer group, boolean sideEffect) {
+        this.type = type;
+        this.inputArgs = inputArgs;
+        this.outputArgs = outputArgs;
+        this.container = group;
+        this.sideEffect = sideEffect;
     }
 
+    public Name typeName() {
+        return type;
+    }
 
-    Stream<MessageArgument> arguments();
+    public Stream<MessageArgument> arguments() {
+        return Streams.concat(inputArgs.stream(), outputArgs.stream());
+    }
 
-    default Stream<MessageArgument> inputs() {
-        return arguments().filter(MessageArgument::isInput);
+    public List<MessageArgument> inputs() {
+        return inputArgs;
     };
 
-    default Stream<MessageArgument> outputs() {
-        return arguments().filter(MessageArgument::isOutput);
+    public Optional<MessageContainer> getGroup() {
+        return Optional.ofNullable(container);
     }
 
-    Graph carrier();
-
-    Name typeName();
-
-    @Override
-    default Formula<Graph> label() {
-        return Formula.top();
+    public boolean hasSideEffects() {
+        return sideEffect;
     }
 
-    @Override
-    default GraphMorphism binding() {
-        return new GraphMorphism() {
-            @Override
-            public Graph domain() {
-                return Universe.ONE_NODE;
-            }
-
-            @Override
-            public Graph codomain() {
-                return carrier();
-            }
-
-            @Override
-            public Optional<Name> map(Name name) {
-                if (name.equals(Universe.ONE_NODE_THE_NODE)) {
-                    return Optional.of(typeName());
-                }
-                return Optional.empty();
-            }
-
-            @Override
-            public Name getName() {
-                return MessageType.this.getName().absolute();
-            }
-        };
+    public List<MessageArgument> outputs() {
+        return outputArgs;
     }
 
-    @Override
-    default Name getName() {
-        return Name.identifier("Message");
-    }
-
-
-    @Override
-    default MessageType substitue(GraphMorphism morphism) {
-        return new MessageType() {
-            @Override
-            public Stream<MessageArgument> arguments() {
-                return MessageType.this.arguments().map(arg -> (MessageArgument) arg.substitue(morphism, this));
-            }
-
-            @Override
-            public Graph carrier() {
-                return morphism.codomain();
-            }
-
-            @Override
-            public Name typeName() {
-                return morphism.map(MessageType.this.typeName()).get();
-            }
-        };
+    public MessageType substitute(GraphMorphism graphMorphism) {
+        List<MessageArgument> ins = new ArrayList<>();
+        List<MessageArgument> outs = new ArrayList<>();
+        MessageContainer newMessageContainer;
+        if (container == null) {
+            newMessageContainer = null;
+        } else {
+            newMessageContainer = new MessageContainer(graphMorphism.apply(Triple.node(container.getTypeName())).get().getLabel());
+        }
+        MessageType result = new MessageType(graphMorphism.map(type).get(), ins, outs, newMessageContainer, sideEffect);
+        for (MessageArgument arg : inputArgs) {
+            ins.add(new MessageArgument(result, graphMorphism.apply(arg.asEdge()).get(), arg.argumentOrder(), false));
+        }
+        for (MessageArgument arg : outputArgs) {
+            outs.add(new MessageArgument(result, graphMorphism.apply(arg.asEdge()).get(), arg.argumentOrder(), true));
+        }
+        return result;
     }
 }

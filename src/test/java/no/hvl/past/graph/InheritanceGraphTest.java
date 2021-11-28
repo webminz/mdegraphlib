@@ -6,7 +6,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
-public class InheritanceGraphTest extends AbstractGraphTest {
+public class InheritanceGraphTest extends TestWithGraphLib {
 
 
     InheritanceGraph IGRAPH = buildExample();
