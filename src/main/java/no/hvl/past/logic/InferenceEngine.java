@@ -1,6 +1,6 @@
 package no.hvl.past.logic;
 
-import no.hvl.past.plugin.ExtensionPoint;
+import no.hvl.past.ExtensionPoint;
 
 /**
  * Interface for an inference mechanism for a given logic.

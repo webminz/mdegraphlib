@@ -3,10 +3,7 @@ package no.hvl.past.graph.trees;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.names.Name;
-import no.hvl.past.util.Pair;
-import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -55,7 +52,6 @@ public interface TypedNode extends Node {
             return childBuilder;
         }
 
-        @NotNull
         @Override
         Node.Impl createImpl() {
             return new TypedNode.Impl(elementName, type);

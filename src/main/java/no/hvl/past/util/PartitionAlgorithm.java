@@ -31,7 +31,8 @@ public class PartitionAlgorithm<X> {
             this.parent = parent;
         }
 
-        public void merge(Gather<X> with, X... addAlso) {
+        @SafeVarargs
+        public final void merge(Gather<X> with, X... addAlso) {
             Gather<X> lhs = this.getBiggestParent();
             Gather<X> rhs = with.getBiggestParent();
             Set<X> result = new HashSet<>();
@@ -67,7 +68,8 @@ public class PartitionAlgorithm<X> {
         }
     }
 
-    public PartitionAlgorithm relate(X left, X right, X... addAlso) {
+    @SafeVarargs
+    public final PartitionAlgorithm relate(X left, X right, X... addAlso) {
         if (!left.equals(right)) {
             this.result.get(left).merge(this.result.get(right), addAlso);
         }

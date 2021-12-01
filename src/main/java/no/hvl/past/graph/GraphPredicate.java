@@ -2,7 +2,7 @@ package no.hvl.past.graph;
 
 
 import no.hvl.past.logic.Formula;
-import no.hvl.past.plugin.ExtensionPoint;
+import no.hvl.past.ExtensionPoint;
 import no.hvl.past.logic.Model;
 
 import java.util.stream.Stream;

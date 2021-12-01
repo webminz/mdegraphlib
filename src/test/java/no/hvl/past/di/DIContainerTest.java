@@ -1,9 +1,6 @@
 package no.hvl.past.di;
 
 import no.hvl.past.TestBase;
-import no.hvl.past.graph.Universe;
-import no.hvl.past.graph.UniverseImpl;
-import no.hvl.past.plugin.MetaRegistry;
 import no.hvl.past.util.FileSystemAccessPoint;
 import no.hvl.past.util.IOStreamUtils;
 import org.apache.logging.log4j.Level;
@@ -13,7 +10,6 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;

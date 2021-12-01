@@ -1,10 +1,8 @@
 package no.hvl.past.util;
 
-import no.hvl.past.systems.Sys;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.function.Consumer;
 
 public class IOStreamUtils {
 

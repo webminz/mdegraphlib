@@ -2,7 +2,6 @@ package no.hvl.past.graph.trees;
 
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 
@@ -56,12 +55,10 @@ public interface Branch {
             return result;
         }
 
-        @NotNull
         Impl makeResultObject() {
             return new Impl(key);
         }
 
-        @NotNull
         Node.Impl makeValueNode(Branch result) {
             return new Node.Impl(value, result, Collections.emptyList());
         }

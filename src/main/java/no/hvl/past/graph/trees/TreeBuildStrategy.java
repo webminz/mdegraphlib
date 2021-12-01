@@ -7,7 +7,6 @@ import no.hvl.past.attributes.IntegerValue;
 import no.hvl.past.graph.Graph;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.util.Optional;
@@ -44,7 +43,6 @@ public class TreeBuildStrategy {
         // Per default simply ignored
     }
 
-    @NotNull
     protected Name makeOID(Node.Builder parent, String field) {
         return Name.anonymousIdentifier();
     }
@@ -196,7 +194,6 @@ public class TreeBuildStrategy {
             reportError(parent, fieldName, uninterpretedAttributeMsg(parent, fieldName, content, edgeTyping));
         }
 
-        @NotNull
         private String uninterpretedAttributeMsg(TypedNode.Builder parent, String fieldName, String content, Triple edgeTyping) {
             return "Field at " + parent.elementName + "." + fieldName + " with content '" + content + " could not be interpreted as an instance of " + edgeTyping;
         }

@@ -1,5 +1,4 @@
 package no.hvl.past.util;
-import org.checkerframework.checker.nullness.Opt;
 
 import java.util.*;
 import java.util.function.*;

@@ -1,4 +1,4 @@
-package no.hvl.past.plugin;
+package no.hvl.past;
 
 /**
  * Marker interface to mark interfaces that could be implemented

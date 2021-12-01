@@ -3,7 +3,6 @@ package no.hvl.past.graph.trees;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.Value;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -138,7 +137,6 @@ public interface Node {
             return result;
         }
 
-        @NotNull
         Impl createImpl() {
             return new Impl(elementName);
         }
@@ -213,7 +211,6 @@ public interface Node {
         return children().reduce(false, (agg,branch) -> agg || branch.child().hasCycle(visitedNodeNames), (l,r) -> l || r);
     }
 
-    @NotNull
     default Stream<Node> childNodesByKey(String key) {
         return childrenByKey(key).map(Branch::child);
     }

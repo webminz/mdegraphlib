@@ -173,6 +173,7 @@ public class Plotter extends AbstractPlotter implements Visitor {
 
     }
 
+    @SuppressWarnings("unchecked")
     public void handleFormula(Formula<Graph> graphFormula) {
         this.currentMapping = new HashMap<>();
 

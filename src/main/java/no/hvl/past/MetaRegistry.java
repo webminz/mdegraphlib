@@ -1,4 +1,6 @@
-package no.hvl.past.plugin;
+package no.hvl.past;
+
+import no.hvl.past.ExtensionPoint;
 
 import java.util.Optional;
 

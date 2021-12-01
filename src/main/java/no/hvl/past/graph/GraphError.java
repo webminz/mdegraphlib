@@ -3,7 +3,6 @@ package no.hvl.past.graph;
 
 
 import com.google.common.collect.Sets;
-import net.sourceforge.plantuml.bpm.Col;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.names.Name;

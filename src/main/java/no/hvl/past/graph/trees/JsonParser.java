@@ -3,7 +3,6 @@ package no.hvl.past.graph.trees;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
-import no.hvl.past.attributes.ErrorValue;
 import no.hvl.past.graph.Sketch;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;

@@ -1,6 +1,6 @@
 package no.hvl.past.graph;
 
-import no.hvl.past.plugin.ExtensionPoint;
+import no.hvl.past.ExtensionPoint;
 import no.hvl.past.logic.Model;
 
 public interface GraphOperation extends GraphTheory, ExtensionPoint {

@@ -1,4 +1,4 @@
-package no.hvl.past.plugin;
+package no.hvl.past;
 
 public class UnsupportedFeatureException extends Exception {
 

@@ -1,6 +1,6 @@
 package no.hvl.past.logic;
 
-import no.hvl.past.plugin.ExtensionPoint;
+import no.hvl.past.ExtensionPoint;
 
 import java.util.Optional;
 import java.util.Set;

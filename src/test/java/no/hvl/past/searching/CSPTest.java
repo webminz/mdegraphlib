@@ -1,7 +1,6 @@
 package no.hvl.past.searching;
 
 import com.google.common.collect.Sets;
-import no.hvl.past.searching.CSPSolver;
 import org.junit.Test;
 
 
@@ -66,16 +65,22 @@ public class CSPTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testSimpleDistinctColoring() {
         ColoredState t = new ColoredState("Tasmania");
         ColoredState v = new ColoredState("Victoria");
         ColoredState nsw = new ColoredState("New South Wales");
         AdjacentStates c1 = new AdjacentStates(v, nsw);
-        Set<Map<ColoredState, Color>> allSolutions = CSPSolver.createProblem(Sets.newHashSet(t, v, nsw), Sets.newHashSet(c1), Collections.singleton(new CSPSolver.AllDiffConstraint<Color>(Arrays.asList(nsw, t, v)))).backtrackAllSolutions();
+        Set<Map<ColoredState, Color>> allSolutions = CSPSolver.createProblem(
+                Sets.newHashSet(t, v, nsw),
+                Sets.newHashSet(c1),
+                Collections.singleton(new CSPSolver.AllDiffConstraint<>(Arrays.asList(nsw, t, v)))
+                ).backtrackAllSolutions();
         assertEquals(6, allSolutions.size());
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testAustraliaMapColoring() {
         ColoredState t = new ColoredState("Tasmania");
         ColoredState v = new ColoredState("Victoria");

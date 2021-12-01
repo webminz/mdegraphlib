@@ -1,28 +1,19 @@
 package no.hvl.past.di;
 
 import no.hvl.past.graph.Universe;
-import no.hvl.past.plugin.MetaRegistry;
+import no.hvl.past.MetaRegistry;
 import no.hvl.past.util.FileSystemAccessPoint;
 import no.hvl.past.util.FileSystemUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 
-import org.apache.logging.log4j.core.Filter;
-import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.appender.FileAppender;
 import org.apache.logging.log4j.core.appender.RollingFileAppender;
 import org.apache.logging.log4j.core.appender.rolling.DefaultRolloverStrategy;
-import org.apache.logging.log4j.core.appender.rolling.RollingFileManager;
 import org.apache.logging.log4j.core.appender.rolling.SizeBasedTriggeringPolicy;
-import org.apache.logging.log4j.core.appender.rolling.TriggeringPolicy;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.Configurator;
-import org.apache.logging.log4j.core.config.builder.api.Component;
-import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
-import org.apache.logging.log4j.core.filter.RegexFilter;
 import org.apache.logging.log4j.core.layout.PatternLayout;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -74,11 +65,6 @@ public class DependencyInjectionContainer {
 
     public PropertyHolder getPropertyHolder() {
         return this.applicationContext.getBean(PropertyHolder.class);
-    }
-
-    // TODO move into an infrastructure sub-project
-    public ServerStarter getServer() {
-        return this.applicationContext.getBean(ServerStarter.class);
     }
 
     public FileSystemUtils getFSUtils() {
@@ -162,20 +148,21 @@ public class DependencyInjectionContainer {
 
 
         ctx.updateLoggers();
+        // TODO FIXME the following must be moved somewhere else...
        // Configurator.setLevel(LogManager.getLogger("io.javalin.Javalin").getName(), Level.OFF);
         Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.http.HttpParser").getName(), Level.OFF);
         Configurator.setLevel(LogManager.getLogger("notprivacysafe.graphql.GraphQL").getName(), Level.OFF);
         Configurator.setLevel(LogManager.getLogger("graphql.GraphQL").getName(), Level.OFF);
         Configurator.setLevel(LogManager.getLogger("notprivacysafe.graphql.execution.Execution").getName(), Level.OFF);
         Configurator.setLevel(LogManager.getLogger("graphql.execution.ExecutionStrategy").getName(), Level.OFF);
-        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.HttpOutput").getName(), Level.OFF);
-        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.HttpConnection").getName(), Level.OFF);
-        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.HttpInput").getName(), Level.OFF);
-        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.HttpChannelState").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.corrlang.components.server.HttpOutput").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.corrlang.components.server.HttpConnection").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.corrlang.components.server.HttpInput").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.corrlang.components.server.HttpChannelState").getName(), Level.OFF);
         Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.ChannelEndPoint").getName(), Level.OFF);
-        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.session").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.corrlang.components.server.session").getName(), Level.OFF);
         Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.WriteFlusher").getName(), Level.OFF);
-        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.server.Request").getName(), Level.OFF);
+        Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.corrlang.components.server.Request").getName(), Level.OFF);
         Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.io.AbstractConnection").getName(), Level.OFF);
         Configurator.setLevel(LogManager.getLogger("org.eclipse.jetty.http.HttpCookie").getName(), Level.OFF);
     }
@@ -199,7 +186,6 @@ public class DependencyInjectionContainer {
         return dependencyInjectionContainer;
     }
 
-    @NotNull
     private static PropertyHolder setUpPropertyHolder(String appName, Properties configArgs) throws IOException {
         FileSystemUtils fileSystemUtils = FileSystemUtils.getInstance();
         File configFile;

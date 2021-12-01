@@ -6,8 +6,6 @@ import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.predicates.IntDT;
 import no.hvl.past.graph.predicates.StringDT;
 import no.hvl.past.names.Name;
-import no.hvl.past.systems.Sys;
-import org.checkerframework.checker.nullness.Opt;
 import org.junit.Test;
 
 import java.io.File;
@@ -58,10 +56,55 @@ public class JsonTreeTest extends GraphTest {
                 .endDiagram(Name.anonymousIdentifier())
                 .sketch("FHIR_PATIENT")
                 .getResult(Sketch.class);
+        TreeBuildStrategy strategy = new TreeBuildStrategy.TypedStrategy() {
+
+
+            @Override
+            public Graph getSchemaGraph() {
+                return schema.carrier();
+            }
+
+            @Override
+            public Optional<Name> rootType(String label) {
+                return Optional.of(Name.identifier("Bundle"));
+            }
+
+            @Override
+            public Optional<Triple> lookupType(Name parentType, String field) {
+               return schema.carrier().get(parentType).flatMap(t -> schema.carrier().outgoing(t.getTarget()).filter(tt -> tt.getLabel().equals(Name.identifier(field))).findFirst());
+            }
+
+            @Override
+            public boolean isStringType(Name typeName) {
+                return typeName.equals(Name.identifier("string"));
+            }
+
+            @Override
+            public boolean isBoolType(Name typeName) {
+                return false;
+            }
+
+            @Override
+            public boolean isFloatType(Name typeName) {
+                return false;
+            }
+
+            @Override
+            public boolean isIntType(Name typeName) {
+                return typeName.equals(Name.identifier("int"));
+
+            }
+
+            @Override
+            public boolean isEnumType(Name typeName) {
+                return false;
+            }
+        };
+
         JsonParser jsonParser = new JsonParser(new JsonFactory());
         TypedTree typed = jsonParser.parse(
                 new File("src/test/resources/trees/fhir_patient.json"),
-                new Sys.Builder("test",schema).build().treeBuildStrategy()
+                strategy
         );
         Optional<Node> firstEntry = typed.root().childNodesByKey("entry").findFirst();
         assertTrue(firstEntry.isPresent());

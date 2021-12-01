@@ -3,8 +3,6 @@ package no.hvl.past.graph;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.logic.Formula;
 import no.hvl.past.names.Name;
-import org.checkerframework.checker.nullness.Opt;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 import java.util.stream.Stream;

@@ -2,9 +2,7 @@ package no.hvl.past.graph.trees;
 
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
-import org.jetbrains.annotations.NotNull;
 
-import javax.swing.text.html.Option;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -31,13 +29,11 @@ public interface TypedBranch extends Branch {
             this.inverseEdgeType = inverseEdgeType;
         }
 
-        @NotNull
         @Override
         Branch.Impl makeResultObject() {
             return new Impl(getKey(), edgeType, inverseEdgeType);
         }
 
-        @NotNull
         @Override
         Node.Impl makeValueNode(Branch result) {
             return new TypedNode.Impl(getValue(), result, new ArrayList<>(), returnType);
