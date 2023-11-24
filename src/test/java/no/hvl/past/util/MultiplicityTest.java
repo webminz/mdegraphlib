@@ -1,9 +1,11 @@
 package no.hvl.past.util;
 
-import junit.framework.TestCase;
-import org.junit.Test;
 
-public class MultiplicityTest extends TestCase {
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class MultiplicityTest  {
 
 
     @Test

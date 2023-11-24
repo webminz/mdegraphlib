@@ -5,7 +5,7 @@ import java.util.*;
 /**
  * An abstract implementation for a typical partition algorithms
  * as they are e.g. really common in colimit or coequalizer computations.
- * They are a concrete instance of a fixpoint algorithm.
+ * They are concrete instances of a fixpoint algorithm.
  */
 public class PartitionAlgorithm<X> {
 

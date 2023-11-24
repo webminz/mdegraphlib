@@ -1,11 +1,13 @@
 package no.hvl.past.names;
 
-import org.junit.Test;
+
+import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 
 public class URINames {
 

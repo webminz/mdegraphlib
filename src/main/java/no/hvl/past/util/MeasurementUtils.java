@@ -1,7 +1,9 @@
 package no.hvl.past.util;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.Logger;
+
+
+import org.slf4j.Logger;
+import org.slf4j.event.Level;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -24,7 +26,7 @@ public class MeasurementUtils {
         method.run();
         LocalDateTime stop = LocalDateTime.now();
         Duration duration = Duration.between(start, stop);
-        logger.log(logLevel, msgPrefix + " took" + duration.toMillis() + " ms");
+        logger.atLevel(logLevel).log(msgPrefix + " took" + duration.toMillis() + " ms");
         return duration.toMillis();
     }
 
@@ -33,7 +35,7 @@ public class MeasurementUtils {
         R result = method.get();
         LocalDateTime stop = LocalDateTime.now();
         Duration duration = Duration.between(start, stop);
-        logger.log(logLevel, msgPrefix + " took" + duration.toMillis() + " ms");
+        logger.atLevel(logLevel).log(msgPrefix + " took" + duration.toMillis() + " ms");
         return result;
     }
 
@@ -42,7 +44,7 @@ public class MeasurementUtils {
         R result = method.apply(input);
         LocalDateTime stop = LocalDateTime.now();
         Duration duration = Duration.between(start, stop);
-        logger.log(logLevel, msgPrefix + " took" + duration.toMillis() + " ms");
+        logger.atLevel(logLevel).log(msgPrefix + " took" + duration.toMillis() + " ms");
         return result;
     }
 }

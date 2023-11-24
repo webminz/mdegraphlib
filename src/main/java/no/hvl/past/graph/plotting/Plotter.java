@@ -186,7 +186,7 @@ public class Plotter extends AbstractPlotter implements Visitor {
             };
         } else if (SourceMultiplicity.class.isAssignableFrom(graphFormula.getClass())) {
             SourceMultiplicity multiplicity = (SourceMultiplicity) graphFormula;
-            String label = (multiplicity.getLowerBound() < 0 ? "*" : Integer.toString(multiplicity.getLowerBound())) + ".." + (multiplicity.getUpperBound() < 0 ? "*" : Integer.toString(multiplicity.getUpperBound()));
+            String label = multiplicity.multiplicity().toString();
             this.currentAction = new Annotation.SpecialAction() {
                 @Override
                 public void execute(Map<Name, Name> mapping) {
@@ -201,7 +201,7 @@ public class Plotter extends AbstractPlotter implements Visitor {
             };
         } else if (TargetMultiplicity.class.isAssignableFrom(graphFormula.getClass())) {
             TargetMultiplicity multiplicity = (TargetMultiplicity) graphFormula;
-            String label = (multiplicity.getLowerBound() < 0 ? "*" : Integer.toString(multiplicity.getLowerBound())) + ".." + (multiplicity.getUpperBound() < 0 ? "*" : Integer.toString(multiplicity.getUpperBound()));
+            String label = multiplicity.getMultiplicity().toString();
             this.currentAction = new Annotation.SpecialAction() {
                 @Override
                 public void execute(Map<Name, Name> mapping) {

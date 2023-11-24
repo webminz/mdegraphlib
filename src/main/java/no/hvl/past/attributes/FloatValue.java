@@ -119,4 +119,9 @@ public final class FloatValue extends Value {
         }
         return super.inATotalOrderWith(other);
     }
+
+    public IntegerValue floor() {
+        long floor =  (long) Math.floor(this.value);
+        return Name.value(floor);
+    }
 }

@@ -4,12 +4,13 @@ import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
 
 import no.hvl.past.util.Pair;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.*;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class MorphismTest extends TestWithGraphLib {
 

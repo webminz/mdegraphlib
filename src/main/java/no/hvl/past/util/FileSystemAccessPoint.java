@@ -1,17 +1,17 @@
 package no.hvl.past.util;
 
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.UrlResource;
+
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 public class FileSystemAccessPoint {
 
+    public static final String CLASSPATH_PREFIX = "classpath:";
     private final File path;
     private final FileSystemUtils fs;
 
@@ -52,10 +52,10 @@ public class FileSystemAccessPoint {
             if (fs.getOs().equals(FileSystemUtils.OperatingSystemType.WINDOWS) && navigationPath.indexOf(':') == 1) {
                 return FileSystemAccessPoint.create(new File(navigationPath), fs);
             } else {
-                if (navigationPath.startsWith("classpath")) {
-                    return FileSystemAccessPoint.create(new ClassPathResource(navigationPath).getFile(),fs);
+                if (navigationPath.startsWith(CLASSPATH_PREFIX)) {
+                    return FileSystemAccessPoint.create(new File(FileSystemAccessPoint.class.getResource(navigationPath.substring(CLASSPATH_PREFIX.length())).getFile()), fs);
                 } else {
-                    return FileSystemAccessPoint.create(new UrlResource(navigationPath).getFile(), fs);
+                    return FileSystemAccessPoint.create(new File(URI.create(navigationPath).toURL().getFile()), fs);
                 }
             }
         }
@@ -80,10 +80,10 @@ public class FileSystemAccessPoint {
             if (fs.getOs().equals(FileSystemUtils.OperatingSystemType.WINDOWS) && location.indexOf(':') == 1) {
                 return new File(location);
             } else {
-                if (location.startsWith("classpath")) {
-                    return new ClassPathResource(location).getFile();
+                if (location.startsWith(CLASSPATH_PREFIX)) {
+                    return new File(FileSystemAccessPoint.class.getResource(location.substring(CLASSPATH_PREFIX.length())).getFile());
                 } else {
-                    return new UrlResource(location).getFile();
+                    return new File(URI.create(location).toURL().getFile());
                 }
             }
         }

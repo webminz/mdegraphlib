@@ -1,14 +1,13 @@
 package no.hvl.past.searching;
 
-import no.hvl.past.searching.SearchEngine;
-import no.hvl.past.searching.SearchStrategy;
-import no.hvl.past.searching.StateSpace;
+
 import no.hvl.past.util.Pair;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class SearchTest {
 

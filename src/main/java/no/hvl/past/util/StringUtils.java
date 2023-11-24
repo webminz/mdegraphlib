@@ -6,9 +6,12 @@ import com.google.common.base.CaseFormat;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class StringUtils {
+
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
 
     public enum StringCombinationStrategy {
         /** camelCase, i.e. capitalize after the first word (common in Java, C, JavaScript) */
@@ -99,6 +102,41 @@ public class StringUtils {
 
     public static String lowerCaseFirst(String string) {
         return Character.toLowerCase(string.charAt(0)) + string.substring(1);
+    }
+
+    public static String initials(String name) {
+        if (name.contains(":")) {
+            // probably a URL/URI
+            String rest = name.replaceAll("//", "");
+            rest = rest.replaceAll("www.", "");
+
+
+        } else {
+            if (name.contains(",")) {
+                int idx = name.indexOf(',');
+                char a = name.charAt(0);
+                if (name.length() > idx + 1) {
+                    char b = name.charAt(idx + 1);
+                    return "" + b + a;
+                } else {
+                    return "" + a;
+                }
+            } else if (name.contains(" ")) {
+                StringBuilder result = new StringBuilder();
+                for (String part : name.split(" ")) {
+                    result.append(part.charAt(0));
+                }
+                return result.toString();
+            } else {
+
+            }
+        }
+
+        return name; // TODO tries to compute a meaningful initial of the given String
+    }
+
+    public static boolean isNumber(String string) {
+        return NUMBER_PATTERN.matcher(string).matches();
     }
 
 

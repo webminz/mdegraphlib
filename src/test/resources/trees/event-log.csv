@@ -1,0 +1,9 @@
+case_id;activity;timestamp;resource
+1;"register A";1;Franz
+3;"perform E";2;Gunnhild
+2;"register A";1;Franz
+1;"do B";1;Gunnhild
+2;"do B";2;Harald
+2;"execute C";3;Harald
+3;"register A";1;Franz
+

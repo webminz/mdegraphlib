@@ -1,10 +1,16 @@
 package no.hvl.past.graph.trees;
 
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.graph.elements.Tuple;
+import no.hvl.past.names.AnonymousIdentifier;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.Value;
+import no.hvl.past.util.Pair;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -14,187 +20,130 @@ import java.util.stream.Stream;
  */
 public interface Node {
 
+    // Common constants
+
     Name ROOT_NAME = Name.identifier("/");
 
-    class Builder {
+    Name FORREST_NAME = Name.identifier("$BUNDLE");
 
-        Builder parentBuilder;
-        Name elementName;
-        private List<Branch.Builder> children;
-        private Branch.Builder lastAdded;
-        private int currentIdx = 0;
-        private Node result;
+    // Mandatory core methods
 
-        private Builder(Node node) {
-            this.result = node;
-        }
-
-        public Builder() {
-            this.elementName = ROOT_NAME;
-            this.children = new ArrayList<>();
-        }
-
-        public Builder(Name elementName) {
-            this.elementName = elementName;
-            this.children = new ArrayList<>();
-        }
-
-        public Builder(Builder parentBuilder, Name elementName) {
-            this.parentBuilder = parentBuilder;
-            this.elementName = elementName;
-            this.children = new ArrayList<>();
-        }
-
-        public Name getElementName() {
-            return elementName;
-        }
-
-        public void changeElementName(Name elementName) {
-            this.elementName = elementName;
-        }
-
-        public Node.Builder beginChild(String key, Node childNode) {
-            handleIndexing(key);
-            Builder childBuilder = new Builder(childNode);
-            Branch.Builder rel = new Branch.Builder(key, childBuilder);
-            addChild(rel);
-            return childBuilder;
-        }
-
-        public Node.Builder beginChild(String key, Name elementName) {
-            handleIndexing(key);
-            Builder childBuilder = new Builder(this, elementName);
-            Branch.Builder rel = new Branch.Builder(key, childBuilder);
-            addChild(rel);
-            return childBuilder;
-        }
-
-        void addChild(Branch.Builder rel) {
-            lastAdded = rel;
-            this.children.add(rel);
-        }
-
-        public int peekNextIndex(String key) {
-            if (lastAdded == null) {
-                return 0;
-            }
-            if (lastAdded.getKey().equals(key)) {
-                return currentIdx + 1;
-            }
-            return 0;
-        }
-
-        void handleIndexing(String key) {
-            if (lastAdded != null && lastAdded.getKey().equals(key)) {
-                lastAdded.addIndex(currentIdx);
-                currentIdx++;
-            } else if (lastAdded != null && !lastAdded.getKey().equals(key)){
-                if (currentIdx != 0) {
-                    lastAdded.addIndex(currentIdx);
-                }
-                currentIdx = 0;
-            }
-        }
-
-        public Node.Builder attribute(String key, Name value) {
-            handleIndexing(key);
-            Branch.Builder c = new Branch.Builder(key, value);
-            addChild(c);
-            return this;
-        }
-
-        public Node.Builder endChild() {
-            if (parentBuilder != null) {
-                return parentBuilder;
-            } else {
-                return this;
-            }
-        }
-
-        public Node build() {
-            return build(null);
-        }
-
-        Node build(Branch parent) {
-            if (lastAdded != null && currentIdx != 0) {
-                lastAdded.addIndex(currentIdx);
-            }
-            if (result != null) {
-                if (result instanceof Impl) {
-                    Impl result = (Impl) this.result;
-                    result.setParent(parent);
-                }
-                return result;
-            }
-            Impl result = createImpl();
-            if (parent != null) {
-                result.setParent(parent);
-            }
-            result.setParent(parent);
-            for (Branch.Builder b : this.children) {
-                result.addChild(b.build(result));
-            }
-            return result;
-        }
-
-        Impl createImpl() {
-            return new Impl(elementName);
-        }
-    }
-
-    class Impl implements Node {
-        private final Name elementName;
-        private Branch parentRelation;
-        private final List<Branch> children;
-
-        private void addChild(Branch rel) {
-            this.children.add(rel);
-        }
-
-        private void setParent(Branch rel) {
-            this.parentRelation = rel;
-        }
-
-        Impl(Name element) {
-            this.elementName = element;
-            this.children = new ArrayList<>();
-        }
-
-        public Impl(Name elementName, Branch parentRelation, List<? extends Branch> children) {
-            this.elementName = elementName;
-            this.parentRelation = parentRelation;
-            this.children = new ArrayList<>(children);
-        }
-
-        List<Branch> getChildren() {
-            return children;
-        }
-
-        @Override
-        public Name elementName() {
-            return elementName;
-        }
-
-        @Override
-        public Optional<Branch> parentRelation() {
-            return Optional.ofNullable(parentRelation);
-        }
-
-        @Override
-        public Stream<Branch> children() {
-            return children.stream();
-        }
-    }
-
+    /**
+     * Each node in a tree should have unique name.
+     * If this node is complex object (i.e.) it has children, this name is rather unimportant.
+     * If this node is a leaf then the name is important, it might be a reference or a value then.
+     */
     Name elementName();
 
-    Optional<Branch> parentRelation();
+    /**
+     * A node should in most cases by typed over an element from a suitable schema (metamodel).
+     */
+    Optional<Name> nodeType();
 
+    /**
+     * Retrieves the children of this node, represented by {@link Branch} objects.
+     */
     Stream<Branch> children();
 
-    default Optional<Name> parentName() {
-        return parentRelation().map(Branch::parent).map(Node::elementName);
+    /**
+     * The name of parent node.
+     */
+    Optional<Name> parentNode();
+
+
+    // Extended interface with many convenient methods that can be derived directly from the core API.
+
+    default boolean isLeaf() {
+        return children().noneMatch(x -> true);
     }
+
+    default Stream<Name> keys() {
+        return children().map(Branch::key).distinct();
+    }
+
+    default Stream<Node> childNodes() {
+        return children().map(Branch::child);
+    }
+
+    default Stream<Node> childNodesByKey(Name key) {
+        return childrenByKey(key).map(Branch::child);
+    }
+
+    default Stream<Branch> childrenByKey(Name key) {
+        return children().filter(child -> child.key().equals(key));
+    }
+
+    default Stream<Branch> childrenByType(Name branchTypeName) {
+        return children().filter(branch -> branch.edgeTyping().map(branchTypeName::equals).orElse(false));
+    }
+
+    default Optional<Branch> childrenByKeyAndNo(Name key, int no) {
+        List<Branch> collect = childrenByKey(key).collect(Collectors.toList());
+        if (no < collect.size()) {
+            return Optional.of(collect.get(no));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    default Stream<Branch> childrenByType(Triple type) {
+        return nodeType()
+                .map(nodetype -> nodetype.equals(type.getSource()) ? childrenByType(type.getLabel()) : Stream.<Branch>empty())
+                .orElse(Stream.empty());
+    }
+
+    default Stream<Node> typedChildNodes() {
+        return childNodes().filter(node -> node.nodeType().isPresent());
+    }
+
+    default Optional<Node> byName(Name elementName) {
+        if (elementName().equals(elementName)) {
+            return Optional.of(this);
+        }
+        return children().map(child -> child.child().byName(elementName)).filter(Optional::isPresent).findFirst().map(Optional::get);
+    }
+
+    default boolean isSimple() {
+        return isLeaf();
+    }
+
+    default boolean isComplex() {
+        return !isSimple();
+    }
+
+    default boolean isCollection(Name featureKey) {
+        return childrenByKey(featureKey).count() > 1;
+    }
+
+    default boolean isAtomic(Name featureKey) {
+        return childrenByKey(featureKey).count() <= 1;
+    }
+
+    default boolean isEmpty(Name featureKey) {
+        return childrenByKey(featureKey).noneMatch(x -> true);
+    }
+
+    // Extra accessors available when given the containing tree.
+
+
+    default boolean isRoot(Tree container) {
+        return container.root().equals(this);
+    }
+
+    default Optional<Node> parentNode(Tree container) {
+        return parentNode().flatMap(container::findNodeById);
+    }
+
+    default Stream<Branch> siblings(Tree container) {
+        return parentNode(container).map(node -> node.children().filter(b -> !b.child().equals(this))).orElse(Stream.empty());
+    }
+
+    default Stream<Node> siblingNodes(Tree container) {
+        return siblings(container).map(Branch::child);
+    }
+
+
+    // Tree analysis
 
     default boolean isCycleFree() {
         return this.hasCycle(new HashSet<>());
@@ -208,49 +157,18 @@ public interface Node {
             return true;
         }
         visitedNodeNames.add(elementName());
-        return children().reduce(false, (agg,branch) -> agg || branch.child().hasCycle(visitedNodeNames), (l,r) -> l || r);
+        return children().reduce(false, (agg, branch) -> agg || branch.child().hasCycle(visitedNodeNames), (l, r) -> l || r);
     }
 
-    default Stream<Node> childNodesByKey(String key) {
-        return childrenByKey(key).map(Branch::child);
+    default int depth() {
+        return children().map(b -> b.child().depth()).max(Integer::compare).orElse(0) + 1;
     }
 
-    default Stream<Branch> childrenByKey(String key) {
-        return children().filter(child -> child.label().equals(key));
-    }
+
+    // Graph-like API
 
     default Stream<Triple> outgoing() {
         return children().map(Branch::asEdge);
-    }
-
-    default boolean isLeaf() {
-        return children().noneMatch(x -> true);
-    }
-
-    default boolean isRoot() {
-        return !parentRelation().isPresent();
-    }
-
-    default Stream<Node> childNodes() {
-        return children().map(Branch::child);
-    }
-
-    default Optional<Node> parent() {
-        return parentRelation().map(Branch::parent);
-    }
-
-    default Stream<Node> siblings() {
-        if (!parentRelation().isPresent()) {
-            return Stream.empty();
-        }
-        return parentRelation().get().parent().childNodes().filter(n -> !n.equals(this));
-    }
-
-    default Optional<Node> findByName(Name elementName) {
-        if (elementName().equals(elementName)) {
-            return Optional.of(this);
-        }
-        return children().map(child -> child.child().findByName(elementName)).filter(Optional::isPresent).findFirst().map(Optional::get);
     }
 
     default boolean contains(Name nodeName) {
@@ -263,23 +181,128 @@ public interface Node {
         return children().map(Branch::child).anyMatch(n -> n.contains(nodeName));
     }
 
-    default void aggregateSubtree(Set<Triple> result) {
-        result.add(Triple.node(elementName()));
+
+    // Aggregators
+
+    default void collectTriples(Consumer<Triple> collector) {
+        collector.accept(Triple.node(elementName()));
         children().forEach(child -> {
-            result.add(child.asEdge());
-            child.child().aggregateSubtree(result);
+            collector.accept(child.asEdge());
+            child.child().collectTriples(collector);
         });
     }
 
-    default Stream<Triple> subTree() {
+    default void aggregateSubtree(Set<Triple> result) {
+        collectTriples(result::add);
+    }
+
+    default Set<Triple> subTree() {
         Set<Triple> result = new HashSet<>();
         aggregateSubtree(result);
-        return result.stream();
+        return result;
     }
 
-    default int depth() {
-        return children().map(b -> b.child().depth()).max(Integer::compare).orElse(0) + 1;
+    @SuppressWarnings("OptionalGetWithoutIsPresent") // there is an isPresent but IntelliJ does not detect it
+    default void collectTypedSubtree(Consumer<Triple> tripleCollector, Consumer<Tuple> tupleConsumer) {
+        this.nodeType().ifPresent(typ -> {
+            tripleCollector.accept(Triple.node(elementName()));
+            tupleConsumer.accept(new Tuple(elementName(), typ));
+        });
+        children().filter(b -> b.edgeTyping().isPresent()).forEach(b -> {
+            Triple asEdge = b.asEdge();
+            tripleCollector.accept(asEdge);
+            tupleConsumer.accept(new Tuple(asEdge.getLabel(), b.edgeTyping().get()));
+        });
+        typedChildNodes().forEach(child -> child.collectTypedSubtree(tripleCollector, tupleConsumer));
+    }
+
+    default void aggregateTypedSubTree(Set<Triple> elements, Set<Tuple> mappings) {
+       collectTypedSubtree(elements::add, mappings::add);
+    }
+
+    default Pair<Set<Triple>, Set<Tuple>> typedSubTree() {
+        Set<Triple> tripleSet = new HashSet<>();
+        Set<Tuple> tupleSet = new HashSet<>();
+        aggregateTypedSubTree(tripleSet, tupleSet);
+        return new Pair<>(tripleSet, tupleSet);
+    }
+
+    default void collectNodesOfType(Name nodeType, Consumer<Node> collector) {
+        nodeType().ifPresent(nt -> { if (nodeType.equals(nt)) {
+           collector.accept(this);
+        }});
+        childNodes().forEach(child -> collectNodesOfType(nodeType, collector));
+    }
+
+    default void aggregateNodesOfType(Name nodeType, Set<Node> aggregate) {
+        collectNodesOfType(nodeType, aggregate::add);
+    }
+
+    default void collectTriplesOfType(Triple type, Consumer<Triple> collector) {
+        if (type.isNode()) {
+            collectNodesOfType(type.getLabel(), node -> collector.accept(Triple.node(node.elementName())));
+        } else {
+            children().forEach(branch -> {
+                if (branch.type().isPresent() && branch.type().get().equals(type)) {
+                    collector.accept(branch.asEdge());
+                }
+                branch.child().collectTriplesOfType(type, collector);
+            });
+        }
     }
 
 
+   default void sendTo(TreeReceiver handler) throws Exception {
+       if (isSimple()) {
+           handler.valueLeaf(elementName());
+           if (nodeType().isPresent()) {
+               handler.nodeType(nodeType().get());
+           }
+       } else {
+           handler.startComplexNode();
+           if (!(elementName() instanceof AnonymousIdentifier)) {
+               handler.nodeId(elementName());
+           }
+           if (nodeType().isPresent()) {
+               handler.nodeType(nodeType().get());
+           }
+           for (Name key : this.keys().collect(Collectors.toSet())) {
+               handler.startBranch(key, this.isCollection(key));
+               for (Node n : this.childrenByKey(key).map(Branch::child).collect(Collectors.toSet())) {
+                   n.sendTo(handler);
+               }
+               handler.endBranch();
+           };
+           // TODO id
+           handler.endComplexNode();
+       }
+   }
+
+    default Optional<Name> attribute(Name key) {
+        return childNodesByKey(key).findFirst().map(Node::elementName);
+    }
+
+
+    default boolean structurallyEquivalent(Node node) {
+        if (this.isLeaf() && node.isLeaf()) {
+            return this.elementName().equals(node.elementName());
+        }
+        List<Name> thisKeys = this.keys().collect(Collectors.toList());
+        if (thisKeys.equals(node.keys().collect(Collectors.toList()))) {
+            for (Name branchKey : thisKeys) {
+                List<Node> thisList = this.childNodesByKey(branchKey).collect(Collectors.toList());
+                List<Node> otherList = node.childNodesByKey(branchKey).collect(Collectors.toList());
+                if (thisList.size() != otherList.size()) {
+                    return false;
+                }
+                for (int i = 0; i < thisList.size(); i++) {
+                    if (!thisList.get(i).structurallyEquivalent(otherList.get(i))) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
 }

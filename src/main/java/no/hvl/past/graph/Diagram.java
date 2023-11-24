@@ -63,13 +63,20 @@ public interface Diagram extends Element {
     }
 
     default boolean directlyDependsOn(Diagram diagram) {
-        return this.arity().elements()
+        return this.arity()
+                .elements()
                 .filter(this.binding()::definedAt)
                 .map(this.binding()::apply)
+                .filter(Optional::isPresent)
                 .map(Optional::get)
-                .anyMatch(required -> diagram.generatedElements().anyMatch(provided -> required.equals(provided)));
+                .anyMatch(required ->
+                        diagram.generatedElements().anyMatch(provided ->
+                                required.equals(provided)
+                        )
+                );
     }
 
+    // TODO this method should be used more! and might be abstract
     default Diagram substitue(GraphMorphism morphism) {
         return new Diagram() {
             @Override

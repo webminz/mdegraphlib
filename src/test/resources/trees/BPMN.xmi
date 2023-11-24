@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="ASCII"?>
+<bpmn:BPMNDiagram xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="https://ict.hvl.no/people/patrick-stunkel/metamodels/bpmn" xmi:id="_p1tIMCgeEeymvfennQgseQ">
+  <dataObjects xmi:id="_id5I8CglEeymvfennQgseQ" name="Diagnosis" consumers="_tgUKACgkEeymvfennQgseQ" producers="_UzCX8CgkEeymvfennQgseQ"/>
+  <dataObjects xmi:id="_n2jPsCglEeymvfennQgseQ" name="PatientData" consumers="_5Q74YCgkEeymvfennQgseQ" producers="_oNGj8CgkEeymvfennQgseQ"/>
+  <dataObjects xmi:id="_td7u8CglEeymvfennQgseQ" name="Practicioner" consumers="_5Q74YCgkEeymvfennQgseQ" producers="_tgUKACgkEeymvfennQgseQ"/>
+  <pools xmi:id="_qw6MMCgeEeymvfennQgseQ" name="Referrer"/>
+  <pools xmi:id="_sROvcCgeEeymvfennQgseQ" name="Consultant"/>
+  <nodes xsi:type="bpmn:Event" xmi:id="_RL__0CgkEeymvfennQgseQ" name="Patient appeal" outgoing="_XynHcCgkEeymvfennQgseQ"/>
+  <nodes xsi:type="bpmn:Activity" xmi:id="_UzCX8CgkEeymvfennQgseQ" name="Patient consultation" outgoing="_dOvY8CgkEeymvfennQgseQ" incoming="_XynHcCgkEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ" produces="_id5I8CglEeymvfennQgseQ"/>
+  <nodes xsi:type="bpmn:Gateway" xmi:id="_bAVnsCgkEeymvfennQgseQ" outgoing="_ji10QCgkEeymvfennQgseQ" incoming="_dOvY8CgkEeymvfennQgseQ _eq9C0CglEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ" type="XOR"/>
+  <nodes xsi:type="bpmn:Gateway" xmi:id="_huYNACgkEeymvfennQgseQ" outgoing="_yZLWYCgkEeymvfennQgseQ _1ZMKwCgkEeymvfennQgseQ" incoming="_ji10QCgkEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ"/>
+  <nodes xsi:type="bpmn:Activity" xmi:id="_oNGj8CgkEeymvfennQgseQ" name="Extract Patient Information" outgoing="___sPYCgkEeymvfennQgseQ" incoming="_yZLWYCgkEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ" type="SERVICE" produces="_n2jPsCglEeymvfennQgseQ"/>
+  <nodes xsi:type="bpmn:Activity" xmi:id="_tgUKACgkEeymvfennQgseQ" name="Select consultant" outgoing="_BdH2sCglEeymvfennQgseQ" incoming="_1ZMKwCgkEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ" type="BUSINESS_RULE" consumes="_id5I8CglEeymvfennQgseQ" produces="_td7u8CglEeymvfennQgseQ"/>
+  <nodes xsi:type="bpmn:Activity" xmi:id="_5Q74YCgkEeymvfennQgseQ" name="Send Referral" outgoing="_IgytwCglEeymvfennQgseQ" incoming="_D0L0sCglEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ" type="MESSAGE_SEND" consumes="_n2jPsCglEeymvfennQgseQ _td7u8CglEeymvfennQgseQ"/>
+  <nodes xsi:type="bpmn:Gateway" xmi:id="_-OFH0CgkEeymvfennQgseQ" outgoing="_D0L0sCglEeymvfennQgseQ" incoming="___sPYCgkEeymvfennQgseQ _BdH2sCglEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ"/>
+  <nodes xsi:type="bpmn:Gateway" xmi:id="_GAPckCglEeymvfennQgseQ" outgoing="_a0MzsCglEeymvfennQgseQ _dKk1MCglEeymvfennQgseQ" incoming="_IgytwCglEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ" type="EVENT_BASED"/>
+  <nodes xsi:type="bpmn:Activity" xmi:id="_OLBssCglEeymvfennQgseQ" name="Approval" outgoing="_gWPf8CglEeymvfennQgseQ" incoming="_a0MzsCglEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ" type="MESSAGE_RECV"/>
+  <nodes xsi:type="bpmn:Activity" xmi:id="_U51uECglEeymvfennQgseQ" name="Rejection" outgoing="_eq9C0CglEeymvfennQgseQ" incoming="_dKk1MCglEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ" type="MESSAGE_RECV"/>
+  <nodes xsi:type="bpmn:Event" xmi:id="_X5O3YCglEeymvfennQgseQ" name="Referral Finished" incoming="_gWPf8CglEeymvfennQgseQ" pool="_qw6MMCgeEeymvfennQgseQ" type="END"/>
+  <flows xmi:id="_XynHcCgkEeymvfennQgseQ" src="_RL__0CgkEeymvfennQgseQ" trg="_UzCX8CgkEeymvfennQgseQ"/>
+  <flows xmi:id="_dOvY8CgkEeymvfennQgseQ" src="_UzCX8CgkEeymvfennQgseQ" trg="_bAVnsCgkEeymvfennQgseQ"/>
+  <flows xmi:id="_ji10QCgkEeymvfennQgseQ" src="_bAVnsCgkEeymvfennQgseQ" trg="_huYNACgkEeymvfennQgseQ"/>
+  <flows xmi:id="_yZLWYCgkEeymvfennQgseQ" src="_huYNACgkEeymvfennQgseQ" trg="_oNGj8CgkEeymvfennQgseQ"/>
+  <flows xmi:id="_1ZMKwCgkEeymvfennQgseQ" src="_huYNACgkEeymvfennQgseQ" trg="_tgUKACgkEeymvfennQgseQ"/>
+  <flows xmi:id="___sPYCgkEeymvfennQgseQ" src="_oNGj8CgkEeymvfennQgseQ" trg="_-OFH0CgkEeymvfennQgseQ"/>
+  <flows xmi:id="_BdH2sCglEeymvfennQgseQ" src="_tgUKACgkEeymvfennQgseQ" trg="_-OFH0CgkEeymvfennQgseQ"/>
+  <flows xmi:id="_D0L0sCglEeymvfennQgseQ" src="_-OFH0CgkEeymvfennQgseQ" trg="_5Q74YCgkEeymvfennQgseQ"/>
+  <flows xmi:id="_IgytwCglEeymvfennQgseQ" src="_5Q74YCgkEeymvfennQgseQ" trg="_GAPckCglEeymvfennQgseQ"/>
+  <flows xmi:id="_a0MzsCglEeymvfennQgseQ" src="_GAPckCglEeymvfennQgseQ" trg="_OLBssCglEeymvfennQgseQ"/>
+  <flows xmi:id="_dKk1MCglEeymvfennQgseQ" src="_GAPckCglEeymvfennQgseQ" trg="_U51uECglEeymvfennQgseQ"/>
+  <flows xmi:id="_eq9C0CglEeymvfennQgseQ" src="_U51uECglEeymvfennQgseQ" trg="_bAVnsCgkEeymvfennQgseQ"/>
+  <flows xmi:id="_gWPf8CglEeymvfennQgseQ" src="_OLBssCglEeymvfennQgseQ" trg="_X5O3YCglEeymvfennQgseQ"/>
+</bpmn:BPMNDiagram>

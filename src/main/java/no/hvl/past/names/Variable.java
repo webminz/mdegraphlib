@@ -3,8 +3,10 @@ package no.hvl.past.names;
 import no.hvl.past.util.ByteUtils;
 
 /**
- * Represent a variable, which are commonly used as temporarily references
- * to different elements.
+ * Represent a variable, which are used as temporarily references for various elements.
+ * Variables play an important role in logic frameworks where there main purpose is substitution.
+ * To avoid ambiguities when definining identifiers with the same names, {@link Variable}s have their own
+ * type.
  */
 public final class Variable extends Name {
 

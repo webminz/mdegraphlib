@@ -8,7 +8,7 @@ import no.hvl.past.graph.GraphMorphism;
 import no.hvl.past.graph.Universe;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 
 import java.util.Collections;
@@ -16,7 +16,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class GraphOperationsTest extends TestWithGraphLib {
 

@@ -1,7 +1,6 @@
 package no.hvl.past.util;
 
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.UrlResource;
+
 
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +30,12 @@ public class FileSystemUtils {
             }
         }
         return this.entryPoint;
+    }
+
+    public enum LineEnding {
+        CR,
+        LF,
+        CR_LF
     }
 
     public enum OperatingSystemType {

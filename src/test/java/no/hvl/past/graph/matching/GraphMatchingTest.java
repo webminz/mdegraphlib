@@ -5,11 +5,12 @@ import no.hvl.past.graph.TestWithGraphLib;
 import no.hvl.past.graph.Graph;
 import no.hvl.past.graph.GraphError;
 import no.hvl.past.graph.GraphMorphism;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 
 public class GraphMatchingTest extends TestWithGraphLib {
 

@@ -14,17 +14,18 @@ import no.hvl.past.graph.operations.Invert;
 import no.hvl.past.graph.predicates.TargetMultiplicity;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class SketchTest extends TestWithGraphLib {
 
     private Sketch sketch;
     private GraphMorphism instance;
 
-    @Before
+    @BeforeEach
     public void setUp() throws GraphError {
         // ¬((length(arg0))<=3)
         OperationTerm.Appl term = new OperationTerm.Appl(

@@ -196,4 +196,27 @@ public class Multiplicity {
         }
         return (isLowerUnbounded() ? "*" : lower) + ".." + (isUpperUnbounded() ? "*" : upper);
     }
+
+    public static final class MultiplicityViolation extends Exception {
+        private final Multiplicity multiplicity;
+        private final long actualNoOfElements;
+
+        public MultiplicityViolation(Multiplicity multiplicity, long actualNoOfElements) {
+            super(createMessage(multiplicity, actualNoOfElements));
+            this.multiplicity = multiplicity;
+            this.actualNoOfElements = actualNoOfElements;
+        }
+
+        private static String createMessage(Multiplicity multiplicity, long actualNoOfElements) {
+            return "Multiplicity violated! " + multiplicity.toString() + " was required but there were '" + actualNoOfElements + "' elements!";
+        }
+
+        public Multiplicity getMultiplicity() {
+            return multiplicity;
+        }
+
+        public long getActualNoOfElements() {
+            return actualNoOfElements;
+        }
+    }
 }

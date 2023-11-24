@@ -7,15 +7,15 @@ import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.logic.Formula;
 import no.hvl.past.names.Name;
 import no.hvl.past.util.StreamExt;
-import org.junit.Assert;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestWithGraphLib extends TestBase {
 
@@ -91,16 +91,16 @@ public class TestWithGraphLib extends TestBase {
     }
 
     protected static <T> void assertStreamEquals(Stream<T> expected, Stream<T> actual) {
-        Assert.assertEquals(expected.collect(Collectors.toSet()), actual.collect(Collectors.toSet()));
+        assertEquals(expected.collect(Collectors.toSet()), actual.collect(Collectors.toSet()));
     }
 
     @SafeVarargs
     protected static <T> void assertStreamEquals(Stream<T> toTest, T... toCompare) {
-        Assert.assertEquals(Sets.newHashSet(toCompare), toTest.collect(Collectors.toSet()));
+        assertEquals(Sets.newHashSet(toCompare), toTest.collect(Collectors.toSet()));
     }
 
     protected static <T> void assertStreamEquals(Set<T> expected, Stream<T> actual) {
-        Assert.assertEquals(expected, actual.collect(Collectors.toSet()));
+        assertEquals(expected, actual.collect(Collectors.toSet()));
     }
 
     protected static Triple t(String src, String lbl, String trg) {
@@ -178,18 +178,18 @@ public class TestWithGraphLib extends TestBase {
             allEdgesSet.add(Triple.node(triple.getTarget()));
             allEdgesSet.add(triple);
         });
-        Assert.assertEquals(allEdgesSet, graph.elements().collect(Collectors.toSet()));
+        assertEquals(allEdgesSet, graph.elements().collect(Collectors.toSet()));
     }
 
     public static void assertGraphsEqual(Graph expected, Graph actual) {
-        Assert.assertEquals(expected.elements().collect(Collectors.toSet()), actual.elements().collect(Collectors.toSet()));
+        assertEquals(expected.elements().collect(Collectors.toSet()), actual.elements().collect(Collectors.toSet()));
     }
 
     public static void assertMorphismsEqual(GraphMorphism expected, GraphMorphism actual) {
         assertGraphsEqual(expected.domain(), actual.domain());
         assertGraphsEqual(expected.codomain(), actual.codomain());
         expected.domain().elements().forEach(t -> {
-            Assert.assertEquals(expected.apply(t), actual.apply(t));
+            assertEquals(expected.apply(t), actual.apply(t), "Mapping mismatch on '" + t);
         });
     }
 

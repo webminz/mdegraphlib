@@ -4,12 +4,13 @@ import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
 import no.hvl.past.util.ProperComparator;
 import no.hvl.past.util.ShouldNotHappenException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.*;
 import java.util.function.Function;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class GraphTest extends TestWithGraphLib {
 

@@ -22,7 +22,6 @@ public interface DataTypeVisitor<R> {
             this.defaultReturnValue = defaultReturnValue;
         }
 
-
         @Override
         public R handleStringType() {
             return defaultReturnValue;

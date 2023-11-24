@@ -67,23 +67,23 @@ public abstract class TreeIterator  {
         };
     }
 
-    public static Iterator<TypedNode> depthFirstTypedComplex(TypedNode root) {
+    public static Iterator<Node> depthFirstTypedComplex(Node root) {
         TreeIterator treeIterator = new TreeIterator(root, true, true) {
 
             @Override
             protected boolean customFilter(Branch branch) {
-                return branch instanceof TypedBranch;
+                return branch.type().isPresent();
             }
         };
-        return new Iterator<TypedNode>() {
+        return new Iterator<Node>() {
             @Override
             public boolean hasNext() {
                 return treeIterator.hasNext();
             }
 
             @Override
-            public TypedNode next() {
-                return (TypedNode) treeIterator.next();
+            public Node next() {
+                return treeIterator.next();
             }
         };
     }

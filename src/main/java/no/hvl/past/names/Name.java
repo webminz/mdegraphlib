@@ -1,9 +1,6 @@
 package no.hvl.past.names;
 
-import no.hvl.past.attributes.BoolValue;
-import no.hvl.past.attributes.FloatValue;
-import no.hvl.past.attributes.IntegerValue;
-import no.hvl.past.attributes.StringValue;
+import no.hvl.past.attributes.*;
 import no.hvl.past.logic.Formula;
 import no.hvl.past.logic.Model;
 import no.hvl.past.util.ProperComparator;
@@ -33,26 +30,24 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
     static final byte ANONYMOUS_IDENTIFIER_BYTE = (byte) 0x00E1;
     static final byte URI_IDENTIFIER_BYTE = (byte) 0x00E2;
     static final byte UUID_IDENTIFIER_BYTE = (byte) 0x00E3;
-    static final byte USER_DEFINED_IDENTIFIER = (byte) 0x00E4;
-
     static final byte VARIABLE_MAGIC_BYTE = (byte) 0x00E5;
 
-    protected static final byte USER_VALUE_MAGIC_BYTE = (byte) 0x00E6;
-
-    protected static final byte BOOL_VALUE_MAGIC_BYTE = (byte) 0x00E7;
-    protected static final byte INT_VALUE_MAGIC_BYTE = (byte) 0x00E8;
-    protected static final byte FLOAT_VALUE_MAGIC_BYTE = (byte) 0x00E9;
-    protected static final byte STRING_VALUE_MAGIC_BYTE = (byte) 0x00EA;
-    // room for more built-in values
+    // values start at 0xEA
+    protected static final byte BOOL_VALUE_MAGIC_BYTE = (byte) 0x00EA;
+    protected static final byte INT_VALUE_MAGIC_BYTE = (byte) 0x00EB;
+    protected static final byte FLOAT_VALUE_MAGIC_BYTE = (byte) 0x00EC;
+    protected static final byte STRING_VALUE_MAGIC_BYTE = (byte) 0x00ED;
+    protected static final byte USER_VALUE_MAGIC_BYTE = (byte) 0x00EE;
     protected static final byte ERROR_VALUE = (byte) 0x00EF;
 
-    // multiple names start at 0xF0
+    // composite names start at 0xF0
     static final byte PREFIX_MAGIC_BYTE = (byte) 0x00F0;
     static final byte INDEX_MAGIC_BYTE = (byte) 0x00F1;
     static final byte UNARY_OP_MAGIC_BYTE = (byte) 0x00F2;
     static final byte BINARY_OP_MAGIC_BYTE = (byte) 0x00F3;
     static final byte MULTIARY_OP_MAGIC_BYTE = (byte) 0x00F4;
-    static final byte NAME_SET_MAGIC_BYT = (byte) 0x00FF;
+    static final byte NAME_SET_MAGIC_BYTE = (byte) 0x00F5;
+    static final byte NAME_PATH_MAGIC_BYTE = (byte) 0x00F6;
 
 
     /**
@@ -171,6 +166,32 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
 
 
     // Modifications
+
+    public Identifier asID() {
+        if (this instanceof Identifier) {
+            return (Identifier) this;
+        } else if (this instanceof StringValue) {
+            StringValue thisValue = (StringValue) this;
+            return Name.identifier(thisValue.getStringValue());
+        } else if (this instanceof IntegerValue) {
+            IntegerValue thisValue = (IntegerValue) this;
+            return Name.identifier(thisValue.toString());
+        } else if (this instanceof FloatValue) {
+            FloatValue floatValue = (FloatValue) this;
+            return Name.identifier(floatValue.floor().toString());
+        } else if (this instanceof BoolValue) {
+            BoolValue boolValue = (BoolValue) this;
+            return Name.identifier(boolValue.isTrue() ? "1" : "0");
+        } else if (this instanceof UserValue) {
+            UserValue uv = (UserValue) this;
+            return Name.identifier(uv.representation());
+        } else if (this instanceof Variable) {
+            Variable var = (Variable) this;
+            return Name.identifier(var.getVariableName());
+        } else {
+            return Name.identifier(this.printRaw());
+        }
+    }
 
     // Prefix
 
@@ -412,8 +433,7 @@ public abstract class Name implements ProperComparator<Name>, Formula<NameSet> {
     }
 
 
-    public static URIName uri(String uri) throws URISyntaxException {
-        new URI(uri);
+    public static URIName uri(String uri) {
         return new URIName(uri);
     }
 

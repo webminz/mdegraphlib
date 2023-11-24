@@ -1,6 +1,5 @@
 package no.hvl.past.attributes;
 
-import jdk.nashorn.internal.runtime.options.Option;
 import no.hvl.past.logic.Model;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.Value;

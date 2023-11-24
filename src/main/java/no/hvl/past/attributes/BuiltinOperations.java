@@ -60,7 +60,154 @@ public class BuiltinOperations {
         return ErrorValue.INSTANCE;
     }
 
-    public static class Equality implements DataOperation {
+    public static class IsIntegerCheck implements DataPredicate {
+
+        private static IsIntegerCheck instance;
+
+        private IsIntegerCheck() {
+        }
+
+        @Override
+        public String name() {
+            return "isInt(_)";
+        }
+
+        @Override
+        public int arity() {
+            return 1;
+        }
+
+        @Override
+        public Value applyImplementation(Value[] arguments) {
+            Value arg = arguments[0];
+            if (arg instanceof IntegerValue) {
+                return BoolValue.trueValue();
+            }
+            if (arg instanceof StringValue) {
+                return IntegerValue.tryParse((StringValue) arg) instanceof IntegerValue ? BoolValue.trueValue() : BoolValue.falseValue();
+            }
+            return BoolValue.falseValue();
+        }
+
+        public static IsIntegerCheck getInstance() {
+            if (instance == null) {
+                instance = new IsIntegerCheck();
+            }
+            return instance;
+        }
+    }
+
+    public static class IsFloatCheck implements DataPredicate {
+
+        private static IsFloatCheck instance;
+
+        private IsFloatCheck() {
+        }
+
+        @Override
+        public String name() {
+            return "isFloat(_)";
+        }
+
+        @Override
+        public int arity() {
+            return 1;
+        }
+
+        @Override
+        public Value applyImplementation(Value[] arguments) {
+            Value arg = arguments[0];
+            if (arg instanceof FloatValue) {
+                return BoolValue.trueValue();
+            }
+            if (arg instanceof StringValue) {
+                return FloatValue.tryParse((StringValue) arg) instanceof FloatValue ? BoolValue.trueValue() : BoolValue.falseValue();
+            }
+            return BoolValue.falseValue();
+        }
+
+        public static IsFloatCheck getInstance() {
+            if (instance == null) {
+                instance = new IsFloatCheck();
+            }
+            return instance;
+        }
+    }
+
+    public static class IsNumericCheck implements DataPredicate {
+        private static IsNumericCheck instance;
+
+        private IsNumericCheck() {
+        }
+
+        @Override
+        public String name() {
+            return "isNumeric(_)";
+        }
+
+        @Override
+        public int arity() {
+            return 1;
+        }
+
+        @Override
+        public Value applyImplementation(Value[] arguments) {
+            Value arg = arguments[0];
+            if (arg instanceof IntegerValue) {
+                return BoolValue.trueValue();
+            }
+            if (arg instanceof FloatValue) {
+                return BoolValue.trueValue();
+            }
+            if (arg instanceof StringValue) {
+                return FloatValue.tryParse((StringValue) arg) instanceof FloatValue ? BoolValue.trueValue() : BoolValue.falseValue();
+            }
+            return BoolValue.falseValue();
+        }
+
+        public static IsNumericCheck getInstance() {
+            if (instance == null) {
+                instance = new IsNumericCheck();
+            }
+            return instance;
+        }
+    }
+
+    public static class IsStringCheck implements DataPredicate {
+        private static IsStringCheck instance;
+
+        private IsStringCheck() {
+        }
+
+        @Override
+        public String name() {
+            return "isString(_)";
+        }
+
+        @Override
+        public int arity() {
+            return 1;
+        }
+
+        @Override
+        public Value applyImplementation(Value[] arguments) {
+            Value arg = arguments[0];
+            if (arg instanceof StringValue) {
+                return BoolValue.trueValue();
+            }
+            return BoolValue.falseValue();
+        }
+
+        public static IsStringCheck getInstance() {
+            if (instance == null) {
+                instance = new IsStringCheck();
+            }
+            return instance;
+        }
+    }
+
+
+    public static class Equality implements DataPredicate {
 
         private static Equality instance;
 
@@ -274,7 +421,7 @@ public class BuiltinOperations {
         }
     }
 
-    public static class LessOrEqual implements DataOperation {
+    public static class LessOrEqual implements DataPredicate {
 
         private static LessOrEqual instance;
 
@@ -309,7 +456,7 @@ public class BuiltinOperations {
         }
     }
 
-    public static class AlmostEqual implements DataOperation {
+    public static class AlmostEqual implements DataPredicate {
 
         private static final FloatValue DEFAULT_EPSILON = Name.value(0.00001);
         private static AlmostEqual instance;
@@ -371,7 +518,7 @@ public class BuiltinOperations {
         }
     }
 
-    public static class Negation implements DataOperation {
+    public static class Negation implements DataPredicate {
 
         private static Negation instance;
 
@@ -405,7 +552,7 @@ public class BuiltinOperations {
         }
     }
 
-    public static class Conjunction implements DataOperation {
+    public static class Conjunction implements DataPredicate {
 
         private static Conjunction instance;
 
@@ -435,7 +582,7 @@ public class BuiltinOperations {
         }
     }
 
-    public static class Disjunction implements DataOperation {
+    public static class Disjunction implements DataPredicate {
 
         private static Disjunction instance;
 
@@ -465,7 +612,7 @@ public class BuiltinOperations {
         }
     }
 
-    public static class Xor implements DataOperation {
+    public static class Xor implements DataPredicate {
 
         private static Xor instance;
 
@@ -495,7 +642,7 @@ public class BuiltinOperations {
         }
     }
 
-    public static class Implication implements DataOperation {
+    public static class Implication implements DataPredicate {
 
         private static Implication instance;
 
@@ -525,7 +672,7 @@ public class BuiltinOperations {
         }
     }
 
-    public static class BiImplication implements DataOperation {
+    public static class BiImplication implements DataPredicate {
 
         private static BiImplication instance;
 
@@ -774,6 +921,42 @@ public class BuiltinOperations {
         public static Reverse getInstance() {
             if (instance == null) {
                 instance = new Reverse();
+            }
+            return instance;
+        }
+    }
+
+    public static class RegexMatches implements DataOperation {
+        private static RegexMatches instance;
+
+        @Override
+        public String name() {
+            return "matchesRegex(_,_)";
+        }
+
+        @Override
+        public int arity() {
+            return 2;
+        }
+
+        @Override
+        public Value applyImplementation(Value[] arguments) {
+            if (arguments[0] instanceof StringValue) {
+                if (arguments[1] instanceof StringValue) {
+                    StringValue bigger = (StringValue) arguments[0];
+                    StringValue pattern = (StringValue) arguments[1];
+                    return bigger.getStringValue().matches(pattern.getStringValue()) ? BoolValue.trueValue() : BoolValue.falseValue();
+                }
+            }
+            return BoolValue.falseValue();
+        }
+
+        private RegexMatches() {
+        }
+
+        public static RegexMatches getInstance() {
+            if (instance == null) {
+                instance = new RegexMatches();
             }
             return instance;
         }

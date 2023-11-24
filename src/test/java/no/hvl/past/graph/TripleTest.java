@@ -3,14 +3,15 @@ package no.hvl.past.graph;
 import no.hvl.past.attributes.IntegerValue;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.names.Name;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static junit.framework.TestCase.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class TripleTest extends TestWithGraphLib {
 

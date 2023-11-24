@@ -1,13 +1,11 @@
 package no.hvl.past.names;
 
 
-import no.hvl.past.names.Identifier;
-import no.hvl.past.names.Name;
-import no.hvl.past.names.UUIDIdentifier;
 import no.hvl.past.util.ProperComparator;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class NamesTest {
 

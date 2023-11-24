@@ -1,12 +1,9 @@
 package no.hvl.past.util;
 
 import no.hvl.past.TestBase;
-import org.junit.Test;
-import org.springframework.core.io.ClassPathResource;
+import org.junit.jupiter.api.Test;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
+
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;

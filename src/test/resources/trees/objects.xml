@@ -1,0 +1,16 @@
+<object xmlns:xmi="http://www.omg.org/XMI" xmlns="https://www.example.com/objects" xmi:id="_2347">
+    <child xmi:id="_4589">
+        <child xmi:id="_3874" ref="_0238">
+            <attribute>x</attribute>
+        </child>
+        <child xmi:id="_7823" ref="_8764">
+            <attribute>y</attribute>
+        </child>
+    </child>
+    <child xmi:id="_0238" ref="_8764">
+        <attribute>z</attribute>
+    </child>
+    <child xmi:id="_8764">
+        <attribute>z</attribute>
+    </child>
+</object>

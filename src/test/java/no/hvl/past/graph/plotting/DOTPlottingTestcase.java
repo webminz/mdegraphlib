@@ -9,13 +9,12 @@ import no.hvl.past.graph.predicates.*;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.PrintingStrategy;
 import no.hvl.past.names.Value;
-import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 public class DOTPlottingTestcase extends TestWithGraphLib {
 
@@ -33,9 +32,8 @@ public class DOTPlottingTestcase extends TestWithGraphLib {
         assertTrue(Files.equal(expected, actual));
     }
 
-    @Test
+
     public void testSimpleDrawing() throws IOException, GraphError {
-        assumeTrue(integrationTestsAllowed());
 
         File generatedDotFile = new File(RESOURCE_OUTPUT_DIR,"test1.dot");
         if (generatedDotFile.exists()) {
@@ -62,7 +60,6 @@ public class DOTPlottingTestcase extends TestWithGraphLib {
         assertBinariesEqual(new File(RESOURCE_COMPARISON_DIR, "test1.expected.png"), new File(RESOURCE_OUTPUT_DIR, "test1.actual.png"));
     }
 
-    @Test
     public void testWithAttributes() throws IOException, GraphError {
         File generatedDotFile = new File(RESOURCE_OUTPUT_DIR,"test2.dot");
         if (generatedDotFile.exists()) {
@@ -96,7 +93,6 @@ public class DOTPlottingTestcase extends TestWithGraphLib {
 
     }
 
-    @Test
     public void testPlottingMorphism() throws IOException, GraphError {
         File generatedDotFile = new File(RESOURCE_OUTPUT_DIR,"test3.dot");
         if (generatedDotFile.exists()) {
@@ -141,7 +137,6 @@ public class DOTPlottingTestcase extends TestWithGraphLib {
 
     }
 
-    @Test
     public void testPlottingSketches() throws GraphError, IOException {
         File generatedDotFile = new File(RESOURCE_OUTPUT_DIR,"test4.dot");
         if (generatedDotFile.exists()) {

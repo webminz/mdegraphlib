@@ -18,6 +18,14 @@ public class Index extends Name {
         this.index = index;
     }
 
+    public Name getWrapped() {
+        return wrapped;
+    }
+
+    public long getIndex() {
+        return index;
+    }
+
     @Override
     public byte[] getValue() {
         return ByteUtils.concat(wrapped.getValue(), ByteUtils.longToByteArray(index, false));
@@ -109,8 +117,10 @@ public class Index extends Name {
         return super.inATotalOrderWith(other);
     }
 
+
+
     @Override
     public String toString() {
-        return print(PrintingStrategy.DETAILED);
+        return this.wrapped.printRaw() + "." + index;
     }
 }

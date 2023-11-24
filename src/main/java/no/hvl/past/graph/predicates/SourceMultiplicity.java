@@ -2,6 +2,7 @@ package no.hvl.past.graph.predicates;
 
 import no.hvl.past.graph.*;
 import no.hvl.past.graph.elements.Triple;
+import no.hvl.past.util.Multiplicity;
 
 /**
  * Represents a variable multiplicity [m..n] on the source side.
@@ -9,18 +10,15 @@ import no.hvl.past.graph.elements.Triple;
  */
 public class SourceMultiplicity implements GraphPredicate {
 
-    private final int lowerBound;
-    private final int upperBound;
+    private final Multiplicity multiplicity;
 
-    private SourceMultiplicity(int lowerBound, int upperBound) {
-        this.lowerBound = lowerBound;
-        this.upperBound = upperBound;
+    private SourceMultiplicity(Multiplicity multiplicity) {
+        this.multiplicity = multiplicity;
     }
 
     @Override
     public String nameAsString() {
-        return "[" + (lowerBound < 0 ? "*" : lowerBound + ".." +
-                (upperBound < 0 ? "*" : upperBound + "|s]"));
+        return "[" + multiplicity.toString() + "|s]";
     }
 
     @Override
@@ -30,46 +28,26 @@ public class SourceMultiplicity implements GraphPredicate {
 
     @Override
     public boolean check(GraphMorphism instance) {
-        if (upperBound < 0 && lowerBound <= 0) {
-            return true;
-        } else if (upperBound == 1 && lowerBound == 1) {
-            return Injective.getInstance().check(instance) && Surjective.getInstance().check(instance);
-        } else if (upperBound == 1 && lowerBound <= 0) { // 0..1 -> inj predicate
-            return Injective.getInstance().check(instance);
-        } else if (upperBound < 0 && lowerBound == 1) {  // 1..* -> surj predicate
-            return Surjective.getInstance().check(instance);
-        } else {
-            return instance.allInstances(Universe.ARROW_TRG_NAME).map(Triple::getTarget).allMatch(s -> {
-                long n = instance.allInstances(Universe.ARROW_THE_ARROW).filter(t -> t.getTarget().equals(s)).count();
-                if (lowerBound >= 0 && upperBound >= 0) {
-                    return n >= lowerBound && n <= upperBound;
-                } else if (upperBound <= 0) {
-                    return n >= lowerBound;
-                } else {
-                    return n <= upperBound;
-                }
-            });
-        }
+        return instance.allInstances(Universe.ARROW_TRG_NAME).map(Triple::getTarget).allMatch(t -> {
+            long n = instance.allInstances(Universe.ARROW_THE_ARROW).filter(e -> e.getTarget().equals(t)).count();
+            return multiplicity.isValid(n);
+        });
     }
 
     @Override
     public boolean labelIsEquivalent(GraphPredicate graphPredicate) {
         if (graphPredicate instanceof SourceMultiplicity) {
             SourceMultiplicity sm = (SourceMultiplicity) graphPredicate;
-            return lowerBound == sm.lowerBound && upperBound == sm.upperBound;
+            return this.multiplicity.equals(sm.multiplicity);
         }
         return GraphPredicate.super.labelIsEquivalent(graphPredicate);
     }
 
     public static GraphPredicate getInstance(int lowerBound, int upperBound) {
-        return new SourceMultiplicity(lowerBound, upperBound);
+        return new SourceMultiplicity(Multiplicity.of(lowerBound, upperBound));
     }
 
-    public int getLowerBound() {
-        return lowerBound;
-    }
-
-    public int getUpperBound() {
-        return upperBound;
+    public Multiplicity multiplicity() {
+        return multiplicity;
     }
 }

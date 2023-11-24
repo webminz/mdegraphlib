@@ -1,0 +1,31 @@
+firstname: Hans
+lastname: Hummel
+address:
+  lines:
+    - "Hauptstraße 12"
+    - "12345 Berlin"
+    - "GERMANY"
+  country: DE
+workedAt:
+  - name: "Tante Emma Laden"
+    durationInYears: 2.7
+    country: DE
+  - name: "Die Ausbeuter AG"
+    durationInYears: 4
+    country: DE
+  - name: "Ausbeuter Investments SE"
+    durationInYears: 0.9
+    country: BE
+---
+firstname: Ola
+lastname: Nordmann
+address:
+  lines:
+    - "Ygstebydgvegen 23"
+    - "6969 Ørnøy"
+    - "NORWAY"
+  country: "NO"
+workedAt:
+  - name: "Drikk og Drikk AS"
+    durationInYears: 33
+    country: "NO"

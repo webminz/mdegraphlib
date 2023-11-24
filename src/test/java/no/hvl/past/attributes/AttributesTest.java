@@ -3,11 +3,11 @@ package no.hvl.past.attributes;
 import no.hvl.past.attributes.*;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 public class AttributesTest {
 

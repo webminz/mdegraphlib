@@ -5,13 +5,13 @@ import no.hvl.past.graph.predicates.Acyclicity;
 import no.hvl.past.graph.predicates.SourceMultiplicity;
 import no.hvl.past.graph.predicates.TargetMultiplicity;
 import no.hvl.past.graph.elements.Triple;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class GraphBuildersTest extends TestWithGraphLib {
 

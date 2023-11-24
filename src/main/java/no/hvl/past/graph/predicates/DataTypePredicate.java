@@ -1,5 +1,6 @@
 package no.hvl.past.graph.predicates;
 
+import no.hvl.past.attributes.DataTypeDescription;
 import no.hvl.past.graph.*;
 
 /**
@@ -45,4 +46,7 @@ public class DataTypePredicate implements GraphPredicate {
         return instance;
     }
 
+    public DataTypeDescription description() {
+        return DataTypeDescription.CUSTOM;
+    }
 }

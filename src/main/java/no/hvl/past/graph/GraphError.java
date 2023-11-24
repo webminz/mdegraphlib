@@ -150,7 +150,7 @@ public class GraphError extends RuntimeException {
         private final Tuple trgMapping;
 
         public HomPropertypViolated(Triple domainEdge, Triple codomainEdge, Tuple srcMapping, Tuple lblmapping, Tuple trgMapping) {
-            super("The following elements violate the homomorphism property (node-edge incidence): ...\n");
+            super("The following elements violate the homomorphism property (node-edge incidence):\n");
             this.domainEdge = domainEdge;
             this.codomainEdge = codomainEdge;
             this.srcMapping = srcMapping;

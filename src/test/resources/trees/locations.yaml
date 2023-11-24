@@ -1,0 +1,21 @@
+places:
+  - size: 567.3
+    left: ""
+    right: "/places/1"
+    rooms:
+      - roomNo: "A23"
+        places: 5
+      - roomNo: "A24"
+        places: 3
+  - size: 238.2
+    left: "/places/0"
+    right: "/places/2"
+    rooms:
+      - roomNo: "B61"
+        places: 3
+  - size: 331.9
+    left: "/places/1"
+    right: ""
+    rooms:
+      - roomNo: "C23"
+        places: 4

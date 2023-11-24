@@ -3,9 +3,10 @@ package no.hvl.past.graph;
 import no.hvl.past.graph.elements.Triple;
 import no.hvl.past.graph.elements.Tuple;
 import no.hvl.past.names.Name;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 
 public class ErrorTest {
 
@@ -20,14 +21,14 @@ public class ErrorTest {
         );
         StringBuilder builder = new StringBuilder();
         error.report(builder);
-        assertEquals("The following elements violate the homomorphism property (node-edge incidence):\n" +
-                "(0)------[01]----->(0)\n" +
+        assertEquals("[GRAPH_ERROR] The following elements violate the homomorphism property (node-edge incidence):\n" +
+                "(0)------[01]----->(1)\n" +
                 " |         |         |\n" +
                 " |         |         |\n" +
                 "«0=>A»  «01=>f»  «1=>C»\n" +
                 " |         |         |\n" +
                 " |         |         |\n" +
                 " V         V         V\n" +
-                "(A)------[f]------>(A)\n", builder.toString());
+                "(A)------[f]------>(B)\n", builder.toString());
     }
 }

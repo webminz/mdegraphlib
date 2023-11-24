@@ -1,8 +1,5 @@
 package no.hvl.past.names;
 
-import jdk.nashorn.internal.runtime.options.Option;
-import no.hvl.past.names.Identifier;
-import no.hvl.past.names.PrintingStrategy;
 import no.hvl.past.util.ByteUtils;
 import no.hvl.past.util.ShouldNotHappenException;
 
@@ -11,8 +8,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * A custom implementation Uniform Resource Identificators according to RFC 2396.
@@ -94,5 +89,8 @@ public class URIName extends Identifier {
         return ByteUtils.prefix(Name.URI_IDENTIFIER_BYTE, uriValue.getBytes(StandardCharsets.UTF_8));
     }
 
-
+    @Override
+    public String toString() {
+        return "<" + uriValue + ">";
+    }
 }

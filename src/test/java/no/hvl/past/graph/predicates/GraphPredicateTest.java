@@ -7,9 +7,11 @@ import no.hvl.past.graph.*;
 import no.hvl.past.names.Identifier;
 import no.hvl.past.names.Name;
 import no.hvl.past.names.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 public class GraphPredicateTest extends TestWithGraphLib {
 
