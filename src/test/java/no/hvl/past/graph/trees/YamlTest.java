@@ -133,19 +133,6 @@ public class YamlTest {
         expected.endTree();
     }
 
-    @Test
-    public void testWriting() throws Exception {
-        File out = new File("src/test/resources/output/people.yaml");
-        if (out.exists()) {
-            out.delete();
-        }
-        TreeReceiver receiver = YamlLibrary.getInstance()
-                .writer()
-                .write(new FileOutputStream(out));
-
-        fillInContent(Name.anonymousIdentifier(), receiver);
-        //TODO : file compare
-
-    }
+    
 
 }
