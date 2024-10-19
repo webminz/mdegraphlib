@@ -29,5 +29,9 @@ repositories {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    reports.junitXml.apply {
+        enabled  = true
+        outputLocation = layout.buildDirectory.dir("reports/tests-xml")
+    }
 }
 
