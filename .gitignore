@@ -27,3 +27,5 @@ target
 src/test/resources/output
 build
 .gradle
+
+!/gradle/wrapper/gradle-wrapper.jar
