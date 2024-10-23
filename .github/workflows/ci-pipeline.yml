@@ -26,4 +26,4 @@ jobs:
         if: always()
         with:
           files: |
-            build/resports/tests-xml/**.xml
+            build/reports/tests-xml/**.xml
