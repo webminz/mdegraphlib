@@ -3,6 +3,7 @@ package no.hvl.past;
 import com.google.common.io.Files;
 import no.hvl.past.util.IOStreamUtils;
 import no.hvl.past.util.ShouldNotHappenException;
+import org.junit.jupiter.api.Assertions;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,7 +15,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
 
-import static org.junit.jupiter.api.Assertions.*;
 
 
 public class TestBase {
@@ -97,24 +97,24 @@ public class TestBase {
 
     @SuppressWarnings("UnstableApiUsage")
     public void assertBinaryFileContentAsExpected(File expectedFile, File actualFile) {
-        assertTrue(expectedFile.exists(), "The 'expected' file '" + expectedFile.getAbsolutePath() + "' does not exist! Did you check that your code actually produces this file?");
-        assertTrue(actualFile.exists(), "The 'actual' file '" + actualFile.getAbsolutePath() + "' does not exist! Did you forget to add it?");
+        Assertions.assertTrue(expectedFile.exists(), "The 'expected' file '" + expectedFile.getAbsolutePath() + "' does not exist! Did you check that your code actually produces this file?");
+        Assertions.assertTrue(actualFile.exists(), "The 'actual' file '" + actualFile.getAbsolutePath() + "' does not exist! Did you forget to add it?");
         try {
-            assertTrue(Files.equal(actualFile, expectedFile), "Expected file content does not match");
+            Assertions.assertTrue(Files.equal(actualFile, expectedFile), "Expected file content does not match");
         } catch (IOException e) {
-            fail("Nested exception:" + e.getMessage());
+            Assertions.fail("Nested exception:" + e.getMessage());
             e.printStackTrace();
         }
     }
 
     public void assertTextFileContentAsExpected(File expectedFile, File actualFile) {
-        assertTrue(expectedFile.exists(), "The 'expected' file '" + expectedFile.getAbsolutePath() + "' does not exist! Did you check that your code actually produces this file?");
-        assertTrue(actualFile.exists(), "The 'actual' file '" + actualFile.getAbsolutePath() + "' does not exist! Did you forget to add it?");
+        Assertions.assertTrue(expectedFile.exists(), "The 'expected' file '" + expectedFile.getAbsolutePath() + "' does not exist! Did you check that your code actually produces this file?");
+        Assertions.assertTrue(actualFile.exists(), "The 'actual' file '" + actualFile.getAbsolutePath() + "' does not exist! Did you forget to add it?");
         try (FileInputStream afis = new FileInputStream(actualFile);
              FileInputStream efils =  new FileInputStream(expectedFile)) {
-            assertEquals("Text file content mismatch: ", IOStreamUtils.readInputStreamAsString(efils), IOStreamUtils.readInputStreamAsString(afis));
+            Assertions.assertEquals("Text file content mismatch: ", IOStreamUtils.readInputStreamAsString(efils), IOStreamUtils.readInputStreamAsString(afis));
         } catch (IOException e) {
-            fail("Nested exception: " + e.getMessage());
+            Assertions.fail("Nested exception: " + e.getMessage());
             e.printStackTrace();
         }
     }
