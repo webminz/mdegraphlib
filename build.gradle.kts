@@ -1,6 +1,7 @@
 plugins {
     `java-library`
     `java-test-fixtures`
+    jacoco
 }
 
 java {
@@ -20,7 +21,6 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     implementation("com.google.guava:guava:33.3.1-jre")
     implementation("org.slf4j:slf4j-api:2.0.16")
-    //testImplementation(testFixtures(project(":mdegraphlib")))
     testFixturesCompileOnly("junit:junit:4.13")
     testFixturesCompileOnly("org.junit.jupiter:junit-jupiter:5.8.1")
 
@@ -29,7 +29,6 @@ dependencies {
 repositories {
     mavenCentral()
 }
-
 
 
 tasks.named<Test>("test") {
@@ -43,4 +42,26 @@ tasks.named<Test>("test") {
 val testFixturesImplementation by configurations.existing
 val implementation by configurations.existing
 testFixturesImplementation.get().extendsFrom(implementation.get())
+
+
+
+
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport) // report is always generated after tests run
+}
+tasks.jacocoTestReport {
+    dependsOn(tasks.test) // tests are required to run before generating the report
+}
+
+
+
+tasks.jacocoTestReport {
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = false
+    }
+}
+
+
 
